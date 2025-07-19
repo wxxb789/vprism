@@ -5,7 +5,7 @@ This module contains the fundamental building blocks of the vprism platform,
 including data models, query interfaces, and core abstractions.
 """
 
-from vprism.core.data_router import DataRouter, ProviderScore, RoutingStrategy
+from vprism.core.data_router import DataRouter
 from vprism.core.mock_providers import (
     MockDataProvider,
     AlwaysFailingProvider,
@@ -33,8 +33,6 @@ from vprism.core.provider_registry import (
 
 __all__ = [
     "DataRouter",
-    "ProviderScore",
-    "RoutingStrategy",
     "MockDataProvider",
     "AlwaysFailingProvider", 
     "RateLimitedProvider",

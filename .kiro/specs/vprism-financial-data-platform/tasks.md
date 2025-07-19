@@ -99,7 +99,9 @@
     - 确保所有测试通过，达到 90% 覆盖率
     - _需求: 5.6, 5.8, 1.6_
 
-  - [-] 2.3 实现智能数据路由器（TDD 方式）
+  - [x] 2.3 实现智能数据路由器（TDD 方式）
+
+
 
 
 
@@ -118,7 +120,7 @@
     - 实现 CacheKey 类，支持确定性键生成和智能 TTL 计算
     - 实现 ThreadSafeInMemoryCache（L1），使用 asyncio.Lock 确保线程安全
     - 实现 SimpleDuckDBCache（L2），简化的本地存储缓存
-    - 创建 ImprovedMultiLevelCache，整合 L1 和 L2 缓存层
+    - 创建 MultiLevelCache，整合 L1 和 L2 缓存层
     - 实现基于查询类型的智能 TTL 策略（tick 数据 5 秒，日线数据 1 小时）
     - 编写缓存系统的单元测试，确保 90% 测试覆盖率
     - _需求: 4.4, 10.1, 10.2, 10.4_

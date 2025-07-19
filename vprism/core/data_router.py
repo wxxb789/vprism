@@ -1,10 +1,10 @@
 """
 Intelligent data router for vprism financial data platform.
 
-This module implements the DataRouter class that intelligently selects
-the best data provider for a given query based on various factors like
-availability, performance, cost, and quality. It supports multiple
-routing strategies and includes health monitoring and load balancing.
+This module implements the DataRouter class that provides intelligent routing
+of data queries to the most suitable providers based on capabilities, performance,
+health status, and other factors. Includes provider scoring, fault tolerance,
+and performance monitoring.
 """
 
 from __future__ import annotations
@@ -12,640 +12,429 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from enum import Enum
+import threading
+import time
+from collections import defaultdict
+from datetime import datetime
 from typing import Any
 
-from vprism.core.exceptions import NoAvailableProviderException
-from vprism.core.interfaces import DataProvider
-from vprism.core.models import DataQuery
-from vprism.core.provider_registry import ProviderRegistry
+from vprism.core.exceptions import (
+    NoAvailableProviderException,
+    ProviderException,
+    RateLimitException,
+)
+from vprism.core.models import DataQuery, DataResponse
+from vprism.core.provider_abstraction import (
+    EnhancedDataProvider,
+    EnhancedProviderRegistry,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class RoutingStrategy(str, Enum):
-    """Enumeration of routing strategies."""
+class ProviderPerformanceRecord:
+    """Record of a single provider performance measurement."""
     
-    INTELLIGENT = "intelligent"  # Score-based intelligent routing
-    ROUND_ROBIN = "round_robin"  # Round-robin load balancing
-    RANDOM = "random"  # Random selection
-    WEIGHTED = "weighted"  # Weighted random based on scores
-
-
-@dataclass
-class ProviderScore:
-    """
-    Tracks performance metrics for a data provider.
-    
-    This class maintains statistics about provider performance
-    to enable intelligent routing decisions.
-    """
-    
-    provider: DataProvider
-    total_requests: int = 0
-    successful_requests: int = 0
-    avg_response_time: float = 0.0
-    last_used: datetime | None = None
-    last_error: str | None = None
-    consecutive_failures: int = 0
-    
-    # Weighted moving averages for recent performance
-    recent_success_rate: float = 1.0
-    recent_response_time: float = 0.0
-    
-    # Additional metrics
-    rate_limit_hits: int = 0
-    timeout_count: int = 0
-    
-    @property
-    def success_rate(self) -> float:
-        """Calculate overall success rate."""
-        if self.total_requests == 0:
-            return 1.0  # Default for new providers
-        return self.successful_requests / self.total_requests
-    
-    @success_rate.setter
-    def success_rate(self, value: float) -> None:
-        """Set success rate by adjusting successful_requests (for testing)."""
-        if self.total_requests == 0:
-            self.total_requests = 100  # Default for testing
-        self.successful_requests = int(value * self.total_requests)
-    
-    def update_metrics(self, success: bool, response_time: float, error: str | None = None) -> None:
-        """Update provider metrics with new request data."""
-        self.total_requests += 1
-        self.last_used = datetime.now()
-        
-        if success:
-            self.successful_requests += 1
-            self.consecutive_failures = 0
-            self.last_error = None
-        else:
-            self.consecutive_failures += 1
-            self.last_error = error
-        
-        # Update moving averages (exponential smoothing)
-        alpha = 0.1  # Smoothing factor
-        if self.total_requests == 1:
-            self.avg_response_time = response_time
-            self.recent_response_time = response_time
-            self.recent_success_rate = 1.0 if success else 0.0
-        else:
-            self.avg_response_time = (
-                (1 - alpha) * self.avg_response_time + alpha * response_time
-            )
-            self.recent_response_time = (
-                (1 - alpha) * self.recent_response_time + alpha * response_time
-            )
-            self.recent_success_rate = (
-                (1 - alpha) * self.recent_success_rate + alpha * (1.0 if success else 0.0)
-            )
+    def __init__(self, success: bool, latency_ms: int, timestamp: datetime | None = None):
+        self.success = success
+        self.latency_ms = latency_ms
+        self.timestamp = timestamp or datetime.now()
 
 
 class DataRouter:
     """
-    Intelligent data router for selecting optimal data providers.
+    Intelligent data router for financial data queries.
     
-    The DataRouter implements sophisticated provider selection logic
-    based on multiple factors including performance, availability,
-    and query requirements. It supports various routing strategies
-    and includes health monitoring and load balancing capabilities.
+    Routes queries to the most suitable data providers based on:
+    - Provider capabilities and query requirements
+    - Provider performance scores and historical performance
+    - Provider health status
+    - Data quality and latency requirements
+    
+    Includes fault tolerance with automatic fallback and circuit breaker behavior.
     """
     
-    def __init__(
-        self,
-        registry: ProviderRegistry,
-        routing_strategy: RoutingStrategy = RoutingStrategy.INTELLIGENT,
-        health_check_interval: int = 300,  # 5 minutes
-        max_concurrent_health_checks: int = 10,
-        enable_caching: bool = True,
-        score_decay_factor: float = 0.95,  # For aging old scores
-    ) -> None:
+    def __init__(self, registry: EnhancedProviderRegistry):
         """
-        Initialize the DataRouter.
+        Initialize DataRouter with provider registry.
         
         Args:
-            registry: Provider registry instance
-            routing_strategy: Strategy for provider selection
-            health_check_interval: Interval between health checks (seconds)
-            max_concurrent_health_checks: Max concurrent health checks
-            enable_caching: Whether to cache health check results
-            score_decay_factor: Factor for aging provider scores
+            registry: Enhanced provider registry containing available providers
         """
         self.registry = registry
-        self.routing_strategy = routing_strategy
-        self.health_check_interval = health_check_interval
-        self.max_concurrent_health_checks = max_concurrent_health_checks
-        self.enable_caching = enable_caching
-        self.score_decay_factor = score_decay_factor
+        self._provider_scores: dict[str, float] = {}
+        self._provider_performance_history: dict[str, list[ProviderPerformanceRecord]] = defaultdict(list)
+        self._lock = threading.RLock()  # Reentrant lock for thread safety
         
-        # Provider performance tracking
-        self._provider_scores: dict[str, ProviderScore] = {}
-        self._provider_health_cache: dict[str, dict[str, Any]] = {}
-        
-        # Round-robin state
-        self._round_robin_index = 0
-        
-        # Background tasks
-        self._health_check_task: asyncio.Task | None = None
-        self._score_decay_task: asyncio.Task | None = None
+        # Configuration
+        self._max_history_per_provider = 1000
+        self._min_score = 0.1
+        self._max_score = 2.0
+        self._failure_penalty = -0.2
+        self._success_bonus = 0.1
+        self._latency_penalty_factor = 0.00001  # Penalty per ms of latency
+        self._max_fallback_attempts = 3
     
-    def register_provider(self, provider: DataProvider, config: dict[str, Any] | None = None) -> None:
+    def route_query(self, query: DataQuery) -> EnhancedDataProvider:
         """
-        Register a data provider with the router.
+        Route a query to the most suitable provider.
         
         Args:
-            provider: The data provider to register
-            config: Optional configuration for the provider
-        """
-        self.registry.register_provider(provider, config)
-        self._provider_scores[provider.name] = ProviderScore(provider)
-        logger.info(f"Registered provider with router: {provider.name}")
-    
-    def unregister_provider(self, provider_name: str) -> bool:
-        """
-        Unregister a data provider from the router.
-        
-        Args:
-            provider_name: Name of the provider to unregister
+            query: Data query to route
             
         Returns:
-            bool: True if provider was unregistered, False if not found
-        """
-        result = self.registry.unregister_provider(provider_name)
-        if result:
-            self._provider_scores.pop(provider_name, None)
-            self._provider_health_cache.pop(provider_name, None)
-            logger.info(f"Unregistered provider from router: {provider_name}")
-        return result
-    
-    def get_available_providers(self, query: DataQuery) -> list[DataProvider]:
-        """
-        Get all providers that can handle the given query and are healthy.
-        
-        Args:
-            query: The data query to match against
-            
-        Returns:
-            List of available providers
-        """
-        compatible_providers = self.registry.find_providers(query)
-        
-        # Filter out unhealthy providers
-        healthy_providers = []
-        for provider in compatible_providers:
-            if self._is_provider_healthy_cached(provider):
-                healthy_providers.append(provider)
-        
-        return healthy_providers
-    
-    async def route_query(self, query: DataQuery) -> DataProvider:
-        """
-        Select the best provider for the given query.
-        
-        Args:
-            query: The data query to route
-            
-        Returns:
-            DataProvider: The selected provider
+            Selected data provider
             
         Raises:
-            NoAvailableProviderException: When no suitable provider is found
+            NoAvailableProviderException: If no suitable provider is available
         """
-        # Check for preferred provider in query
-        if query.provider:
-            preferred_provider = self.registry.get_provider(query.provider)
-            if preferred_provider and preferred_provider.can_handle_query(query):
-                if await self._is_provider_healthy(preferred_provider):
-                    logger.debug(f"Using preferred provider: {query.provider}")
-                    return preferred_provider
-                else:
-                    logger.warning(f"Preferred provider {query.provider} is unhealthy, falling back")
-        
-        # Get available providers
-        available_providers = self.get_available_providers(query)
-        
-        if not available_providers:
-            attempted_providers = [p.name for p in self.registry.find_providers(query)]
-            raise NoAvailableProviderException(
-                "No available provider for request",
-                query=query.cache_key(),
-                attempted_providers=attempted_providers,
-                details={
-                    "asset": query.asset.value,
-                    "market": query.market.value if query.market else None,
-                    "provider_count": len(attempted_providers),
-                },
+        with self._lock:
+            # Find providers capable of handling the query
+            capable_providers = self.registry.find_capable_providers(query)
+            
+            if not capable_providers:
+                raise NoAvailableProviderException(
+                    "No capable provider found for query",
+                    query=str(query),
+                    details={"asset": query.asset.value if query.asset else None}
+                )
+            
+            # Select the best provider using scoring algorithm
+            selected_provider = self._select_best_provider(capable_providers, query)
+            
+            logger.debug(
+                f"Routed query to provider {selected_provider.name} "
+                f"(score: {self.get_provider_score(selected_provider.name):.2f})"
             )
-        
-        # Select provider based on strategy
-        selected_provider = await self._select_provider(available_providers, query)
-        
-        # Update provider score for selection (simulated successful routing)
-        await self._update_provider_score(
-            selected_provider.name,
-            success=True,
-            response_time=0.01,  # Minimal time for routing
-            error=None,
-        )
-        
-        logger.debug(
-            f"Selected provider {selected_provider.name} for query "
-            f"(strategy: {self.routing_strategy.value})"
-        )
-        
-        return selected_provider
+            
+            return selected_provider
     
-    async def _select_provider(self, providers: list[DataProvider], query: DataQuery) -> DataProvider:
+    def _select_best_provider(
+        self, 
+        providers: list[EnhancedDataProvider], 
+        query: DataQuery
+    ) -> EnhancedDataProvider:
         """
-        Select a provider from the available list based on routing strategy.
+        Select the best provider from a list of capable providers.
+        
+        Uses a weighted scoring algorithm that considers:
+        - Provider performance score
+        - Data delay/latency
+        - Provider capability match quality
         
         Args:
-            providers: List of available providers
-            query: The data query context
+            providers: List of capable providers
+            query: Original query for context
             
         Returns:
-            Selected DataProvider
+            Best provider based on scoring algorithm
         """
         if len(providers) == 1:
             return providers[0]
         
-        if self.routing_strategy == RoutingStrategy.INTELLIGENT:
-            return await self._select_intelligent(providers, query)
-        elif self.routing_strategy == RoutingStrategy.ROUND_ROBIN:
-            return self._select_round_robin(providers)
-        elif self.routing_strategy == RoutingStrategy.RANDOM:
-            return self._select_random(providers)
-        elif self.routing_strategy == RoutingStrategy.WEIGHTED:
-            return await self._select_weighted(providers, query)
-        else:
-            # Default to intelligent
-            return await self._select_intelligent(providers, query)
-    
-    async def _select_intelligent(self, providers: list[DataProvider], query: DataQuery) -> DataProvider:
-        """Select provider using intelligent scoring algorithm."""
-        best_provider = None
-        best_score = -1.0
+        # Calculate composite scores for each provider
+        provider_scores = []
         
         for provider in providers:
-            score = self._calculate_provider_score(
-                success_rate=self._provider_scores[provider.name].recent_success_rate,
-                avg_response_time=self._provider_scores[provider.name].recent_response_time,
-                total_requests=self._provider_scores[provider.name].total_requests,
-            )
+            # Base performance score
+            performance_score = self.get_provider_score(provider.name)
             
-            if score > best_score:
-                best_score = score
-                best_provider = provider
+            # Data delay penalty (lower delay is better)
+            delay_penalty = provider.capability.data_delay_seconds * 0.01
+            
+            # Capability match quality (exact matches get bonus)
+            capability_bonus = self._calculate_capability_bonus(provider, query)
+            
+            # Composite score
+            composite_score = performance_score - delay_penalty + capability_bonus
+            
+            provider_scores.append((provider, composite_score))
         
-        return best_provider or providers[0]
+        # Sort by composite score (higher is better)
+        provider_scores.sort(key=lambda x: x[1], reverse=True)
+        
+        # Use weighted random selection to add some variety while favoring better providers
+        return self._weighted_random_selection(provider_scores)
     
-    def _select_round_robin(self, providers: list[DataProvider]) -> DataProvider:
-        """Select provider using round-robin algorithm."""
-        provider = providers[self._round_robin_index % len(providers)]
-        self._round_robin_index += 1
-        return provider
+    def _calculate_capability_bonus(self, provider: EnhancedDataProvider, query: DataQuery) -> float:
+        """Calculate bonus score for how well provider capabilities match query."""
+        bonus = 0.0
+        
+        # Bonus for supporting real-time data if query might need it
+        if provider.capability.supports_real_time and not (query.start or query.end):
+            bonus += 0.05
+        
+        # Bonus for higher symbol capacity
+        if query.symbols:
+            symbol_ratio = len(query.symbols) / provider.capability.max_symbols_per_request
+            if symbol_ratio <= 0.5:  # Provider can handle query easily
+                bonus += 0.03
+        
+        return bonus
     
-    def _select_random(self, providers: list[DataProvider]) -> DataProvider:
-        """Select provider randomly."""
-        return random.choice(providers)
-    
-    async def _select_weighted(self, providers: list[DataProvider], query: DataQuery) -> DataProvider:
-        """Select provider using weighted random selection based on scores."""
-        weights = []
-        for provider in providers:
-            score = self._calculate_provider_score(
-                success_rate=self._provider_scores[provider.name].recent_success_rate,
-                avg_response_time=self._provider_scores[provider.name].recent_response_time,
-                total_requests=self._provider_scores[provider.name].total_requests,
-            )
-            weights.append(max(score, 0.1))  # Minimum weight to avoid zero
+    def _weighted_random_selection(self, provider_scores: list[tuple[EnhancedDataProvider, float]]) -> EnhancedDataProvider:
+        """
+        Select provider using weighted random selection based on scores.
+        
+        Higher scored providers have higher probability of selection,
+        but lower scored providers can still be selected occasionally.
+        """
+        if not provider_scores:
+            raise ValueError("No providers to select from")
+        
+        # Normalize scores to positive values for weighting
+        min_score = min(score for _, score in provider_scores)
+        if min_score < 0:
+            provider_scores = [(provider, score - min_score + 0.1) for provider, score in provider_scores]
+        
+        # Calculate weights
+        total_weight = sum(score for _, score in provider_scores)
+        if total_weight <= 0:
+            # Fallback to uniform selection if all scores are zero or negative
+            return random.choice([provider for provider, _ in provider_scores])
         
         # Weighted random selection
-        total_weight = sum(weights)
-        if total_weight == 0:
-            return random.choice(providers)
-        
-        r = random.uniform(0, total_weight)
+        rand_value = random.uniform(0, total_weight)
         cumulative_weight = 0
         
-        for i, weight in enumerate(weights):
-            cumulative_weight += weight
-            if r <= cumulative_weight:
-                return providers[i]
+        for provider, score in provider_scores:
+            cumulative_weight += score
+            if rand_value <= cumulative_weight:
+                return provider
         
-        return providers[-1]  # Fallback
+        # Fallback (should not reach here)
+        return provider_scores[0][0]
     
-    def _calculate_provider_score(
-        self,
-        success_rate: float,
-        avg_response_time: float,
-        total_requests: int,
-    ) -> float:
+    async def execute_query(self, query: DataQuery) -> DataResponse:
         """
-        Calculate a composite score for provider selection.
+        Execute a query with automatic provider selection and fallback.
         
         Args:
-            success_rate: Provider success rate (0.0-1.0)
-            avg_response_time: Average response time in seconds
-            total_requests: Total number of requests made
+            query: Data query to execute
             
         Returns:
-            Composite score (higher is better)
+            Data response from selected provider
+            
+        Raises:
+            NoAvailableProviderException: If all suitable providers fail
         """
-        # Base score from success rate (0-100)
-        score = success_rate * 100
+        attempted_providers = []
+        last_exception = None
         
-        # Penalty for slow response times
-        if avg_response_time > 0:
-            # Logarithmic penalty for response time
-            time_penalty = min(50, 10 * (avg_response_time ** 0.5))
-            score -= time_penalty
-        
-        # Bonus for providers with more experience (up to 20 points)
-        experience_bonus = min(20, total_requests / 100)
-        score += experience_bonus
-        
-        # Ensure score is non-negative
-        return max(0.0, score)
-    
-    async def _is_provider_healthy(self, provider: DataProvider) -> bool:
-        """
-        Check if a provider is healthy, using cache if enabled.
-        
-        Args:
-            provider: Provider to check
-            
-        Returns:
-            bool: True if provider is healthy
-        """
-        if not self.enable_caching:
-            return await self._check_provider_health(provider)
-        
-        provider_name = provider.name
-        now = datetime.now()
-        
-        # Check cache
-        if provider_name in self._provider_health_cache:
-            cache_entry = self._provider_health_cache[provider_name]
-            last_check = cache_entry["last_check"]
-            
-            # Use cached result if not expired
-            if (now - last_check).total_seconds() < self.health_check_interval:
-                return cache_entry["is_healthy"]
-        
-        # Perform health check and cache result
-        is_healthy = await self._check_provider_health(provider)
-        self._provider_health_cache[provider_name] = {
-            "is_healthy": is_healthy,
-            "last_check": now,
-        }
-        
-        return is_healthy
-    
-    def _is_provider_healthy_cached(self, provider: DataProvider) -> bool:
-        """
-        Check provider health using only cached data (non-async).
-        
-        Args:
-            provider: Provider to check
-            
-        Returns:
-            bool: True if provider is healthy (defaults to True if no cache)
-        """
-        if not self.enable_caching:
-            return True  # Assume healthy if caching disabled
-        
-        provider_name = provider.name
-        
-        if provider_name in self._provider_health_cache:
-            cache_entry = self._provider_health_cache[provider_name]
-            now = datetime.now()
-            last_check = cache_entry["last_check"]
-            
-            # Use cached result if not too old
-            if (now - last_check).total_seconds() < self.health_check_interval * 2:
-                return cache_entry["is_healthy"]
-        
-        return True  # Default to healthy if no recent cache
-    
-    async def _check_provider_health(self, provider: DataProvider) -> bool:
-        """
-        Perform actual health check on a provider.
-        
-        Args:
-            provider: Provider to check
-            
-        Returns:
-            bool: True if provider is healthy
-        """
-        try:
-            start_time = datetime.now()
-            is_healthy = await provider.health_check()
-            end_time = datetime.now()
-            
-            response_time = (end_time - start_time).total_seconds()
-            
-            # Cache the health check result
-            if self.enable_caching:
-                self._provider_health_cache[provider.name] = {
-                    "is_healthy": is_healthy,
-                    "last_check": datetime.now(),
-                }
-            
-            # Update provider score with health check result
-            await self._update_provider_score(
-                provider.name,
-                success=is_healthy,
-                response_time=response_time,
-                error=None if is_healthy else "Health check failed",
-            )
-            
-            return is_healthy
-            
-        except Exception as e:
-            logger.warning(f"Health check failed for provider {provider.name}: {e}")
-            
-            # Cache the failure result
-            if self.enable_caching:
-                self._provider_health_cache[provider.name] = {
-                    "is_healthy": False,
-                    "last_check": datetime.now(),
-                }
-            
-            # Update provider score with failure
-            await self._update_provider_score(
-                provider.name,
-                success=False,
-                response_time=0.0,
-                error=str(e),
-            )
-            
-            return False
-    
-    async def check_all_provider_health(self) -> dict[str, bool]:
-        """
-        Check health of all registered providers.
-        
-        Returns:
-            Dictionary mapping provider names to health status
-        """
-        providers = list(self.registry.get_all_providers().values())
-        
-        # Limit concurrent health checks
-        semaphore = asyncio.Semaphore(self.max_concurrent_health_checks)
-        
-        async def check_with_semaphore(provider: DataProvider) -> tuple[str, bool]:
-            async with semaphore:
-                is_healthy = await self._check_provider_health(provider)
-                return provider.name, is_healthy
-        
-        # Execute health checks concurrently
-        tasks = [check_with_semaphore(provider) for provider in providers]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        # Process results
-        health_status = {}
-        for result in results:
-            if isinstance(result, Exception):
-                logger.error(f"Health check task failed: {result}")
+        for attempt in range(self._max_fallback_attempts):
+            try:
+                # Route query to best available provider
+                provider = self.route_query(query)
+                
+                # Skip if we've already tried this provider
+                if provider.name in attempted_providers:
+                    continue
+                
+                attempted_providers.append(provider.name)
+                
+                # Execute query with timing
+                start_time = time.time()
+                response = await provider.get_data(query)
+                end_time = time.time()
+                
+                # Calculate latency
+                latency_ms = int((end_time - start_time) * 1000)
+                
+                # Update provider score for successful request
+                self.update_provider_score(provider.name, success=True, latency_ms=latency_ms)
+                
+                logger.debug(
+                    f"Query executed successfully by {provider.name} "
+                    f"in {latency_ms}ms (attempt {attempt + 1})"
+                )
+                
+                return response
+                
+            except (ProviderException, RateLimitException) as e:
+                last_exception = e
+                
+                # Get provider name from exception or current attempt
+                provider_name = getattr(e, 'details', {}).get('provider')
+                if not provider_name and attempted_providers:
+                    provider_name = attempted_providers[-1]
+                
+                if provider_name:
+                    # Update provider score for failed request
+                    self.update_provider_score(provider_name, success=False, latency_ms=5000)
+                    
+                    # Mark provider as unhealthy after failure
+                    self.registry.update_provider_health(provider_name, False)
+                    
+                    logger.warning(
+                        f"Provider {provider_name} failed (attempt {attempt + 1}): {e}"
+                    )
+                
+                # Continue to next attempt
                 continue
-            
-            provider_name, is_healthy = result
-            health_status[provider_name] = is_healthy
+                
+            except Exception as e:
+                # Unexpected error - log and continue
+                last_exception = e
+                logger.error(f"Unexpected error in query execution (attempt {attempt + 1}): {e}")
+                continue
         
-        logger.info(f"Health check completed for {len(health_status)} providers")
-        return health_status
+        # All attempts failed
+        raise NoAvailableProviderException(
+            "All capable providers failed to execute query",
+            query=str(query),
+            attempted_providers=attempted_providers,
+            details={"last_error": str(last_exception) if last_exception else None}
+        )
     
-    async def _update_provider_score(
-        self,
-        provider_name: str,
-        success: bool,
-        response_time: float,
-        error: str | None = None,
-    ) -> None:
+    def update_provider_score(self, provider_name: str, success: bool, latency_ms: int) -> None:
         """
-        Update provider performance score.
+        Update provider performance score based on request outcome.
         
         Args:
             provider_name: Name of the provider
             success: Whether the request was successful
-            response_time: Response time in seconds
-            error: Error message if request failed
+            latency_ms: Request latency in milliseconds
         """
-        if provider_name not in self._provider_scores:
-            return
-        
-        score = self._provider_scores[provider_name]
-        score.update_metrics(success, response_time, error)
-        
-        logger.debug(
-            f"Updated score for {provider_name}: "
-            f"success_rate={score.success_rate:.3f}, "
-            f"avg_response_time={score.avg_response_time:.3f}s, "
-            f"total_requests={score.total_requests}"
-        )
+        with self._lock:
+            # Get current score
+            current_score = self._provider_scores.get(provider_name, 1.0)
+            
+            # Calculate score delta
+            if success:
+                score_delta = self._success_bonus - (latency_ms * self._latency_penalty_factor)
+            else:
+                score_delta = self._failure_penalty
+            
+            # Update score with bounds
+            new_score = max(self._min_score, min(self._max_score, current_score + score_delta))
+            self._provider_scores[provider_name] = new_score
+            
+            # Record performance history
+            record = ProviderPerformanceRecord(success, latency_ms)
+            self._provider_performance_history[provider_name].append(record)
+            
+            # Cleanup old history to prevent memory leaks
+            self._cleanup_performance_history(provider_name)
+            
+            logger.debug(
+                f"Updated score for {provider_name}: {current_score:.3f} -> {new_score:.3f} "
+                f"(success: {success}, latency: {latency_ms}ms)"
+            )
     
-    def get_provider_statistics(self) -> dict[str, Any]:
+    def _cleanup_performance_history(self, provider_name: str) -> None:
+        """Clean up old performance history to prevent memory leaks."""
+        history = self._provider_performance_history[provider_name]
+        if len(history) > self._max_history_per_provider:
+            # Keep only the most recent records
+            self._provider_performance_history[provider_name] = history[-self._max_history_per_provider:]
+    
+    def get_provider_score(self, provider_name: str) -> float:
         """
-        Get comprehensive statistics about all providers.
+        Get current performance score for a provider.
+        
+        Args:
+            provider_name: Name of the provider
+            
+        Returns:
+            Current performance score (1.0 is neutral)
+        """
+        with self._lock:
+            return self._provider_scores.get(provider_name, 1.0)
+    
+    def get_provider_performance_stats(self, provider_name: str) -> dict[str, Any] | None:
+        """
+        Get detailed performance statistics for a provider.
+        
+        Args:
+            provider_name: Name of the provider
+            
+        Returns:
+            Dictionary with performance statistics or None if no data
+        """
+        with self._lock:
+            history = self._provider_performance_history.get(provider_name, [])
+            if not history:
+                return None
+            
+            # Calculate statistics
+            total_requests = len(history)
+            successful_requests = sum(1 for record in history if record.success)
+            success_rate = successful_requests / total_requests if total_requests > 0 else 0.0
+            
+            latencies = [record.latency_ms for record in history]
+            average_latency = sum(latencies) / len(latencies) if latencies else 0.0
+            min_latency = min(latencies) if latencies else 0.0
+            max_latency = max(latencies) if latencies else 0.0
+            
+            return {
+                "total_requests": total_requests,
+                "successful_requests": successful_requests,
+                "failed_requests": total_requests - successful_requests,
+                "success_rate": success_rate,
+                "average_latency_ms": average_latency,
+                "min_latency_ms": min_latency,
+                "max_latency_ms": max_latency,
+                "current_score": self.get_provider_score(provider_name),
+            }
+    
+    def get_all_provider_stats(self) -> dict[str, dict[str, Any]]:
+        """
+        Get performance statistics for all providers.
         
         Returns:
-            Dictionary containing provider statistics
+            Dictionary mapping provider names to their statistics
         """
-        stats = {
-            "total_providers": len(self._provider_scores),
-            "routing_strategy": self.routing_strategy.value,
-            "health_check_interval": self.health_check_interval,
-            "providers": {},
-        }
-        
-        for provider_name, score in self._provider_scores.items():
-            provider_stats = {
-                "total_requests": score.total_requests,
-                "successful_requests": score.successful_requests,
-                "success_rate": score.success_rate,
-                "avg_response_time": score.avg_response_time,
-                "recent_success_rate": score.recent_success_rate,
-                "recent_response_time": score.recent_response_time,
-                "consecutive_failures": score.consecutive_failures,
-                "last_used": score.last_used.isoformat() if score.last_used else None,
-                "last_error": score.last_error,
-            }
+        with self._lock:
+            stats = {}
             
-            # Add health status if available
-            if provider_name in self._provider_health_cache:
-                health_cache = self._provider_health_cache[provider_name]
-                provider_stats["is_healthy"] = health_cache["is_healthy"]
-                provider_stats["last_health_check"] = health_cache["last_check"].isoformat()
+            # Include all providers from registry
+            for provider_name in self.registry.get_all_providers().keys():
+                provider_stats = self.get_provider_performance_stats(provider_name)
+                if provider_stats is None:
+                    # Provider has no history, create basic stats
+                    provider_stats = {
+                        "total_requests": 0,
+                        "successful_requests": 0,
+                        "failed_requests": 0,
+                        "success_rate": 0.0,
+                        "average_latency_ms": 0.0,
+                        "min_latency_ms": 0.0,
+                        "max_latency_ms": 0.0,
+                        "current_score": self.get_provider_score(provider_name),
+                    }
+                stats[provider_name] = provider_stats
             
-            stats["providers"][provider_name] = provider_stats
-        
-        return stats
+            return stats
     
-    async def start_background_tasks(self) -> None:
-        """Start background tasks for health monitoring and score maintenance."""
-        if self._health_check_task is None:
-            self._health_check_task = asyncio.create_task(self._periodic_health_check())
+    def reset_provider_score(self, provider_name: str) -> None:
+        """
+        Reset a provider's performance score to neutral (1.0).
         
-        if self._score_decay_task is None:
-            self._score_decay_task = asyncio.create_task(self._periodic_score_decay())
-        
-        logger.info("Started DataRouter background tasks")
+        Args:
+            provider_name: Name of the provider to reset
+        """
+        with self._lock:
+            self._provider_scores[provider_name] = 1.0
+            logger.info(f"Reset score for provider {provider_name} to 1.0")
     
-    async def stop_background_tasks(self) -> None:
-        """Stop background tasks."""
-        if self._health_check_task:
-            self._health_check_task.cancel()
-            try:
-                await self._health_check_task
-            except asyncio.CancelledError:
-                pass
-            self._health_check_task = None
-        
-        if self._score_decay_task:
-            self._score_decay_task.cancel()
-            try:
-                await self._score_decay_task
-            except asyncio.CancelledError:
-                pass
-            self._score_decay_task = None
-        
-        logger.info("Stopped DataRouter background tasks")
+    def reset_all_scores(self) -> None:
+        """Reset all provider scores to neutral (1.0)."""
+        with self._lock:
+            for provider_name in self.registry.get_all_providers().keys():
+                self._provider_scores[provider_name] = 1.0
+            logger.info("Reset all provider scores to 1.0")
     
-    async def _periodic_health_check(self) -> None:
-        """Periodic health check background task."""
-        while True:
-            try:
-                await asyncio.sleep(self.health_check_interval)
-                await self.check_all_provider_health()
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                logger.error(f"Error in periodic health check: {e}")
-    
-    async def _periodic_score_decay(self) -> None:
-        """Periodic score decay background task to age old performance data."""
-        while True:
-            try:
-                await asyncio.sleep(3600)  # Run every hour
-                
-                for score in self._provider_scores.values():
-                    # Decay recent metrics to give more weight to current performance
-                    score.recent_success_rate = (
-                        score.recent_success_rate * self.score_decay_factor +
-                        score.success_rate * (1 - self.score_decay_factor)
-                    )
-                    score.recent_response_time = (
-                        score.recent_response_time * self.score_decay_factor +
-                        score.avg_response_time * (1 - self.score_decay_factor)
-                    )
-                
-                logger.debug("Applied score decay to provider metrics")
-                
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                logger.error(f"Error in periodic score decay: {e}")
+    def clear_performance_history(self, provider_name: str | None = None) -> None:
+        """
+        Clear performance history for a provider or all providers.
+        
+        Args:
+            provider_name: Name of provider to clear, or None for all providers
+        """
+        with self._lock:
+            if provider_name:
+                self._provider_performance_history[provider_name].clear()
+                logger.info(f"Cleared performance history for provider {provider_name}")
+            else:
+                self._provider_performance_history.clear()
+                logger.info("Cleared performance history for all providers")

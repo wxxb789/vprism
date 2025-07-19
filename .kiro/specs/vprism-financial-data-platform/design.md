@@ -277,7 +277,7 @@ class DataProvider(ABC):
 
 class ProviderRegistry:
     def __init__(self):
-        self.providers: Dict[str, ImprovedDataProvider] = {}
+        self.providers: Dict[str, DataProvider] = {}
         self.provider_health: Dict[str, bool] = {}
     
     def register(self, provider: DataProvider):
@@ -620,7 +620,7 @@ class SimpleDuckDBCache:
         # 实现缓存键解析逻辑
         pass
 
-class ImprovedMultiLevelCache:
+class MultiLevelCache:
     def __init__(self):
         self.l1_cache = ThreadSafeInMemoryCache(max_size=1000)
         self.l2_cache = SimpleDuckDBCache()
