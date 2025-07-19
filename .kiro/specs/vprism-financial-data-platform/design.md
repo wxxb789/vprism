@@ -112,11 +112,11 @@ graph LR
 #### 1. 统一数据访问层 (Unified Data Access Layer)
 
 ```python
-# 核心接口设计
+# 核心接口设计 - 支持简单和复杂查询
 class DataQuery:
     asset: AssetType
     market: Optional[MarketType] = None
-    provider: Optional[ProviderType] = None
+    provider: Optional[str] = None
     timeframe: Optional[TimeFrame] = None
     start: Optional[datetime] = None
     end: Optional[datetime] = None
@@ -128,13 +128,125 @@ class DataResponse:
     source: ProviderInfo
     cached: bool
     timestamp: datetime
+
+# 简单 API (保持易用性)
+data = vprism.get(asset="stock", market="cn", symbols=["000001"])
+
+# 构建器模式 API (支持复杂查询)
+class QueryBuilder:
+    def __init__(self):
+        self._asset: Optional[AssetType] = None
+        self._market: Optional[MarketType] = None
+        self._symbols: Optional[List[str]] = None
+        self._timeframe: Optional[TimeFrame] = None
+        self._start: Optional[datetime] = None
+        self._end: Optional[datetime] = None
+        self._provider: Optional[str] = None
+    
+    def asset(self, asset: AssetType) -> 'QueryBuilder':
+        self._asset = asset
+        return self
+    
+    def market(self, market: MarketType) -> 'QueryBuilder':
+        self._market = market
+        return self
+    
+    def symbols(self, symbols: List[str]) -> 'QueryBuilder':
+        self._symbols = symbols
+        return self
+    
+    def timeframe(self, timeframe: TimeFrame) -> 'QueryBuilder':
+        self._timeframe = timeframe
+        return self
+    
+    def date_range(self, start: str, end: str) -> 'QueryBuilder':
+        self._start = datetime.fromisoformat(start)
+        self._end = datetime.fromisoformat(end)
+        return self
+    
+    def provider(self, provider: str) -> 'QueryBuilder':
+        self._provider = provider
+        return self
+    
+    def build(self) -> DataQuery:
+        return DataQuery(
+            asset=self._asset,
+            market=self._market,
+            symbols=self._symbols,
+            timeframe=self._timeframe,
+            start=self._start,
+            end=self._end,
+            provider=self._provider
+        )
+
+# 使用示例
+query = (vprism.query()
+    .asset(AssetType.STOCK)
+    .market(MarketType.CN)
+    .symbols(["000001"])
+    .timeframe(TimeFrame.DAY_1)
+    .date_range("2024-01-01", "2024-12-31")
+    .build())
+
+data = await vprism.execute(query)
 ```
 
 #### 2. 提供商抽象层 (Provider Abstraction Layer)
 
 ```python
-# 提供商接口
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Dict, Set, Optional, List
+from enum import Enum
+
+class AuthType(str, Enum):
+    API_KEY = "api_key"
+    BEARER_TOKEN = "bearer_token"
+    BASIC_AUTH = "basic_auth"
+    OAUTH2 = "oauth2"
+    NONE = "none"
+
+@dataclass
+class ProviderCapability:
+    supported_assets: Set[AssetType]
+    supported_markets: Set[MarketType]
+    supported_timeframes: Set[TimeFrame]
+    max_symbols_per_request: int
+    supports_real_time: bool
+    supports_historical: bool
+    data_delay_seconds: int
+
+@dataclass
+class RateLimitConfig:
+    requests_per_minute: int
+    requests_per_hour: int
+    concurrent_requests: int
+    backoff_factor: float = 2.0
+    max_retries: int = 3
+
+@dataclass
+class AuthConfig:
+    auth_type: AuthType
+    credentials: Dict[str, str]  # api_key, username, password, etc.
+
 class DataProvider(ABC):
+    def __init__(self, name: str, auth_config: AuthConfig, rate_limit: RateLimitConfig):
+        self.name = name
+        self.auth_config = auth_config
+        self.rate_limit = rate_limit
+        self._capability: Optional[ProviderCapability] = None
+    
+    @property
+    def capability(self) -> ProviderCapability:
+        if self._capability is None:
+            self._capability = self._discover_capability()
+        return self._capability
+    
+    @abstractmethod
+    def _discover_capability(self) -> ProviderCapability:
+        """发现提供商能力"""
+        pass
+    
     @abstractmethod
     async def get_data(self, query: DataQuery) -> DataResponse:
         pass
@@ -143,37 +255,83 @@ class DataProvider(ABC):
     async def stream_data(self, query: DataQuery) -> AsyncIterator[DataPoint]:
         pass
     
-    @property
-    @abstractmethod
-    def supported_assets(self) -> Set[AssetType]:
-        pass
+    def can_handle_query(self, query: DataQuery) -> bool:
+        """检查提供商是否能处理查询"""
+        cap = self.capability
+        
+        if query.asset and query.asset not in cap.supported_assets:
+            return False
+        if query.market and query.market not in cap.supported_markets:
+            return False
+        if query.timeframe and query.timeframe not in cap.supported_timeframes:
+            return False
+        if query.symbols and len(query.symbols) > cap.max_symbols_per_request:
+            return False
+        
+        return True
     
-    @property
-    @abstractmethod
-    def rate_limits(self) -> RateLimitConfig:
+    async def authenticate(self) -> bool:
+        """与提供商进行身份验证"""
+        # 根据 auth_type 实现不同的认证方式
         pass
+
+class ProviderRegistry:
+    def __init__(self):
+        self.providers: Dict[str, ImprovedDataProvider] = {}
+        self.provider_health: Dict[str, bool] = {}
+    
+    def register(self, provider: DataProvider):
+        self.providers[provider.name] = provider
+        self.provider_health[provider.name] = True
+    
+    def find_capable_providers(self, query: DataQuery) -> List[DataProvider]:
+        """查找能处理此查询的提供商"""
+        capable = []
+        for provider in self.providers.values():
+            if (self.provider_health.get(provider.name, False) and 
+                provider.can_handle_query(query)):
+                capable.append(provider)
+        return capable
+    
+    def mark_unhealthy(self, provider_name: str):
+        self.provider_health[provider_name] = False
+    
+    def mark_healthy(self, provider_name: str):
+        self.provider_health[provider_name] = True
 ```
 
 #### 3. 智能路由器 (Intelligent Router)
 
 ```python
 class DataRouter:
-    def __init__(self, providers: List[DataProvider]):
-        self.providers = providers
-        self.provider_registry = ProviderRegistry(providers)
+    def __init__(self, registry: ProviderRegistry):
+        self.registry = registry
+        self.provider_scores: Dict[str, float] = {}
     
     async def route_query(self, query: DataQuery) -> DataProvider:
-        # 智能选择最佳提供商
-        candidates = self.provider_registry.find_providers(query)
-        return await self.select_best_provider(candidates, query)
+        capable_providers = self.registry.find_capable_providers(query)
+        
+        if not capable_providers:
+            raise NoCapableProviderException(f"No provider can handle query: {query}")
+        
+        # 简单评分：优先选择数据延迟较低的提供商
+        best_provider = min(capable_providers, 
+                          key=lambda p: p.capability.data_delay_seconds)
+        
+        return best_provider
     
-    async def select_best_provider(
-        self, 
-        candidates: List[DataProvider], 
-        query: DataQuery
-    ) -> DataProvider:
-        # 基于延迟、可用性、成本等因素选择
-        pass
+    def update_provider_score(self, provider_name: str, success: bool, latency_ms: int):
+        """更新提供商性能评分"""
+        current_score = self.provider_scores.get(provider_name, 1.0)
+        
+        if success:
+            # 奖励成功和低延迟
+            score_delta = 0.1 - (latency_ms / 10000)  # 高延迟惩罚
+        else:
+            # 失败惩罚
+            score_delta = -0.2
+        
+        self.provider_scores[provider_name] = max(0.1, min(2.0, current_score + score_delta))
 ```
 
 ### 数据模型设计
@@ -271,10 +429,44 @@ graph TD
 #### 缓存实现
 
 ```python
-from typing import Dict, Optional, Any
-from datetime import datetime, timedelta
-import threading
+import hashlib
+from datetime import datetime, timezone, timedelta
+from typing import Optional, Any, Dict
+import asyncio
 from collections import OrderedDict
+
+class CacheKey:
+    def __init__(self, query: DataQuery):
+        self.key = self._generate_key(query)
+        self.ttl = self._calculate_ttl(query)
+    
+    def _generate_key(self, query: DataQuery) -> str:
+        """生成确定性缓存键"""
+        parts = [
+            query.asset.value if query.asset else "any",
+            query.market.value if query.market else "any",
+            "|".join(sorted(query.symbols)) if query.symbols else "all",
+            query.timeframe.value if query.timeframe else "any",
+            query.start.isoformat() if query.start else "",
+            query.end.isoformat() if query.end else "",
+            query.provider or "auto"
+        ]
+        content = "|".join(parts)
+        return hashlib.sha256(content.encode()).hexdigest()[:16]
+    
+    def _calculate_ttl(self, query: DataQuery) -> int:
+        """根据数据类型和时间框架计算 TTL"""
+        if not query.timeframe:
+            return 300  # 5分钟默认
+        
+        ttl_map = {
+            TimeFrame.TICK: 5,      # 5秒
+            TimeFrame.MINUTE_1: 60,  # 1分钟
+            TimeFrame.MINUTE_5: 300, # 5分钟
+            TimeFrame.DAY_1: 3600,   # 1小时
+            TimeFrame.WEEK_1: 86400, # 1天
+        }
+        return ttl_map.get(query.timeframe, 300)
 
 class CacheStrategy(ABC):
     @abstractmethod
@@ -285,265 +477,124 @@ class CacheStrategy(ABC):
     async def set(self, key: str, value: Any, ttl: Optional[int] = None):
         pass
 
-class InMemoryLRUCache:
+class ThreadSafeInMemoryCache:
     """线程安全的内存 LRU 缓存"""
     def __init__(self, max_size: int = 1000):
         self.max_size = max_size
         self.cache: OrderedDict = OrderedDict()
         self.expiry: Dict[str, datetime] = {}
-        self.lock = threading.RLock()
+        self._lock = asyncio.Lock()
     
     async def get(self, key: str) -> Optional[Any]:
-        with self.lock:
-            if key in self.expiry and datetime.now() > self.expiry[key]:
+        async with self._lock:
+            now = datetime.now(timezone.utc)
+            
+            # 检查过期
+            if key in self.expiry and now > self.expiry[key]:
                 self._remove_expired(key)
                 return None
             
             if key in self.cache:
-                # Move to end (most recently used)
+                # 移动到末尾（最近使用）
                 self.cache.move_to_end(key)
                 return self.cache[key]
             return None
     
     async def set(self, key: str, value: Any, ttl: Optional[int] = None):
-        with self.lock:
+        async with self._lock:
+            now = datetime.now(timezone.utc)
+            
             if key in self.cache:
                 self.cache.move_to_end(key)
             else:
                 if len(self.cache) >= self.max_size:
-                    # Remove least recently used
+                    # 移除最少使用的
                     oldest_key = next(iter(self.cache))
                     self._remove_expired(oldest_key)
             
             self.cache[key] = value
             if ttl:
-                self.expiry[key] = datetime.now() + timedelta(seconds=ttl)
+                self.expiry[key] = now + timedelta(seconds=ttl)
     
     def _remove_expired(self, key: str):
         self.cache.pop(key, None)
         self.expiry.pop(key, None)
 
-class DuckDBCache:
-    """DuckDB 本地存储缓存"""
+class SimpleDuckDBCache:
+    """DuckDB 本地存储缓存 - 简化设计"""
     def __init__(self, db_path: str = "vprism_cache.duckdb"):
         self.db_path = db_path
-        self._init_tables()
+        self._init_simple_tables()
     
-    def _init_tables(self):
-        """初始化扁平化数据表结构"""
-        # 统一的蜡烛图数据表（OHLCV）
-        self._create_ohlcv_table()
-        # 资产基础信息表
-        self._create_assets_table()
-        # 实时报价数据表
-        self._create_quotes_table()
-        # 财务数据表
-        self._create_financials_table()
-        # 新闻和公告表
-        self._create_news_table()
-        # 数据提供商元数据表
-        self._create_provider_metadata_table()
-    
-    def _create_ohlcv_table(self):
-        """统一的 OHLCV 蜡烛图数据表"""
-        sql = """
-        CREATE TABLE IF NOT EXISTS ohlcv_data (
-            id BIGINT PRIMARY KEY,
-            symbol VARCHAR(32) NOT NULL,
-            asset_type VARCHAR(16) NOT NULL,  -- stock, etf, bond, futures, etc.
-            market VARCHAR(8) NOT NULL,       -- cn, us, hk, etc.
-            exchange VARCHAR(16),             -- sse, szse, nasdaq, etc.
-            timeframe VARCHAR(8) NOT NULL,    -- 1m, 5m, 1h, 1d, etc.
-            timestamp TIMESTAMP NOT NULL,
-            open_price DECIMAL(18,6),
-            high_price DECIMAL(18,6),
-            low_price DECIMAL(18,6),
-            close_price DECIMAL(18,6),
-            volume DECIMAL(20,2),
-            amount DECIMAL(20,2),             -- 成交额
-            turnover_rate DECIMAL(8,4),       -- 换手率
-            price_change DECIMAL(18,6),       -- 价格变动
-            price_change_pct DECIMAL(8,4),    -- 价格变动百分比
-            provider VARCHAR(32) NOT NULL,    -- 数据来源
-            data_quality_score DECIMAL(3,2),  -- 数据质量评分 0-1
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    def _init_simple_tables(self):
+        """初始化简化的缓存表和优化的数据表结构"""
+        # 简单缓存表
+        cache_sql = """
+        CREATE TABLE IF NOT EXISTS cache_entries (
+            cache_key VARCHAR(32) PRIMARY KEY,
+            data_json TEXT NOT NULL,
+            expires_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         
-        -- 创建复合索引优化查询性能
-        CREATE INDEX IF NOT EXISTS idx_ohlcv_symbol_time 
-        ON ohlcv_data(symbol, timeframe, timestamp DESC);
-        CREATE INDEX IF NOT EXISTS idx_ohlcv_market_asset 
-        ON ohlcv_data(market, asset_type, timestamp DESC);
+        CREATE INDEX IF NOT EXISTS idx_cache_expires 
+        ON cache_entries(expires_at);
         """
-    
-    def _create_assets_table(self):
-        """资产基础信息表"""
-        sql = """
-        CREATE TABLE IF NOT EXISTS assets (
-            id BIGINT PRIMARY KEY,
-            symbol VARCHAR(32) NOT NULL UNIQUE,
+        
+        # 优化的数据表结构 - 按频率和类型分离
+        data_tables_sql = """
+        -- 日线数据表（分区优化）
+        CREATE TABLE IF NOT EXISTS daily_ohlcv (
+            symbol VARCHAR(32) NOT NULL,
+            trade_date DATE NOT NULL,
+            market VARCHAR(8) NOT NULL,
+            open_price DECIMAL(18,6) NOT NULL,
+            high_price DECIMAL(18,6) NOT NULL,
+            low_price DECIMAL(18,6) NOT NULL,
+            close_price DECIMAL(18,6) NOT NULL,
+            volume DECIMAL(20,2) NOT NULL,
+            amount DECIMAL(20,2),
+            provider VARCHAR(32) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (symbol, trade_date, market)
+        );
+
+        -- 分钟级数据表
+        CREATE TABLE IF NOT EXISTS intraday_ohlcv (
+            symbol VARCHAR(32) NOT NULL,
+            timestamp TIMESTAMP NOT NULL,
+            market VARCHAR(8) NOT NULL,
+            timeframe VARCHAR(8) NOT NULL, -- 1m, 5m, 15m, 1h
+            open_price DECIMAL(18,6) NOT NULL,
+            high_price DECIMAL(18,6) NOT NULL,
+            low_price DECIMAL(18,6) NOT NULL,
+            close_price DECIMAL(18,6) NOT NULL,
+            volume DECIMAL(20,2) NOT NULL,
+            provider VARCHAR(32) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (symbol, timestamp, timeframe, market)
+        );
+
+        -- 资产信息表
+        CREATE TABLE IF NOT EXISTS asset_info (
+            symbol VARCHAR(32) NOT NULL,
+            market VARCHAR(8) NOT NULL,
             name VARCHAR(256),
-            full_name VARCHAR(512),
             asset_type VARCHAR(16) NOT NULL,
-            market VARCHAR(8) NOT NULL,
-            exchange VARCHAR(16),
             currency VARCHAR(8),
-            sector VARCHAR(64),
-            industry VARCHAR(128),
-            country VARCHAR(8),
-            isin VARCHAR(32),              -- 国际证券识别码
-            cusip VARCHAR(16),             -- 美国证券识别码
-            listing_date DATE,
-            delisting_date DATE,
+            exchange VARCHAR(16),
             is_active BOOLEAN DEFAULT TRUE,
-            market_cap DECIMAL(20,2),      -- 市值
-            shares_outstanding DECIMAL(20,2), -- 流通股本
             provider VARCHAR(32) NOT NULL,
-            metadata_json TEXT,            -- 额外元数据 JSON
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (symbol, market)
         );
-        
-        CREATE INDEX IF NOT EXISTS idx_assets_type_market 
-        ON assets(asset_type, market, is_active);
-        CREATE INDEX IF NOT EXISTS idx_assets_sector 
-        ON assets(sector, industry);
-        """
-    
-    def _create_quotes_table(self):
-        """实时报价数据表"""
-        sql = """
-        CREATE TABLE IF NOT EXISTS real_time_quotes (
-            id BIGINT PRIMARY KEY,
-            symbol VARCHAR(32) NOT NULL,
-            asset_type VARCHAR(16) NOT NULL,
-            market VARCHAR(8) NOT NULL,
-            timestamp TIMESTAMP NOT NULL,
-            current_price DECIMAL(18,6),
-            bid_price DECIMAL(18,6),
-            ask_price DECIMAL(18,6),
-            bid_size DECIMAL(20,2),
-            ask_size DECIMAL(20,2),
-            volume_today DECIMAL(20,2),
-            amount_today DECIMAL(20,2),
-            high_today DECIMAL(18,6),
-            low_today DECIMAL(18,6),
-            open_today DECIMAL(18,6),
-            prev_close DECIMAL(18,6),
-            price_change DECIMAL(18,6),
-            price_change_pct DECIMAL(8,4),
-            turnover_rate DECIMAL(8,4),
-            pe_ratio DECIMAL(8,2),
-            pb_ratio DECIMAL(8,2),
-            provider VARCHAR(32) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        
-        CREATE INDEX IF NOT EXISTS idx_quotes_symbol_time 
-        ON real_time_quotes(symbol, timestamp DESC);
-        """
-    
-    def _create_financials_table(self):
-        """财务数据表（扁平化设计）"""
-        sql = """
-        CREATE TABLE IF NOT EXISTS financial_data (
-            id BIGINT PRIMARY KEY,
-            symbol VARCHAR(32) NOT NULL,
-            report_date DATE NOT NULL,
-            report_type VARCHAR(16) NOT NULL,  -- annual, quarterly
-            fiscal_year INTEGER,
-            fiscal_quarter INTEGER,
-            
-            -- 资产负债表数据
-            total_assets DECIMAL(20,2),
-            total_liabilities DECIMAL(20,2),
-            shareholders_equity DECIMAL(20,2),
-            current_assets DECIMAL(20,2),
-            current_liabilities DECIMAL(20,2),
-            cash_and_equivalents DECIMAL(20,2),
-            
-            -- 利润表数据
-            total_revenue DECIMAL(20,2),
-            gross_profit DECIMAL(20,2),
-            operating_income DECIMAL(20,2),
-            net_income DECIMAL(20,2),
-            ebitda DECIMAL(20,2),
-            eps DECIMAL(8,4),               -- 每股收益
-            
-            -- 现金流量表数据
-            operating_cash_flow DECIMAL(20,2),
-            investing_cash_flow DECIMAL(20,2),
-            financing_cash_flow DECIMAL(20,2),
-            free_cash_flow DECIMAL(20,2),
-            
-            -- 财务比率
-            roe DECIMAL(8,4),               -- 净资产收益率
-            roa DECIMAL(8,4),               -- 总资产收益率
-            debt_to_equity DECIMAL(8,4),    -- 负债权益比
-            current_ratio DECIMAL(8,4),     -- 流动比率
-            
-            provider VARCHAR(32) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        
-        CREATE INDEX IF NOT EXISTS idx_financials_symbol_date 
-        ON financial_data(symbol, report_date DESC);
-        """
-    
-    def _create_news_table(self):
-        """新闻和公告数据表"""
-        sql = """
-        CREATE TABLE IF NOT EXISTS news_data (
-            id BIGINT PRIMARY KEY,
-            symbol VARCHAR(32),              -- 可为空，表示市场级别新闻
-            title VARCHAR(512) NOT NULL,
-            content TEXT,
-            summary VARCHAR(1024),
-            publish_time TIMESTAMP NOT NULL,
-            source VARCHAR(128),
-            author VARCHAR(128),
-            category VARCHAR(64),            -- earnings, merger, regulatory, etc.
-            sentiment_score DECIMAL(3,2),    -- 情感分析得分 -1 到 1
-            importance_score DECIMAL(3,2),   -- 重要性得分 0 到 1
-            url VARCHAR(512),
-            language VARCHAR(8) DEFAULT 'zh',
-            provider VARCHAR(32) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        
-        CREATE INDEX IF NOT EXISTS idx_news_symbol_time 
-        ON news_data(symbol, publish_time DESC);
-        CREATE INDEX IF NOT EXISTS idx_news_category 
-        ON news_data(category, publish_time DESC);
-        """
-    
-    def _create_provider_metadata_table(self):
-        """数据提供商元数据表"""
-        sql = """
-        CREATE TABLE IF NOT EXISTS provider_metadata (
-            id BIGINT PRIMARY KEY,
-            provider_name VARCHAR(32) NOT NULL,
-            data_type VARCHAR(32) NOT NULL,   -- ohlcv, quote, financial, news
-            symbol VARCHAR(32),
-            last_update TIMESTAMP,
-            update_frequency INTEGER,         -- 更新频率（秒）
-            data_delay INTEGER,              -- 数据延迟（秒）
-            quality_score DECIMAL(3,2),      -- 数据质量评分
-            cost_per_request DECIMAL(10,6),  -- 每次请求成本
-            rate_limit_per_minute INTEGER,
-            is_active BOOLEAN DEFAULT TRUE,
-            error_count INTEGER DEFAULT 0,
-            success_count INTEGER DEFAULT 0,
-            last_error_time TIMESTAMP,
-            last_error_message TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        
-        CREATE INDEX IF NOT EXISTS idx_provider_meta 
-        ON provider_metadata(provider_name, data_type, symbol);
+
+        -- 优化的索引
+        CREATE INDEX IF NOT EXISTS idx_daily_ohlcv_date ON daily_ohlcv(trade_date DESC);
+        CREATE INDEX IF NOT EXISTS idx_daily_ohlcv_symbol ON daily_ohlcv(symbol, trade_date DESC);
+        CREATE INDEX IF NOT EXISTS idx_intraday_timestamp ON intraday_ohlcv(timestamp DESC);
+        CREATE INDEX IF NOT EXISTS idx_intraday_symbol_time ON intraday_ohlcv(symbol, timestamp DESC);
+        CREATE INDEX IF NOT EXISTS idx_asset_type ON asset_info(asset_type, market);
         """
     
     async def get(self, key: str) -> Optional[Any]:
@@ -569,36 +620,34 @@ class DuckDBCache:
         # 实现缓存键解析逻辑
         pass
 
-class MultiLevelCache:
+class ImprovedMultiLevelCache:
     def __init__(self):
-        self.l1_cache = InMemoryLRUCache(max_size=1000)  # 内存缓存
-        self.l2_cache = DuckDBCache()  # 本地数据库缓存
+        self.l1_cache = ThreadSafeInMemoryCache(max_size=1000)
+        self.l2_cache = SimpleDuckDBCache()
     
     async def get_data(self, query: DataQuery) -> Optional[DataResponse]:
-        # 先查 L1 内存缓存
-        cache_key = query.cache_key()
-        result = await self.l1_cache.get(cache_key)
+        cache_key_obj = CacheKey(query)
+        
+        # 尝试 L1 缓存
+        result = await self.l1_cache.get(cache_key_obj.key)
         if result:
             return result
         
-        # 再查 L2 数据库缓存
-        result = await self.l2_cache.get(cache_key)
+        # 尝试 L2 缓存
+        result = await self.l2_cache.get(cache_key_obj.key)
         if result:
-            # 回填到 L1 缓存
-            await self.l1_cache.set(cache_key, result, ttl=300)  # 5分钟
+            # 回填到 L1
+            await self.l1_cache.set(cache_key_obj.key, result, ttl=300)
             return result
         
         return None
     
     async def set_data(self, query: DataQuery, data: DataResponse):
-        cache_key = query.cache_key()
+        cache_key_obj = CacheKey(query)
         
-        # 存储到 L1 缓存（实时数据）
-        if query.is_realtime():
-            await self.l1_cache.set(cache_key, data, ttl=60)  # 1分钟
-        
-        # 存储到 L2 缓存（历史数据）
-        await self.l2_cache.set(cache_key, data)
+        # 使用适当的 TTL 存储到两个级别
+        await self.l1_cache.set(cache_key_obj.key, data, ttl=cache_key_obj.ttl)
+        await self.l2_cache.set(cache_key_obj.key, data, ttl=cache_key_obj.ttl * 10)
 ```
 
 ## 错误处理
