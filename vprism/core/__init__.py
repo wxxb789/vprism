@@ -6,6 +6,14 @@ including data models, query interfaces, and core abstractions.
 """
 
 from vprism.core.data_router import IntelligentDataRouter
+from vprism.core.mock_providers import (
+    MockDataProvider,
+    AlwaysFailingProvider,
+    RateLimitedProvider,
+    SlowProvider,
+    SpecializedProvider,
+    create_test_provider_suite,
+)
 from vprism.core.provider_registry import (
     ProviderRegistry,
     find_providers,
@@ -16,6 +24,12 @@ from vprism.core.provider_registry import (
 
 __all__ = [
     "IntelligentDataRouter",
+    "MockDataProvider",
+    "AlwaysFailingProvider", 
+    "RateLimitedProvider",
+    "SlowProvider",
+    "SpecializedProvider",
+    "create_test_provider_suite",
     "ProviderRegistry",
     "find_providers", 
     "get_global_registry",
