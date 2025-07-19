@@ -311,6 +311,24 @@ class TestDataQuery:
 
         assert query.symbols == ["AAPL", "GOOGL", "MSFT"]
 
+    def test_symbols_with_empty_strings(self):
+        """Test symbols list with empty strings are filtered out."""
+        query = DataQuery(asset=AssetType.STOCK, symbols=["AAPL", "", "  ", "GOOGL"])
+
+        assert query.symbols == ["AAPL", "GOOGL"]
+
+    def test_symbols_all_empty_strings(self):
+        """Test symbols list with all empty strings raises validation error."""
+        with pytest.raises(ValidationError) as exc_info:
+            DataQuery(asset=AssetType.STOCK, symbols=["", "  ", "   "])
+
+        assert "Symbols list cannot be empty if provided" in str(exc_info.value)
+
+    def test_symbols_none(self):
+        """Test symbols can be None."""
+        query = DataQuery(asset=AssetType.STOCK, symbols=None)
+        assert query.symbols is None
+
     def test_empty_symbols_validation(self):
         """Test empty symbols list validation."""
         with pytest.raises(ValidationError) as exc_info:

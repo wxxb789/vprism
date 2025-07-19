@@ -13,7 +13,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, field_serializer
 
 
 class AssetType(str, Enum):
@@ -97,7 +97,6 @@ class DataPoint(BaseModel):
 
     model_config = ConfigDict(
         validate_assignment=True,
-        json_encoders={Decimal: str, datetime: lambda v: v.isoformat()},
     )
 
     @field_validator("symbol")
@@ -115,6 +114,16 @@ class DataPoint(BaseModel):
         if v > datetime.now():
             raise ValueError("Timestamp cannot be in the future")
         return v
+
+    @field_serializer("open", "high", "low", "close", "volume", "amount", when_used="json")
+    def serialize_decimal(self, value: Decimal | None) -> str | None:
+        """Serialize Decimal fields to string for JSON."""
+        return str(value) if value is not None else None
+
+    @field_serializer("timestamp", when_used="json")
+    def serialize_timestamp(self, value: datetime) -> str:
+        """Serialize timestamp to ISO format for JSON."""
+        return value.isoformat()
 
 
 class Asset(BaseModel):
@@ -192,7 +201,10 @@ class DataQuery(BaseModel):
             return v
         if not v:
             raise ValueError("Symbols list cannot be empty if provided")
-        return [s.strip().upper() for s in v if s.strip()]
+        cleaned_symbols = [s.strip().upper() for s in v if s.strip()]
+        if not cleaned_symbols:
+            raise ValueError("Symbols list cannot be empty if provided")
+        return cleaned_symbols
 
     @field_validator("start", "end")
     @classmethod
