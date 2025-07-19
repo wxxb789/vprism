@@ -1,29 +1,29 @@
 # 实施计划
 
-- [ ] 1. 建立项目基础架构和核心接口
-  - 创建现代 Python 项目结构，使用 uv 包管理器
-  - 设置 TDD 开发环境（pytest, pytest-cov, pytest-asyncio）
-  - 配置代码质量工具（ruff, mypy）和 CI/CD 管道，目标 90% 测试覆盖率
-  - 定义核心领域模型和接口（Asset, DataQuery, DataResponse 等）
-  - 为每个接口编写测试规范，采用测试驱动开发方法
+- [x] 1. 建立项目基础架构和核心接口
+  - [x] 创建现代 Python 项目结构，使用 uv 包管理器
+  - [x] 设置 TDD 开发环境（pytest, pytest-cov, pytest-asyncio）
+  - [x] 配置代码质量工具（ruff, mypy）和 CI/CD 管道，目标 90% 测试覆盖率
+  - [x] 定义核心领域模型和接口（Asset, DataQuery, DataResponse 等）
+  - [x] 为每个接口编写测试规范，采用测试驱动开发方法
   - _需求: 2.1, 2.7, 2.9, 2.10, 2.11, 2.12_
 
-- [ ] 2. 实现核心数据抽象层
-  - [ ] 2.1 创建统一数据模型和验证（TDD 方式）
-    - 先编写数据模型的测试用例，定义预期行为
-    - 实现 Pydantic 数据模型（DataPoint, Asset, DataQuery, DataResponse）
-    - 创建枚举类型（AssetType, MarketType, TimeFrame）
-    - 实现数据验证和序列化逻辑，确保所有测试通过
-    - 达到 90% 测试覆盖率
+- [x] 2. 实现核心数据抽象层
+  - [x] 2.1 创建统一数据模型和验证（TDD 方式）
+    - [x] 先编写数据模型的测试用例，定义预期行为
+    - [x] 实现 Pydantic 数据模型（DataPoint, Asset, DataQuery, DataResponse）
+    - [x] 创建枚举类型（AssetType, MarketType, TimeFrame）
+    - [x] 实现数据验证和序列化逻辑，确保所有测试通过
+    - [x] 达到 100% 测试覆盖率
     - _需求: 1.3, 2.3, 6.1, 6.3_
-  - [ ] 2.2 实现数据提供商抽象接口（TDD 方式）
-    - 先编写提供商接口的测试规范和 Mock 实现
-    - 创建 DataProvider 抽象基类，包含能力发现机制
-    - 实现 ProviderCapability、AuthConfig、RateLimitConfig 数据类
-    - 创建 ProviderRegistry 用于提供商注册和健康状态管理
-    - 实现提供商能力查询和查询匹配逻辑（can_handle_query）
-    - 添加多种认证类型支持（API_KEY、BEARER_TOKEN、OAUTH2 等）
-    - 确保所有测试通过，达到 90% 覆盖率
+  - [x] 2.2 实现数据提供商抽象接口（TDD 方式）
+    - [x] 先编写提供商接口的测试规范和 Mock 实现
+    - [x] 创建 DataProvider 抽象基类，包含能力发现机制
+    - [x] 实现 ProviderCapability、AuthConfig、RateLimitConfig 数据类
+    - [x] 创建 ProviderRegistry 用于提供商注册和健康状态管理
+    - [x] 实现提供商能力查询和查询匹配逻辑（can_handle_query）
+    - [x] 添加多种认证类型支持（API_KEY、BEARER_TOKEN、OAUTH2 等）
+    - [x] 确保所有测试通过，达到 90% 覆盖率
     - _需求: 5.6, 5.8, 1.6_
 
   - [ ] 2.3 实现智能数据路由器（TDD 方式）
