@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv init:*)",
+      "Bash(uv add:*)",
+      "Bash(mkdir:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(node:*)"
+    ],
+    "deny": [],
+    "allowedTools": [
+      "*"
+    ],
+    "autoAcceptEdits": true,
+    "autoAcceptCommands": true
+  }
+}
