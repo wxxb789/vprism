@@ -14,6 +14,15 @@ from vprism.core.mock_providers import (
     SpecializedProvider,
     create_test_provider_suite,
 )
+from vprism.core.provider_abstraction import (
+    AuthConfig,
+    AuthType,
+    EnhancedDataProvider,
+    EnhancedProviderRegistry,
+    ProviderCapability,
+    RateLimitConfig,
+    create_mock_provider,
+)
 from vprism.core.provider_registry import (
     ProviderRegistry,
     find_providers,
@@ -32,6 +41,13 @@ __all__ = [
     "SlowProvider",
     "SpecializedProvider",
     "create_test_provider_suite",
+    "AuthConfig",
+    "AuthType",
+    "EnhancedDataProvider",
+    "EnhancedProviderRegistry",
+    "ProviderCapability",
+    "RateLimitConfig",
+    "create_mock_provider",
     "ProviderRegistry",
     "find_providers", 
     "get_global_registry",
