@@ -255,25 +255,27 @@ class Asset(BaseModel):
 ```mermaid
 graph TD
     subgraph "缓存层次"
-        L1[L1: 内存缓存<br/>Redis/内存<br/>< 1秒数据]
-        L2[L2: 本地存储<br/>DuckDB<br/>历史数据]
-        L3[L3: 分布式存储<br/>对象存储<br/>长期归档]
+        L1[L1: 内存缓存<br/>Python Dict/LRU<br/>实时数据]
+        L2[L2: 本地存储<br/>DuckDB/SQLite<br/>历史数据]
     end
     
     subgraph "缓存策略"
         HOT[热数据<br/>实时价格<br/>高频访问]
-        WARM[温数据<br/>日线数据<br/>中频访问]
-        COLD[冷数据<br/>历史数据<br/>低频访问]
+        WARM[温数据<br/>历史数据<br/>中低频访问]
     end
     
     HOT --> L1
     WARM --> L2
-    COLD --> L3
 ```
 
 #### 缓存实现
 
 ```python
+from typing import Dict, Optional, Any
+from datetime import datetime, timedelta
+import threading
+from collections import OrderedDict
+
 class CacheStrategy(ABC):
     @abstractmethod
     async def get(self, key: str) -> Optional[Any]:
@@ -283,20 +285,320 @@ class CacheStrategy(ABC):
     async def set(self, key: str, value: Any, ttl: Optional[int] = None):
         pass
 
+class InMemoryLRUCache:
+    """线程安全的内存 LRU 缓存"""
+    def __init__(self, max_size: int = 1000):
+        self.max_size = max_size
+        self.cache: OrderedDict = OrderedDict()
+        self.expiry: Dict[str, datetime] = {}
+        self.lock = threading.RLock()
+    
+    async def get(self, key: str) -> Optional[Any]:
+        with self.lock:
+            if key in self.expiry and datetime.now() > self.expiry[key]:
+                self._remove_expired(key)
+                return None
+            
+            if key in self.cache:
+                # Move to end (most recently used)
+                self.cache.move_to_end(key)
+                return self.cache[key]
+            return None
+    
+    async def set(self, key: str, value: Any, ttl: Optional[int] = None):
+        with self.lock:
+            if key in self.cache:
+                self.cache.move_to_end(key)
+            else:
+                if len(self.cache) >= self.max_size:
+                    # Remove least recently used
+                    oldest_key = next(iter(self.cache))
+                    self._remove_expired(oldest_key)
+            
+            self.cache[key] = value
+            if ttl:
+                self.expiry[key] = datetime.now() + timedelta(seconds=ttl)
+    
+    def _remove_expired(self, key: str):
+        self.cache.pop(key, None)
+        self.expiry.pop(key, None)
+
+class DuckDBCache:
+    """DuckDB 本地存储缓存"""
+    def __init__(self, db_path: str = "vprism_cache.duckdb"):
+        self.db_path = db_path
+        self._init_tables()
+    
+    def _init_tables(self):
+        """初始化扁平化数据表结构"""
+        # 统一的蜡烛图数据表（OHLCV）
+        self._create_ohlcv_table()
+        # 资产基础信息表
+        self._create_assets_table()
+        # 实时报价数据表
+        self._create_quotes_table()
+        # 财务数据表
+        self._create_financials_table()
+        # 新闻和公告表
+        self._create_news_table()
+        # 数据提供商元数据表
+        self._create_provider_metadata_table()
+    
+    def _create_ohlcv_table(self):
+        """统一的 OHLCV 蜡烛图数据表"""
+        sql = """
+        CREATE TABLE IF NOT EXISTS ohlcv_data (
+            id BIGINT PRIMARY KEY,
+            symbol VARCHAR(32) NOT NULL,
+            asset_type VARCHAR(16) NOT NULL,  -- stock, etf, bond, futures, etc.
+            market VARCHAR(8) NOT NULL,       -- cn, us, hk, etc.
+            exchange VARCHAR(16),             -- sse, szse, nasdaq, etc.
+            timeframe VARCHAR(8) NOT NULL,    -- 1m, 5m, 1h, 1d, etc.
+            timestamp TIMESTAMP NOT NULL,
+            open_price DECIMAL(18,6),
+            high_price DECIMAL(18,6),
+            low_price DECIMAL(18,6),
+            close_price DECIMAL(18,6),
+            volume DECIMAL(20,2),
+            amount DECIMAL(20,2),             -- 成交额
+            turnover_rate DECIMAL(8,4),       -- 换手率
+            price_change DECIMAL(18,6),       -- 价格变动
+            price_change_pct DECIMAL(8,4),    -- 价格变动百分比
+            provider VARCHAR(32) NOT NULL,    -- 数据来源
+            data_quality_score DECIMAL(3,2),  -- 数据质量评分 0-1
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        -- 创建复合索引优化查询性能
+        CREATE INDEX IF NOT EXISTS idx_ohlcv_symbol_time 
+        ON ohlcv_data(symbol, timeframe, timestamp DESC);
+        CREATE INDEX IF NOT EXISTS idx_ohlcv_market_asset 
+        ON ohlcv_data(market, asset_type, timestamp DESC);
+        """
+    
+    def _create_assets_table(self):
+        """资产基础信息表"""
+        sql = """
+        CREATE TABLE IF NOT EXISTS assets (
+            id BIGINT PRIMARY KEY,
+            symbol VARCHAR(32) NOT NULL UNIQUE,
+            name VARCHAR(256),
+            full_name VARCHAR(512),
+            asset_type VARCHAR(16) NOT NULL,
+            market VARCHAR(8) NOT NULL,
+            exchange VARCHAR(16),
+            currency VARCHAR(8),
+            sector VARCHAR(64),
+            industry VARCHAR(128),
+            country VARCHAR(8),
+            isin VARCHAR(32),              -- 国际证券识别码
+            cusip VARCHAR(16),             -- 美国证券识别码
+            listing_date DATE,
+            delisting_date DATE,
+            is_active BOOLEAN DEFAULT TRUE,
+            market_cap DECIMAL(20,2),      -- 市值
+            shares_outstanding DECIMAL(20,2), -- 流通股本
+            provider VARCHAR(32) NOT NULL,
+            metadata_json TEXT,            -- 额外元数据 JSON
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE INDEX IF NOT EXISTS idx_assets_type_market 
+        ON assets(asset_type, market, is_active);
+        CREATE INDEX IF NOT EXISTS idx_assets_sector 
+        ON assets(sector, industry);
+        """
+    
+    def _create_quotes_table(self):
+        """实时报价数据表"""
+        sql = """
+        CREATE TABLE IF NOT EXISTS real_time_quotes (
+            id BIGINT PRIMARY KEY,
+            symbol VARCHAR(32) NOT NULL,
+            asset_type VARCHAR(16) NOT NULL,
+            market VARCHAR(8) NOT NULL,
+            timestamp TIMESTAMP NOT NULL,
+            current_price DECIMAL(18,6),
+            bid_price DECIMAL(18,6),
+            ask_price DECIMAL(18,6),
+            bid_size DECIMAL(20,2),
+            ask_size DECIMAL(20,2),
+            volume_today DECIMAL(20,2),
+            amount_today DECIMAL(20,2),
+            high_today DECIMAL(18,6),
+            low_today DECIMAL(18,6),
+            open_today DECIMAL(18,6),
+            prev_close DECIMAL(18,6),
+            price_change DECIMAL(18,6),
+            price_change_pct DECIMAL(8,4),
+            turnover_rate DECIMAL(8,4),
+            pe_ratio DECIMAL(8,2),
+            pb_ratio DECIMAL(8,2),
+            provider VARCHAR(32) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE INDEX IF NOT EXISTS idx_quotes_symbol_time 
+        ON real_time_quotes(symbol, timestamp DESC);
+        """
+    
+    def _create_financials_table(self):
+        """财务数据表（扁平化设计）"""
+        sql = """
+        CREATE TABLE IF NOT EXISTS financial_data (
+            id BIGINT PRIMARY KEY,
+            symbol VARCHAR(32) NOT NULL,
+            report_date DATE NOT NULL,
+            report_type VARCHAR(16) NOT NULL,  -- annual, quarterly
+            fiscal_year INTEGER,
+            fiscal_quarter INTEGER,
+            
+            -- 资产负债表数据
+            total_assets DECIMAL(20,2),
+            total_liabilities DECIMAL(20,2),
+            shareholders_equity DECIMAL(20,2),
+            current_assets DECIMAL(20,2),
+            current_liabilities DECIMAL(20,2),
+            cash_and_equivalents DECIMAL(20,2),
+            
+            -- 利润表数据
+            total_revenue DECIMAL(20,2),
+            gross_profit DECIMAL(20,2),
+            operating_income DECIMAL(20,2),
+            net_income DECIMAL(20,2),
+            ebitda DECIMAL(20,2),
+            eps DECIMAL(8,4),               -- 每股收益
+            
+            -- 现金流量表数据
+            operating_cash_flow DECIMAL(20,2),
+            investing_cash_flow DECIMAL(20,2),
+            financing_cash_flow DECIMAL(20,2),
+            free_cash_flow DECIMAL(20,2),
+            
+            -- 财务比率
+            roe DECIMAL(8,4),               -- 净资产收益率
+            roa DECIMAL(8,4),               -- 总资产收益率
+            debt_to_equity DECIMAL(8,4),    -- 负债权益比
+            current_ratio DECIMAL(8,4),     -- 流动比率
+            
+            provider VARCHAR(32) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE INDEX IF NOT EXISTS idx_financials_symbol_date 
+        ON financial_data(symbol, report_date DESC);
+        """
+    
+    def _create_news_table(self):
+        """新闻和公告数据表"""
+        sql = """
+        CREATE TABLE IF NOT EXISTS news_data (
+            id BIGINT PRIMARY KEY,
+            symbol VARCHAR(32),              -- 可为空，表示市场级别新闻
+            title VARCHAR(512) NOT NULL,
+            content TEXT,
+            summary VARCHAR(1024),
+            publish_time TIMESTAMP NOT NULL,
+            source VARCHAR(128),
+            author VARCHAR(128),
+            category VARCHAR(64),            -- earnings, merger, regulatory, etc.
+            sentiment_score DECIMAL(3,2),    -- 情感分析得分 -1 到 1
+            importance_score DECIMAL(3,2),   -- 重要性得分 0 到 1
+            url VARCHAR(512),
+            language VARCHAR(8) DEFAULT 'zh',
+            provider VARCHAR(32) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE INDEX IF NOT EXISTS idx_news_symbol_time 
+        ON news_data(symbol, publish_time DESC);
+        CREATE INDEX IF NOT EXISTS idx_news_category 
+        ON news_data(category, publish_time DESC);
+        """
+    
+    def _create_provider_metadata_table(self):
+        """数据提供商元数据表"""
+        sql = """
+        CREATE TABLE IF NOT EXISTS provider_metadata (
+            id BIGINT PRIMARY KEY,
+            provider_name VARCHAR(32) NOT NULL,
+            data_type VARCHAR(32) NOT NULL,   -- ohlcv, quote, financial, news
+            symbol VARCHAR(32),
+            last_update TIMESTAMP,
+            update_frequency INTEGER,         -- 更新频率（秒）
+            data_delay INTEGER,              -- 数据延迟（秒）
+            quality_score DECIMAL(3,2),      -- 数据质量评分
+            cost_per_request DECIMAL(10,6),  -- 每次请求成本
+            rate_limit_per_minute INTEGER,
+            is_active BOOLEAN DEFAULT TRUE,
+            error_count INTEGER DEFAULT 0,
+            success_count INTEGER DEFAULT 0,
+            last_error_time TIMESTAMP,
+            last_error_message TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE INDEX IF NOT EXISTS idx_provider_meta 
+        ON provider_metadata(provider_name, data_type, symbol);
+        """
+    
+    async def get(self, key: str) -> Optional[Any]:
+        """从 DuckDB 查询缓存数据"""
+        # 解析缓存键，确定查询类型和参数
+        query_info = self._parse_cache_key(key)
+        
+        if query_info['data_type'] == 'ohlcv':
+            return await self._get_ohlcv_data(query_info)
+        elif query_info['data_type'] == 'quote':
+            return await self._get_quote_data(query_info)
+        # ... 其他数据类型
+        
+        return None
+    
+    async def set(self, key: str, value: Any, ttl: Optional[int] = None):
+        """存储数据到 DuckDB"""
+        # 根据数据类型存储到相应表
+        pass
+    
+    def _parse_cache_key(self, key: str) -> Dict[str, Any]:
+        """解析缓存键获取查询信息"""
+        # 实现缓存键解析逻辑
+        pass
+
 class MultiLevelCache:
     def __init__(self):
-        self.l1_cache = RedisCache()  # 实时数据
-        self.l2_cache = DuckDBCache()  # 历史数据
-        self.l3_cache = ObjectStorageCache()  # 归档数据
+        self.l1_cache = InMemoryLRUCache(max_size=1000)  # 内存缓存
+        self.l2_cache = DuckDBCache()  # 本地数据库缓存
     
     async def get_data(self, query: DataQuery) -> Optional[DataResponse]:
-        # 按层级查找缓存
+        # 先查 L1 内存缓存
+        cache_key = query.cache_key()
+        result = await self.l1_cache.get(cache_key)
+        if result:
+            return result
+        
+        # 再查 L2 数据库缓存
+        result = await self.l2_cache.get(cache_key)
+        if result:
+            # 回填到 L1 缓存
+            await self.l1_cache.set(cache_key, result, ttl=300)  # 5分钟
+            return result
+        
+        return None
+    
+    async def set_data(self, query: DataQuery, data: DataResponse):
+        cache_key = query.cache_key()
+        
+        # 存储到 L1 缓存（实时数据）
         if query.is_realtime():
-            return await self.l1_cache.get(query.cache_key())
-        elif query.is_recent():
-            return await self.l2_cache.get(query.cache_key())
-        else:
-            return await self.l3_cache.get(query.cache_key())
+            await self.l1_cache.set(cache_key, data, ttl=60)  # 1分钟
+        
+        # 存储到 L2 缓存（历史数据）
+        await self.l2_cache.set(cache_key, data)
 ```
 
 ## 错误处理
@@ -536,11 +838,17 @@ async def get_market_data(
     query = DataQuery(asset=asset, market=market, symbols=symbols)
     return await service.get_data(query)
 
-@app.websocket("/api/v1/stream")
-async def stream_data(websocket: WebSocket):
-    await websocket.accept()
-    # 实时数据流实现
-    pass
+@app.get("/api/v1/assets")
+async def list_assets(
+    asset_type: Optional[AssetType] = None,
+    market: Optional[MarketType] = None,
+    service: DataService = Depends(get_data_service)
+):
+    return await service.list_assets(asset_type, market)
+
+@app.get("/api/v1/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": datetime.utcnow()}
 ```
 
 ### 3. MCP 模式 (Model Context Protocol)
@@ -668,14 +976,11 @@ dependencies = [
     # HTTP 客户端
     "httpx>=0.25.0",
     
-    # 异步支持
-    "asyncio-mqtt>=0.13.0",
-    "aioredis>=2.0.0",
-    
-    # 数据处理
+    # 数据处理和存储
     "pandas>=2.1.0",
     "polars>=0.19.0",
     "duckdb>=0.9.0",
+    "sqlite3",  # 内置，用作备选存储
     
     # 命令行
     "typer>=0.9.0",
@@ -753,28 +1058,41 @@ class DataPipeline:
         return await loader.load(clean_data)
 ```
 
-### 实时数据流处理
+### 批量数据处理管道
 
 ```python
-class RealTimeDataStream:
-    def __init__(self, broker_url: str):
-        self.broker = MessageBroker(broker_url)
-        self.subscribers = {}
+class BatchDataProcessor:
+    def __init__(self, cache: MultiLevelCache):
+        self.cache = cache
+        self.batch_size = 1000
     
-    async def subscribe(self, query: DataQuery) -> AsyncIterator[DataPoint]:
-        topic = self.generate_topic(query)
+    async def process_batch(self, queries: List[DataQuery]) -> List[DataResponse]:
+        """批量处理数据查询，优化性能"""
+        results = []
         
-        async for message in self.broker.subscribe(topic):
-            data_point = self.deserialize_message(message)
-            yield data_point
+        # 按提供商分组查询
+        grouped_queries = self._group_by_provider(queries)
+        
+        for provider, provider_queries in grouped_queries.items():
+            batch_results = await self._process_provider_batch(provider, provider_queries)
+            results.extend(batch_results)
+        
+        return results
     
-    async def publish(self, data_point: DataPoint):
-        topic = self.generate_topic_from_data(data_point)
-        message = self.serialize_data_point(data_point)
-        await self.broker.publish(topic, message)
+    async def _process_provider_batch(self, provider: str, queries: List[DataQuery]) -> List[DataResponse]:
+        """处理单个提供商的批量查询"""
+        # 实现批量查询逻辑，减少 API 调用次数
+        pass
     
-    def generate_topic(self, query: DataQuery) -> str:
-        return f"vprism.{query.asset}.{query.market}.{query.timeframe}"
+    def _group_by_provider(self, queries: List[DataQuery]) -> Dict[str, List[DataQuery]]:
+        """按数据提供商分组查询"""
+        groups = {}
+        for query in queries:
+            provider = query.provider or "auto"
+            if provider not in groups:
+                groups[provider] = []
+            groups[provider].append(query)
+        return groups
 ```
 
 ### 监控和可观测性
