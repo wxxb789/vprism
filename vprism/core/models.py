@@ -8,7 +8,7 @@ for validation and serialization.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import Any
@@ -111,11 +111,15 @@ class DataPoint(BaseModel):
     @classmethod
     def validate_timestamp(cls, v: datetime) -> datetime:
         """Validate timestamp is not in the future."""
-        if v > datetime.now():
+        # Get current time with same timezone awareness as input
+        now = datetime.now(timezone.utc) if v.tzinfo else datetime.now()
+        if v > now:
             raise ValueError("Timestamp cannot be in the future")
         return v
 
-    @field_serializer("open", "high", "low", "close", "volume", "amount", when_used="json")
+    @field_serializer(
+        "open", "high", "low", "close", "volume", "amount", when_used="json"
+    )
     def serialize_decimal(self, value: Decimal | None) -> str | None:
         """Serialize Decimal fields to string for JSON."""
         return str(value) if value is not None else None

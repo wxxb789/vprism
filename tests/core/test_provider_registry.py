@@ -82,7 +82,7 @@ class TestProviderRegistry:
     def test_provider_registry_initialization(self):
         """Test provider registry initialization."""
         registry = ProviderRegistry()
-        
+
         assert registry.get_all_providers() == {}
         stats = registry.get_provider_statistics()
         assert stats["total_providers"] == 0
@@ -135,7 +135,7 @@ class TestProviderRegistry:
     def test_register_provider_empty_name(self):
         """Test registering provider with empty name raises exception."""
         registry = ProviderRegistry()
-        
+
         class EmptyNameProvider(MockDataProvider):
             @property
             def name(self) -> str:
@@ -157,7 +157,7 @@ class TestProviderRegistry:
         assert "test_provider" in registry.get_all_providers()
 
         result = registry.unregister_provider("test_provider")
-        
+
         assert result is True
         assert "test_provider" not in registry.get_all_providers()
         assert registry.get_provider("test_provider") is None
@@ -167,7 +167,7 @@ class TestProviderRegistry:
         registry = ProviderRegistry()
 
         result = registry.unregister_provider("nonexistent")
-        
+
         assert result is False
 
     def test_get_provider_existing(self):
@@ -208,26 +208,20 @@ class TestProviderRegistry:
     def test_find_providers_by_query(self):
         """Test finding providers by query."""
         registry = ProviderRegistry()
-        
+
         # Provider that can handle stocks
         stock_provider = MockDataProvider(
-            "stock_provider", 
-            supported_assets={AssetType.STOCK},
-            can_handle=True
+            "stock_provider", supported_assets={AssetType.STOCK}, can_handle=True
         )
-        
+
         # Provider that can handle bonds
         bond_provider = MockDataProvider(
-            "bond_provider", 
-            supported_assets={AssetType.BOND},
-            can_handle=True
+            "bond_provider", supported_assets={AssetType.BOND}, can_handle=True
         )
-        
+
         # Provider that cannot handle queries
         disabled_provider = MockDataProvider(
-            "disabled_provider",
-            supported_assets={AssetType.STOCK},
-            can_handle=False
+            "disabled_provider", supported_assets={AssetType.STOCK}, can_handle=False
         )
 
         registry.register_provider(stock_provider)
@@ -251,13 +245,13 @@ class TestProviderRegistry:
     def test_find_providers_excludes_unhealthy(self):
         """Test that unhealthy providers are excluded from search."""
         registry = ProviderRegistry()
-        
+
         healthy_provider = MockDataProvider("healthy", is_healthy=True)
         unhealthy_provider = MockDataProvider("unhealthy", is_healthy=False)
 
         registry.register_provider(healthy_provider)
         registry.register_provider(unhealthy_provider)
-        
+
         # Mark unhealthy provider as unhealthy
         registry.update_provider_health("unhealthy", False)
 
@@ -270,7 +264,7 @@ class TestProviderRegistry:
     def test_find_providers_by_asset(self):
         """Test finding providers by asset type."""
         registry = ProviderRegistry()
-        
+
         stock_provider = MockDataProvider("stock", {AssetType.STOCK})
         bond_provider = MockDataProvider("bond", {AssetType.BOND})
         multi_provider = MockDataProvider("multi", {AssetType.STOCK, AssetType.ETF})
@@ -364,7 +358,7 @@ class TestProviderRegistry:
         provider = MockDataProvider("test_provider")
 
         registry.register_provider(provider)
-        
+
         # Initially healthy
         assert registry._provider_health["test_provider"] is True
 
@@ -387,7 +381,7 @@ class TestProviderRegistry:
     async def test_check_all_provider_health(self):
         """Test checking health of all providers."""
         registry = ProviderRegistry()
-        
+
         healthy_provider = MockDataProvider("healthy", is_healthy=True)
         unhealthy_provider = MockDataProvider("unhealthy", is_healthy=False)
 
@@ -405,7 +399,7 @@ class TestProviderRegistry:
     async def test_check_provider_health_with_exception(self):
         """Test health check handling provider exceptions."""
         registry = ProviderRegistry()
-        
+
         class FailingProvider(MockDataProvider):
             async def health_check(self) -> bool:
                 raise Exception("Health check failed")
@@ -421,7 +415,7 @@ class TestProviderRegistry:
     def test_get_healthy_providers(self):
         """Test getting only healthy providers."""
         registry = ProviderRegistry()
-        
+
         healthy1 = MockDataProvider("healthy1")
         healthy2 = MockDataProvider("healthy2")
         unhealthy = MockDataProvider("unhealthy")
@@ -429,7 +423,7 @@ class TestProviderRegistry:
         registry.register_provider(healthy1)
         registry.register_provider(healthy2)
         registry.register_provider(unhealthy)
-        
+
         # Mark one as unhealthy
         registry.update_provider_health("unhealthy", False)
 
@@ -443,7 +437,7 @@ class TestProviderRegistry:
     def test_get_provider_statistics(self):
         """Test getting provider statistics."""
         registry = ProviderRegistry()
-        
+
         stock_provider = MockDataProvider("stock", {AssetType.STOCK})
         bond_provider = MockDataProvider("bond", {AssetType.BOND})
         multi_provider = MockDataProvider("multi", {AssetType.STOCK, AssetType.ETF})
@@ -451,7 +445,7 @@ class TestProviderRegistry:
         registry.register_provider(stock_provider)
         registry.register_provider(bond_provider)
         registry.register_provider(multi_provider)
-        
+
         # Mark one as unhealthy
         registry.update_provider_health("bond", False)
 
@@ -461,14 +455,16 @@ class TestProviderRegistry:
         assert stats["healthy_providers"] == 2
         assert stats["unhealthy_providers"] == 1
         assert stats["asset_coverage"][AssetType.STOCK.value] == 2
-        assert stats["asset_coverage"][AssetType.BOND.value] == 0  # Unhealthy provider excluded
+        assert (
+            stats["asset_coverage"][AssetType.BOND.value] == 0
+        )  # Unhealthy provider excluded
         assert stats["asset_coverage"][AssetType.ETF.value] == 1
         assert set(stats["provider_names"]) == {"stock", "bond", "multi"}
 
     def test_sort_providers_by_preference(self):
         """Test provider sorting by preference."""
         registry = ProviderRegistry()
-        
+
         provider_z = MockDataProvider("z_provider")
         provider_a = MockDataProvider("a_provider")
         provider_m = MockDataProvider("m_provider")
@@ -516,7 +512,7 @@ class TestGlobalRegistry:
         assert get_global_registry().get_provider("global_test") is not None
 
         result = unregister_provider("global_test")
-        
+
         assert result is True
         assert get_global_registry().get_provider("global_test") is None
 
@@ -525,7 +521,7 @@ class TestGlobalRegistry:
         provider = MockDataProvider("global_test", {AssetType.STOCK})
 
         register_provider(provider)
-        
+
         query = DataQuery(asset=AssetType.STOCK)
         providers = find_providers(query)
 
@@ -545,12 +541,12 @@ class TestProviderRegistryIntegration:
             "lifecycle_test",
             supported_assets={AssetType.STOCK, AssetType.BOND},
             can_handle=True,
-            is_healthy=True
+            is_healthy=True,
         )
         config = {
             "api_key": "test_key",
             "base_url": "https://api.test.com",
-            "timeout": 30
+            "timeout": 30,
         }
 
         # 1. Register provider
@@ -591,19 +587,21 @@ class TestProviderRegistryIntegration:
     async def test_health_monitoring_integration(self):
         """Test health monitoring integration."""
         registry = ProviderRegistry()
-        
+
         # Create providers with different health states
         always_healthy = MockDataProvider("always_healthy", is_healthy=True)
         always_unhealthy = MockDataProvider("always_unhealthy", is_healthy=False)
-        
+
         class FlakeyProvider(MockDataProvider):
             def __init__(self):
                 super().__init__("flakey")
                 self.health_calls = 0
-            
+
             async def health_check(self) -> bool:
                 self.health_calls += 1
-                return self.health_calls % 2 == 1  # Alternates between healthy/unhealthy
+                return (
+                    self.health_calls % 2 == 1
+                )  # Alternates between healthy/unhealthy
 
         flakey = FlakeyProvider()
 

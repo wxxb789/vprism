@@ -37,7 +37,7 @@ from vprism.core.models import (
 class MockDataProvider(DataProvider):
     """
     Comprehensive mock data provider for testing.
-    
+
     This mock provider can simulate various scenarios including:
     - Successful data retrieval
     - Rate limiting
@@ -61,7 +61,7 @@ class MockDataProvider(DataProvider):
     ):
         """
         Initialize mock data provider.
-        
+
         Args:
             name: Provider name
             supported_assets: Set of supported asset types
@@ -84,7 +84,7 @@ class MockDataProvider(DataProvider):
         self._failure_rate = failure_rate
         self._request_count = 0
         self._last_reset = datetime.now()
-        
+
         self._info = ProviderInfo(
             name=name,
             version=version,
@@ -111,33 +111,33 @@ class MockDataProvider(DataProvider):
     async def get_data(self, query: DataQuery) -> DataResponse:
         """
         Retrieve data based on the provided query.
-        
+
         Args:
             query: The data query specification
-            
+
         Returns:
             DataResponse containing the requested data
-            
+
         Raises:
             ProviderException: When provider-specific errors occur
             ValidationException: When query validation fails
             RateLimitException: When rate limit is exceeded
         """
         await self._check_preconditions(query)
-        
+
         if self._simulate_delay:
             await asyncio.sleep(random.uniform(0.1, 0.5))
-        
+
         # Generate mock data
         data_points = self._generate_mock_data(query)
-        
+
         metadata = ResponseMetadata(
             execution_time_ms=random.uniform(50, 200),
             record_count=len(data_points),
             cache_hit=False,
             data_quality_score=random.uniform(0.8, 1.0),
         )
-        
+
         return DataResponse(
             data=data_points,
             metadata=metadata,
@@ -148,39 +148,39 @@ class MockDataProvider(DataProvider):
     async def stream_data(self, query: DataQuery) -> AsyncIterator[DataPoint]:
         """
         Stream real-time data based on the provided query.
-        
+
         Args:
             query: The data query specification
-            
+
         Yields:
             DataPoint: Individual data points as they become available
-            
+
         Raises:
             ProviderException: When provider-specific errors occur
             ValidationException: When query validation fails
         """
         await self._check_preconditions(query)
-        
+
         # Simulate streaming data
         symbols = query.symbols or ["MOCK001", "MOCK002"]
-        
+
         for i in range(10):  # Stream 10 data points
             if self._simulate_delay:
                 await asyncio.sleep(random.uniform(0.1, 1.0))
-            
+
             for symbol in symbols:
                 yield self._generate_single_data_point(symbol)
 
     async def health_check(self) -> bool:
         """
         Check if the provider is healthy and available.
-        
+
         Returns:
             bool: True if provider is healthy, False otherwise
         """
         if self._simulate_delay:
             await asyncio.sleep(random.uniform(0.01, 0.1))
-        
+
         # Simulate occasional health check failures
         if random.random() < (1 - self._failure_rate):
             return self._is_healthy
@@ -190,31 +190,31 @@ class MockDataProvider(DataProvider):
     def can_handle_query(self, query: DataQuery) -> bool:
         """
         Check if this provider can handle the given query.
-        
+
         Args:
             query: The data query to evaluate
-            
+
         Returns:
             bool: True if provider can handle the query
         """
         if not self._can_handle:
             return False
-        
+
         # Check asset type support
         if query.asset not in self._supported_assets:
             return False
-        
+
         # Check market support
         if query.market and query.market not in self._supported_markets:
             return False
-        
+
         return True
 
     async def _check_preconditions(self, query: DataQuery) -> None:
         """Check preconditions before processing query."""
         # Check rate limiting
         await self._check_rate_limit()
-        
+
         # Simulate random failures
         if random.random() < self._failure_rate:
             raise ProviderException(
@@ -223,7 +223,7 @@ class MockDataProvider(DataProvider):
                 error_code="PROVIDER_FAILURE",
                 details={"query": query.cache_key()},
             )
-        
+
         # Validate query
         if not self.can_handle_query(query):
             raise ValidationException(
@@ -240,16 +240,18 @@ class MockDataProvider(DataProvider):
     async def _check_rate_limit(self) -> None:
         """Check and enforce rate limiting."""
         now = datetime.now()
-        
+
         # Reset counter every minute
         if (now - self._last_reset).total_seconds() >= 60:
             self._request_count = 0
             self._last_reset = now
-        
+
         self._request_count += 1
-        
+
         if self._request_count > self._rate_limit:
-            retry_after = int((self._last_reset + timedelta(minutes=1) - now).total_seconds())
+            retry_after = int(
+                (self._last_reset + timedelta(minutes=1) - now).total_seconds()
+            )
             raise RateLimitException(
                 provider=self._name,
                 retry_after=retry_after,
@@ -264,22 +266,24 @@ class MockDataProvider(DataProvider):
         """Generate mock data points based on query."""
         symbols = query.symbols or ["MOCK001"]
         limit = query.limit or 100
-        
+
         data_points = []
         base_time = query.start or (datetime.now() - timedelta(days=30))
-        
+
         for i in range(min(limit, 1000)):  # Cap at 1000 points
             for symbol in symbols:
                 timestamp = base_time + timedelta(days=i)
                 if query.end and timestamp > query.end:
                     break
-                
+
                 # Ensure timestamp is in the past
                 if timestamp > datetime.now():
-                    timestamp = datetime.now() - timedelta(minutes=random.randint(1, 60))
-                
+                    timestamp = datetime.now() - timedelta(
+                        minutes=random.randint(1, 60)
+                    )
+
                 data_points.append(self._generate_single_data_point(symbol, timestamp))
-        
+
         return data_points
 
     def _generate_single_data_point(
@@ -289,10 +293,10 @@ class MockDataProvider(DataProvider):
         if timestamp is None:
             # Use a past timestamp to avoid validation errors
             timestamp = datetime.now() - timedelta(minutes=random.randint(1, 60))
-        
+
         base_price = Decimal("100.00")
         volatility = Decimal("0.02")  # 2% volatility
-        
+
         # Generate realistic OHLCV data
         open_price = base_price + Decimal(str(random.uniform(-5, 5)))
         high_price = open_price + Decimal(str(random.uniform(0, 3)))
@@ -300,7 +304,7 @@ class MockDataProvider(DataProvider):
         close_price = open_price + Decimal(str(random.uniform(-2, 2)))
         volume = Decimal(str(random.randint(100000, 10000000)))
         amount = close_price * volume
-        
+
         return DataPoint(
             symbol=symbol,
             timestamp=timestamp,
@@ -418,7 +422,7 @@ MOCK_MULTI_ASSET_PROVIDER = MockDataProvider(
 def create_test_provider_suite() -> dict[str, DataProvider]:
     """
     Create a comprehensive suite of test providers.
-    
+
     Returns:
         Dictionary mapping provider names to provider instances
     """
@@ -431,5 +435,7 @@ def create_test_provider_suite() -> dict[str, DataProvider]:
         "rate_limited": RateLimitedProvider(),
         "slow_provider": SlowProvider(),
         "cn_stocks": SpecializedProvider("cn_stocks", AssetType.STOCK, MarketType.CN),
-        "us_options": SpecializedProvider("us_options", AssetType.OPTIONS, MarketType.US),
+        "us_options": SpecializedProvider(
+            "us_options", AssetType.OPTIONS, MarketType.US
+        ),
     }
