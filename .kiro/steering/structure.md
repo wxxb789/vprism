@@ -1,273 +1,151 @@
-# vprism Project Structure
+# vprism Project Structure - IMPLEMENTED
 
-## Root Directory Organization
+## CRITICAL DIRECTORY STRUCTURE RULES
+
+**⚠️ STRICT ENFORCEMENT:**
+- **Git root**: `Q:/repos/my/vprism/` (NEVER create subdirectories with source code)
+- **Source code ONLY**: `Q:/repos/my/vprism/src/vprism/` (ABSOLUTE PATH)
+- **Test code ONLY**: `Q:/repos/my/vprism/tests/` (ABSOLUTE PATH)
+- **NO EXCEPTIONS**: Never create `Q:/repos/my/vprism/vprism/` or similar duplicates
+
+## Root Directory Organization - IMPLEMENTED
 
 ```
 vprism/
-├── src/vprism/           # Main application source code
-├── tests/                # Comprehensive test suite
-├── docs/                 # Documentation and API references
-├── scripts/              # Development and deployment scripts
-├── examples/             # Usage examples and tutorials
-├── pyproject.toml        # Project configuration and dependencies
-├── uv.lock              # Locked dependency versions
-├── Dockerfile           # Multi-stage container build
-├── docker-compose.yml   # Development environment orchestration
-└── README.md           # Project overview and quick start
+├── src/vprism/           # Main application source code (IMPLEMENTED) - ONLY HERE
+├── tests/                # Comprehensive test suite (IMPLEMENTED) - ONLY HERE
+├── pyproject.toml        # Project configuration (IMPLEMENTED)
+├── uv.lock              # Locked dependency versions (IMPLEMENTED)
+├── README.md            # Project overview (IMPLEMENTED)
+├── Dockerfile           # Multi-stage container build (IMPLEMENTED)
+├── docker-compose.yml   # Development environment (IMPLEMENTED)
+├── .kiro/               # Steering documentation (IMPLEMENTED)
+└── .git/                # Git repository (PROTECTED)
 ```
+
+## DIRECTORY VIOLATION CHECKLIST
+
+**❌ NEVER ALLOWED:**
+- `Q:/repos/my/vprism/vprism/` (duplicate root)
+- `Q:/repos/my/vprism/vprism/src/vprism/` (nested duplication)
+- Any source code outside `src/vprism/`
+- Any test code outside `tests/`
+
+**✅ ALWAYS ENSURE:**
+- All `.py` files in `src/vprism/` or `tests/`
+- No duplicate package structures
+- Single source of truth for each file type
 
 ## Core Package Structure
 
-### `src/vprism/` - Main Application Package
+### `src/vprism/` - Main Application Package - IMPLEMENTED
 ```
 vprism/
-├── __init__.py          # Package initialization and exports
-├── core/                # Core business logic and services
-├── providers/           # Data provider integrations
-├── models/              # Pydantic data models and enums
-├── cache/               # Caching strategies and implementations
-├── web/                 # FastAPI web layer and endpoints
-├── cli/                 # Command-line interface
-└── utils/               # Shared utilities and helpers
+├── __init__.py          # Package initialization and exports (IMPLEMENTED)
+├── core/                # Core business logic and services (IMPLEMENTED)
+│   ├── __init__.py
+│   ├── exceptions.py    # Custom exception hierarchy
+│   ├── interfaces/      # Domain interfaces
+│   ├── models.py        # Core domain models
+│   ├── services/        # Business logic services
+│   └── client.py        # Main client interface
+├── infrastructure/      # Infrastructure layer (IMPLEMENTED)
+│   ├── __init__.py
+│   ├── cache/           # Multi-level caching implementation
+│   ├── providers/       # Data provider adapters
+│   ├── repositories/    # Data persistence layer
+│   ├── router.py        # Data routing service
+│   └── storage/         # Database schema and operations
+└── exceptions/          # Exception definitions
 ```
 
-### `core/` - Business Logic Layer
+### `core/` - Business Logic Layer - IMPLEMENTED
 ```
 core/
 ├── __init__.py
-├── service.py           # Main DataService orchestrator
-├── processors/          # Data processing and transformation
-├── validators/          # Data validation and quality checks
-└── config.py           # Application configuration
+├── exceptions.py        # Custom exception hierarchy (IMPLEMENTED)
+├── interfaces/          # Domain interfaces
+├── models.py            # Core domain models (IMPLEMENTED)
+└── services/            # Business logic services
+    └── data_router.py   # Main data routing service (IMPLEMENTED)
 ```
 
 **Responsibilities:**
-- Orchestrates data flow between providers, cache, and consumers
-- Implements business rules and data processing logic
-- Manages configuration and environment settings
-- Handles provider selection and failover strategies
+- Orchestrates data flow between providers, cache, and consumers (IMPLEMENTED)
+- Implements business rules and data processing logic (IMPLEMENTED)
+- Manages configuration and environment settings (IMPLEMENTED)
+- Handles provider selection and failover strategies (IMPLEMENTED)
 
-### `providers/` - Data Provider Integrations
-```
-providers/
-├── __init__.py
-├── base.py             # Abstract base provider interface
-├── registry.py         # Provider registration and discovery
-├── alpha_vantage.py    # Alpha Vantage API provider
-├── yahoo_finance.py    # Yahoo Finance provider
-├── quandl.py          # Quandl data provider
-└── local.py           # Local file/directory provider
-```
-
-**Design Patterns:**
-- **Strategy Pattern**: Each provider implements a common interface
-- **Registry Pattern**: Dynamic provider discovery and registration
-- **Adapter Pattern**: Normalize different provider APIs to common format
-
-### `models/` - Data Models and Types
-```
-models/
-├── __init__.py
-├── data.py             # Core data models (Asset, DataPoint, etc.)
-├── enums.py            # Enumerations for types, markets, timeframes
-├── query.py            # Query parameter models
-└── response.py         # API response models
-```
-
-**Model Organization:**
-- **Business Models**: Asset, DataPoint, DataQuery, DataResponse
-- **Enumeration Types**: AssetType, MarketType, TimeFrame, ProviderType, DataQuality
-- **Validation**: Pydantic-based validation with custom JSON encoders
-- **Type Safety**: Full mypy compatibility with strict type checking
-
-### `cache/` - Caching Strategies
+### `infrastructure/cache/` - Multi-level Caching - IMPLEMENTED
 ```
 cache/
 ├── __init__.py
-├── base.py             # Cache interface and base classes
-├── redis_cache.py      # Redis-based distributed caching
-├── memory_cache.py     # In-memory LRU cache
-└── cache_keys.py       # Cache key generation utilities
+├── base.py              # Cache interface and base classes (IMPLEMENTED)
+├── cache_key.py         # Cache key generation utilities (IMPLEMENTED)
+├── memory.py            # Thread-safe in-memory cache (IMPLEMENTED)
+├── duckdb.py            # DuckDB-based persistent cache (IMPLEMENTED)
+├── key.py               # Cache key utilities (IMPLEMENTED)
+└── multilevel.py        # Multi-level cache orchestration (IMPLEMENTED)
 ```
 
-**Caching Strategy:**
-- **Multi-level Cache**: Memory (L1) + Redis (L2) + DuckDB (L3)
-- **Smart Invalidation**: Time-based and event-based cache invalidation
-- **Provider-aware**: Cache keys include provider and market context
-- **Performance**: Sub-millisecond L1, <10ms L2, <100ms L3 cache access
-
-### `web/` - Web API Layer
+### `infrastructure/providers/` - Data Provider Adapters - IMPLEMENTED
 ```
-web/
+providers/
 ├── __init__.py
-├── main.py             # FastAPI application factory
-├── routers/            # API endpoint routers
-├── middleware/         # Request/response middleware
-├── dependencies/       # FastAPI dependency injection
-└── schemas/           # API request/response schemas
+├── base.py              # Abstract base provider interface (IMPLEMENTED)
+├── registry.py          # Provider registration and discovery (IMPLEMENTED)
+├── akshare_provider.py  # AkShare Chinese market data (IMPLEMENTED)
+├── alpha_vantage_provider.py # Alpha Vantage API provider (IMPLEMENTED)
+├── vprism_provider.py   # Internal vprism provider (IMPLEMENTED)
+└── yfinance_provider.py # Yahoo Finance provider (IMPLEMENTED)
 ```
 
-**API Structure:**
-- **RESTful Design**: Resource-based endpoints with standard HTTP methods
-- **Versioning**: URL-based versioning (/api/v1/)
-- **Documentation**: Auto-generated OpenAPI/Swagger documentation
-- **Error Handling**: Consistent error responses with proper HTTP codes
+**Design Patterns:**
+- **Strategy Pattern**: Each provider implements a common interface (IMPLEMENTED)
+- **Registry Pattern**: Dynamic provider discovery and registration (IMPLEMENTED)
+- **Adapter Pattern**: Normalize different provider APIs to common format (IMPLEMENTED)
+- **Capability Discovery**: Runtime provider capability detection (IMPLEMENTED)
 
-### `cli/` - Command Line Interface
+### `infrastructure/repositories/` - Data Persistence Layer - IMPLEMENTED
 ```
-cli/
+repositories/
 ├── __init__.py
-├── main.py             # Typer-based CLI application
-├── commands/           # Command groups and implementations
-└── workers/            # Background task workers
+├── base.py              # Base repository interface (IMPLEMENTED)
+├── cache.py             # Cache repository for multi-level caching (IMPLEMENTED)
+├── data.py              # Data repository for financial data (IMPLEMENTED)
+├── provider.py          # Provider repository for data sources (IMPLEMENTED)
+└── query.py             # Query repository for query management (IMPLEMENTED)
 ```
 
-**CLI Organization:**
-- **Command Groups**: data, providers, cache, health, config
-- **Rich Integration**: Terminal UI with colors and progress bars
-- **Async Support**: Asyncio-based commands for I/O operations
-- **Error Handling**: User-friendly error messages and exit codes
-
-### `utils/` - Shared Utilities
+### `infrastructure/storage/` - Database Schema and Operations - IMPLEMENTED
 ```
-utils/
+storage/
 ├── __init__.py
-├── logging.py          # Structured logging configuration
-├── metrics.py          # Prometheus metrics collection
-├── validation.py       # Common validation utilities
-├── datetime.py         # Date/time handling utilities
-└── http.py            # HTTP client utilities
+├── database.py          # DuckDB connection and management (IMPLEMENTED)
+├── database_schema.py   # Database table definitions and indexing (IMPLEMENTED)
+├── models.py            # Database models and schemas (IMPLEMENTED)
+└── schema.py            # Schema versioning and migrations (IMPLEMENTED)
 ```
 
-## Test Structure
+**Storage Features:**
+- **6 Optimized Tables**: asset_info, daily_ohlcv, intraday_ohlcv, real_time_quotes, cache_entries, data_quality (IMPLEMENTED)
+- **Proper Indexing**: Composite primary keys, date indexes, symbol indexes (IMPLEMENTED)
+- **Partitioned Views**: Year-based partitioning for large datasets (IMPLEMENTED)
+- **Materialized Views**: Latest prices and monthly statistics (IMPLEMENTED)
 
-### `tests/` - Comprehensive Test Suite
+### `tests/` - Comprehensive Test Suite - IMPLEMENTED
 ```
 tests/
 ├── __init__.py
-├── conftest.py         # Pytest configuration and fixtures
-├── unit/              # Unit tests for individual components
-├── integration/       # Integration tests for provider APIs
-└── e2e/              # End-to-end tests for full workflows
+├── test_cache.py        # Multi-level caching tests (IMPLEMENTED)
+├── test_data_router.py  # Data routing service tests (IMPLEMENTED)
+├── test_providers.py    # Provider integration tests (IMPLEMENTED)
+├── test_repositories.py # Repository layer tests (IMPLEMENTED)
+└── test_storage.py      # Database and storage tests (IMPLEMENTED)
 ```
 
 **Testing Strategy:**
-- **Unit Tests**: Test individual functions and classes in isolation
-- **Integration Tests**: Test provider integrations with mocked/external APIs
-- **E2E Tests**: Test complete user workflows from CLI to API
-- **Performance Tests**: Benchmark critical paths and cache performance
+- **Unit Tests**: Test individual functions and classes in isolation (IMPLEMENTED)
+- **Integration Tests**: Test provider integrations with mocked/external APIs (IMPLEMENTED)
+- **Coverage**: Comprehensive test coverage for all major components (IMPLEMENTED)
 
-### Test Organization by Component
-```
-tests/unit/
-├── test_models.py         # Data model validation tests
-├── test_providers.py      # Provider interface tests
-├── test_cache.py         # Caching layer tests
-├── test_services.py      # Business logic tests
-└── test_utils.py         # Utility function tests
-
-tests/integration/
-├── test_alpha_vantage.py  # Alpha Vantage integration
-├── test_yahoo_finance.py  # Yahoo Finance integration
-└── test_cache_redis.py   # Redis cache integration
-```
-
-## Code Organization Patterns
-
-### 1. Domain-Driven Design
-- **Core Domain**: Financial data processing and normalization
-- **Bounded Contexts**: Providers, Cache, Web API, CLI
-- **Ubiquitous Language**: Consistent terminology across codebase
-
-### 2. Clean Architecture
-- **Dependency Inversion**: Dependencies point inward toward business logic
-- **Interface Segregation**: Small, focused interfaces for providers and cache
-- **Single Responsibility**: Each module has one clear purpose
-
-### 3. Functional Core, Imperative Shell
-- **Pure Functions**: Data transformation and validation logic
-- **Side Effects**: I/O operations isolated to specific layers
-- **Testability**: Business logic easily testable without external dependencies
-
-## File Naming Conventions
-
-### Python Files
-- **snake_case**: `data_service.py`, `market_provider.py`
-- **Descriptive**: Names reflect responsibility and scope
-- **Test Files**: Prefixed with `test_`, mirrors source structure
-- **Configuration**: `.py` files for configuration, `.env` for secrets
-
-### Directory Structure
-- **Singular**: `provider/` not `providers/` (except top-level)
-- **Purpose-based**: `cache/` not `redis/` (implementation details hidden)
-- **Flat Hierarchy**: Maximum 3 levels deep within feature areas
-
-### API Endpoints
-- **kebab-case**: `/api/v1/market-data/{symbol}`
-- **Resource-based**: `/assets/{symbol}/prices` not `/get-prices`
-- **Versioned**: `/api/v1/` prefix for backward compatibility
-
-## Import Organization
-
-### Standard Library First
-```python
-# Standard library
-import asyncio
-from datetime import datetime
-from typing import List, Optional
-
-# Third-party imports
-import httpx
-from pydantic import BaseModel
-from loguru import logger
-
-# Local imports
-from vprism.models.data import DataPoint
-from vprism.providers.base import DataProvider
-```
-
-### Absolute Imports
-- **Preferred**: `from vprism.models.data import Asset`
-- **Avoid**: Relative imports like `from ..models import Asset`
-- **Exception**: Test files may use relative imports for fixtures
-
-### Type Checking
-```python
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from vprism.core.service import DataService
-```
-
-## Key Architectural Principles
-
-### 1. Provider Abstraction
-- **Interface**: All providers implement `DataProvider` interface
-- **Normalization**: Consistent data format regardless of source
-- **Failover**: Automatic provider switching on failure
-- **Rate Limiting**: Intelligent rate limiting per provider
-
-### 2. Cache Strategy
-- **Multi-level**: Memory → Redis → DuckDB
-- **Invalidation**: Smart invalidation based on market hours and data freshness
-- **Monitoring**: Cache hit/miss metrics and performance tracking
-- **Provider-aware**: Cache keys include provider context
-
-### 3. Error Handling
-- **Consistent**: Standard error response format across all endpoints
-- **Informative**: Detailed error messages for debugging
-- **Recoverable**: Graceful degradation when providers fail
-- **Logged**: All errors logged with context and stack traces
-
-### 4. Configuration Management
-- **Environment-based**: 12-factor app principles
-- **Validation**: Runtime configuration validation on startup
-- **Defaults**: Sensible defaults for quick development setup
-- **Documentation**: All configuration options documented
-
-### 5. Testing Strategy
-- **Pytest**: Standard pytest with asyncio support
-- **Fixtures**: Reusable test fixtures for common scenarios
-- **Mocking**: External API mocking for reliable tests
-- **Coverage**: Minimum 80% code coverage requirement
-- **Performance**: Benchmark tests for critical paths

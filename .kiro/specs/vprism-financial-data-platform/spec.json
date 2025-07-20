@@ -31,12 +31,12 @@
       "integration": true
     },
     "tasks": {
-      "status": "in_progress",
-      "completion": 33.3,
+      "status": "completed",
+      "completion": 100,
       "approved": true,
       "total_tasks": 15,
-      "completed_tasks": 5,
-      "remaining_tasks": 10,
+      "completed_tasks": 15,
+      "remaining_tasks": 0,
       "blocked_tasks": 0
     }
   },
