@@ -16,6 +16,7 @@ import threading
 import time
 from collections import defaultdict
 from datetime import datetime
+from enum import Enum
 from typing import Any
 
 from vprism.core.exceptions import (
@@ -30,6 +31,15 @@ from vprism.core.provider_abstraction import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class RoutingStrategy(str, Enum):
+    """Routing strategies for provider selection."""
+    
+    INTELLIGENT = "intelligent"  # Smart selection based on performance and capabilities
+    ROUND_ROBIN = "round_robin"  # Rotate through providers in order
+    RANDOM = "random"           # Random selection from capable providers
+    WEIGHTED = "weighted"       # Weighted selection based on provider scores
 
 
 class ProviderPerformanceRecord:
@@ -56,19 +66,26 @@ class DataRouter:
     Includes fault tolerance with automatic fallback and circuit breaker behavior.
     """
 
-    def __init__(self, registry: EnhancedProviderRegistry):
+    def __init__(
+        self, 
+        registry: EnhancedProviderRegistry,
+        routing_strategy: RoutingStrategy = RoutingStrategy.INTELLIGENT
+    ):
         """
         Initialize DataRouter with provider registry.
 
         Args:
             registry: Enhanced provider registry containing available providers
+            routing_strategy: Strategy to use for provider selection
         """
         self.registry = registry
+        self.routing_strategy = routing_strategy
         self._provider_scores: dict[str, float] = {}
         self._provider_performance_history: dict[
             str, list[ProviderPerformanceRecord]
         ] = defaultdict(list)
         self._lock = threading.RLock()  # Reentrant lock for thread safety
+        self._round_robin_index = 0  # For round-robin strategy
 
         # Configuration
         self._max_history_per_provider = 1000
@@ -78,6 +95,15 @@ class DataRouter:
         self._success_bonus = 0.1
         self._latency_penalty_factor = 0.00001  # Penalty per ms of latency
         self._max_fallback_attempts = 3
+
+    def register_provider(self, provider: EnhancedDataProvider) -> None:
+        """
+        Register a provider with the router's registry.
+
+        Args:
+            provider: Provider to register
+        """
+        self.registry.register_provider(provider)
 
     def route_query(self, query: DataQuery) -> EnhancedDataProvider:
         """
@@ -119,21 +145,36 @@ class DataRouter:
         """
         Select the best provider from a list of capable providers.
 
-        Uses a weighted scoring algorithm that considers:
-        - Provider performance score
-        - Data delay/latency
-        - Provider capability match quality
+        Uses the configured routing strategy to select the provider.
 
         Args:
             providers: List of capable providers
             query: Original query for context
 
         Returns:
-            Best provider based on scoring algorithm
+            Best provider based on routing strategy
         """
         if len(providers) == 1:
             return providers[0]
 
+        if self.routing_strategy == RoutingStrategy.INTELLIGENT:
+            return self._select_intelligent(providers, query)
+        elif self.routing_strategy == RoutingStrategy.ROUND_ROBIN:
+            return self._select_round_robin(providers)
+        elif self.routing_strategy == RoutingStrategy.RANDOM:
+            return self._select_random(providers)
+        elif self.routing_strategy == RoutingStrategy.WEIGHTED:
+            return self._select_weighted(providers, query)
+        else:
+            # Fallback to intelligent selection
+            return self._select_intelligent(providers, query)
+
+    def _select_intelligent(
+        self, providers: list[EnhancedDataProvider], query: DataQuery
+    ) -> EnhancedDataProvider:
+        """
+        Intelligent provider selection based on performance and capabilities.
+        """
         # Calculate composite scores for each provider
         provider_scores = []
 
@@ -157,6 +198,38 @@ class DataRouter:
 
         # Use weighted random selection to add some variety while favoring better providers
         return self._weighted_random_selection(provider_scores)
+
+    def _select_round_robin(self, providers: list[EnhancedDataProvider]) -> EnhancedDataProvider:
+        """
+        Round-robin provider selection.
+        """
+        with self._lock:
+            # Sort providers by name for consistent ordering
+            sorted_providers = sorted(providers, key=lambda p: p.name)
+            selected_provider = sorted_providers[self._round_robin_index % len(sorted_providers)]
+            self._round_robin_index += 1
+            return selected_provider
+
+    def _select_random(self, providers: list[EnhancedDataProvider]) -> EnhancedDataProvider:
+        """
+        Random provider selection.
+        """
+        return random.choice(providers)
+
+    def _select_weighted(
+        self, providers: list[EnhancedDataProvider], query: DataQuery
+    ) -> EnhancedDataProvider:
+        """
+        Weighted provider selection based on performance scores.
+        """
+        # Calculate weights based on performance scores
+        provider_weights = []
+        for provider in providers:
+            score = self.get_provider_score(provider.name)
+            provider_weights.append((provider, score))
+
+        # Use weighted random selection
+        return self._weighted_random_selection(provider_weights)
 
     def _calculate_capability_bonus(
         self, provider: EnhancedDataProvider, query: DataQuery
