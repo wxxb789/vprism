@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "name": "Auto Git Commit",
+  "description": "Automatically creates a git commit whenever you complete a task by monitoring changes to source files",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "vprism/**/*.py",
+      "tests/**/*.py",
+      "*.py",
+      "*.md",
+      "pyproject.toml",
+      "Makefile"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A task has been completed and files have been modified. Please create a git commit with an appropriate commit message that describes the changes made. Use 'git add .' to stage all changes, then 'git commit -m \"descriptive message\"' to commit them."
+  }
+}
