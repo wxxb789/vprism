@@ -25,6 +25,12 @@ try:
 except ImportError:
     _ALPHA_VANTAGE_AVAILABLE = False
 
+try:
+    from .vprism_native_provider import VPrismNativeProvider
+    _VPRISM_NATIVE_AVAILABLE = True
+except ImportError:
+    _VPRISM_NATIVE_AVAILABLE = False
+
 # Build __all__ dynamically based on available providers
 __all__ = []
 
@@ -37,6 +43,9 @@ if _YFINANCE_AVAILABLE:
 if _ALPHA_VANTAGE_AVAILABLE:
     __all__.append("AlphaVantageProvider")
 
+if _VPRISM_NATIVE_AVAILABLE:
+    __all__.append("VPrismNativeProvider")
+
 # Convenience functions
 def get_available_providers():
     """Get list of available provider classes."""
@@ -47,6 +56,8 @@ def get_available_providers():
         providers.append(YfinanceProvider)
     if _ALPHA_VANTAGE_AVAILABLE:
         providers.append(AlphaVantageProvider)
+    if _VPRISM_NATIVE_AVAILABLE:
+        providers.append(VPrismNativeProvider)
     return providers
 
 def get_provider_availability():
@@ -55,4 +66,5 @@ def get_provider_availability():
         "akshare": _AKSHARE_AVAILABLE,
         "yfinance": _YFINANCE_AVAILABLE,
         "alpha_vantage": _ALPHA_VANTAGE_AVAILABLE,
+        "vprism_native": _VPRISM_NATIVE_AVAILABLE,
     }
