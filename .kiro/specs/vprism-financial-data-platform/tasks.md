@@ -124,7 +124,12 @@
 
 - [x] 6. 实现提供商集成和优先级策略
 
-  - [ ] 6.1 创建提供商集成策略（TDD 方式）
+  - [x] 6.1 创建提供商集成策略（TDD 方式）
+
+
+
+
+
     - 先编写提供商集成的测试用例，包括优先级选择和故障转移
     - 实现 ProviderIntegrationStrategy 类，管理多提供商协调
     - 配置提供商优先级：vprism_native > yfinance/alpha_vantage > akshare

@@ -536,14 +536,12 @@ class AkshareModernAdapter:
 
         # Add date range for historical data functions
         if query.start and any(
-            keyword in str(params)
-            for keyword in ["hist", "daily", "weekly", "monthly"]
+            keyword in str(params) for keyword in ["hist", "daily", "weekly", "monthly"]
         ):
             params["start_date"] = query.start.strftime("%Y%m%d")
 
         if query.end and any(
-            keyword in str(params)
-            for keyword in ["hist", "daily", "weekly", "monthly"]
+            keyword in str(params) for keyword in ["hist", "daily", "weekly", "monthly"]
         ):
             params["end_date"] = query.end.strftime("%Y%m%d")
 
