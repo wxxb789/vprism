@@ -168,9 +168,7 @@ class TestHttpClient:
             user_agent="test-agent",
             headers={"Custom": "header"},
         )
-        auth_config = AuthConfig(
-            AuthType.API_KEY, credentials={"api_key": "test_key"}
-        )
+        auth_config = AuthConfig(AuthType.API_KEY, credentials={"api_key": "test_key"})
         rate_limit = RateLimitConfig(60, 3600)
 
         client = HttpClient(http_config, auth_config, rate_limit)
@@ -186,7 +184,7 @@ class TestHttpClient:
             "Custom": "header",
             "X-API-Key": "test_key",
         }
-        
+
         for key, value in expected_headers.items():
             assert client._client.headers.get(key) == value
 
@@ -354,16 +352,14 @@ class TestHttpDataProvider:
 
     def create_test_provider(self, **kwargs):
         """Create a test HTTP data provider."""
-        
+
         class TestHttpProvider(HttpDataProvider):
             def __init__(self, **provider_kwargs):
                 http_config = HttpConfig(base_url="https://api.example.com")
                 auth_config = AuthConfig(AuthType.NONE, {})
                 rate_limit = RateLimitConfig(60, 3600)
-                
-                super().__init__(
-                    "test_provider", http_config, auth_config, rate_limit
-                )
+
+                super().__init__("test_provider", http_config, auth_config, rate_limit)
 
             @property
             def name(self) -> str:
@@ -583,23 +579,23 @@ class TestHttpDataProvider:
         )
 
         # Provider doesn't support real-time streaming
-        with pytest.raises(ProviderException, match="does not support real-time streaming"):
+        with pytest.raises(
+            ProviderException, match="does not support real-time streaming"
+        ):
             async for _ in provider.stream_data(query):
                 pass
 
     @pytest.mark.asyncio
     async def test_http_data_provider_stream_data_polling(self):
         """Test stream_data with polling implementation."""
-        
+
         class StreamingTestProvider(HttpDataProvider):
             def __init__(self):
                 http_config = HttpConfig(base_url="https://api.example.com")
                 auth_config = AuthConfig(AuthType.NONE, {})
                 rate_limit = RateLimitConfig(60, 3600)
-                
-                super().__init__(
-                    "streaming_test", http_config, auth_config, rate_limit
-                )
+
+                super().__init__("streaming_test", http_config, auth_config, rate_limit)
 
             @property
             def name(self) -> str:
@@ -635,7 +631,7 @@ class TestHttpDataProvider:
         test_data_point = MagicMock(spec=DataPoint)
         mock_response = MagicMock(spec=DataResponse)
         mock_response.data = [test_data_point]
-        
+
         provider.get_data = AsyncMock(return_value=mock_response)
 
         # Test streaming (should yield data points)
@@ -683,7 +679,7 @@ class TestIntegration:
     @pytest.mark.asyncio
     async def test_full_http_provider_workflow(self):
         """Test complete HTTP provider workflow."""
-        
+
         class FullTestProvider(HttpDataProvider):
             def __init__(self):
                 http_config = HttpConfig(
@@ -696,7 +692,7 @@ class TestIntegration:
                 )
                 rate_limit = RateLimitConfig(60, 3600)
                 retry_config = RetryConfig(max_retries=1)
-                
+
                 super().__init__(
                     "full_test", http_config, auth_config, rate_limit, retry_config
                 )

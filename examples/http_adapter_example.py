@@ -37,7 +37,7 @@ from vprism.core.provider_abstraction import (
 class ExampleHttpProvider(HttpDataProvider):
     """
     Example HTTP data provider implementation.
-    
+
     This demonstrates how to create a custom provider using the
     HTTP adapter framework with authentication, rate limiting,
     and error handling.
@@ -54,8 +54,7 @@ class ExampleHttpProvider(HttpDataProvider):
 
         # Configure authentication (API key example)
         auth_config = AuthConfig(
-            auth_type=AuthType.API_KEY,
-            credentials={"api_key": "your-api-key-here"}
+            auth_type=AuthType.API_KEY, credentials={"api_key": "your-api-key-here"}
         )
 
         # Configure rate limiting
@@ -182,9 +181,10 @@ async def main():
 
     # Create a sample query (using recent dates)
     from datetime import timedelta
+
     end_date = datetime.now()
     start_date = end_date - timedelta(days=30)  # Last 30 days
-    
+
     query = DataQuery(
         asset=AssetType.STOCK,
         market=MarketType.US,

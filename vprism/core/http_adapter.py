@@ -79,7 +79,7 @@ class RetryConfig:
 class HttpClient:
     """
     Enhanced HTTP client with authentication, rate limiting, and retry support.
-    
+
     Provides a unified interface for making HTTP requests to data provider APIs
     with built-in error handling, authentication, and performance optimization.
     """
@@ -96,7 +96,7 @@ class HttpClient:
         self.auth_config = auth_config
         self.rate_limit = rate_limit
         self.retry_config = retry_config or RetryConfig()
-        
+
         self._client: Optional[httpx.AsyncClient] = None
         self._request_history: List[datetime] = []
         self._semaphore = asyncio.Semaphore(rate_limit.concurrent_requests)
@@ -140,7 +140,7 @@ class HttpClient:
         """Record a request for rate limiting purposes."""
         now = datetime.now()
         self._request_history.append(now)
-        
+
         # Keep only recent history (last hour)
         cutoff = now - timedelta(hours=1)
         self._request_history = [req for req in self._request_history if req > cutoff]
@@ -156,39 +156,31 @@ class HttpClient:
             logger.debug(f"Rate limit reached, waiting {delay} seconds")
             await asyncio.sleep(delay)
 
-    async def _execute_request(
-        self,
-        method: str,
-        url: str,
-        **kwargs
-    ) -> httpx.Response:
+    async def _execute_request(self, method: str, url: str, **kwargs) -> httpx.Response:
         """Execute HTTP request with rate limiting."""
         await self._ensure_client()
-        
+
         async with self._semaphore:
             await self._wait_for_rate_limit()
             self._record_request()
-            
+
             response = await self._client.request(method, url, **kwargs)
             return response
 
     async def _request_with_retry(
-        self,
-        method: str,
-        url: str,
-        **kwargs
+        self, method: str, url: str, **kwargs
     ) -> httpx.Response:
         """Execute HTTP request with retry logic."""
         last_exception = None
-        
+
         for attempt in range(self.retry_config.max_retries + 1):
             try:
                 response = await self._execute_request(method, url, **kwargs)
-                
+
                 # Check if we should retry based on status code
                 if response.status_code in self.retry_config.retry_on_status:
                     if attempt < self.retry_config.max_retries:
-                        delay = self.retry_config.backoff_factor ** attempt
+                        delay = self.retry_config.backoff_factor**attempt
                         logger.warning(
                             f"Request failed with status {response.status_code}, "
                             f"retrying in {delay} seconds (attempt {attempt + 1})"
@@ -200,30 +192,30 @@ class HttpClient:
                         if response.status_code == 429:
                             raise RateLimitException(
                                 provider="http_client",
-                                details={"status_code": response.status_code}
+                                details={"status_code": response.status_code},
                             )
                         else:
                             raise ProviderException(
                                 f"HTTP request failed: {response.status_code}",
                                 provider="http_client",
                                 error_code="HTTP_ERROR",
-                                details={"status_code": response.status_code}
+                                details={"status_code": response.status_code},
                             )
-                
+
                 # Success or non-retryable error
                 return response
-                
+
             except Exception as e:
                 last_exception = e
-                
+
                 # Check if we should retry based on exception type
                 should_retry = any(
-                    isinstance(e, exc_type) 
+                    isinstance(e, exc_type)
                     for exc_type in self.retry_config.retry_on_exceptions
                 )
-                
+
                 if should_retry and attempt < self.retry_config.max_retries:
-                    delay = self.retry_config.backoff_factor ** attempt
+                    delay = self.retry_config.backoff_factor**attempt
                     logger.warning(
                         f"Request failed with {type(e).__name__}: {e}, "
                         f"retrying in {delay} seconds (attempt {attempt + 1})"
@@ -262,7 +254,7 @@ class HttpClient:
 class HttpDataProvider(EnhancedDataProvider):
     """
     Base class for HTTP-based data providers.
-    
+
     Extends EnhancedDataProvider with HTTP client functionality,
     providing a foundation for implementing REST API-based data sources.
     """
@@ -331,7 +323,7 @@ class HttpDataProvider(EnhancedDataProvider):
             # This method can be overridden for providers requiring special auth flows
             if self.auth_config.auth_type == AuthType.NONE:
                 return True
-            
+
             # Test authentication by making a simple request
             async with self.http_client as client:
                 # Try to make a simple request to test auth
@@ -342,7 +334,7 @@ class HttpDataProvider(EnhancedDataProvider):
                 except Exception as e:
                     logger.warning(f"Authentication test failed: {e}")
                     return False
-                    
+
         except Exception as e:
             logger.error(f"Authentication failed for provider {self.name}: {e}")
             return False
@@ -365,127 +357,113 @@ class HttpDataProvider(EnhancedDataProvider):
                 f"Provider {self.name} cannot handle query",
                 provider=self.name,
                 error_code="UNSUPPORTED_QUERY",
-                details={"query": query.model_dump()}
+                details={"query": query.model_dump()},
             )
 
         try:
             start_time = datetime.now()
-            
+
             # Build request
             url = self._build_request_url(query)
             params = self._build_request_params(query)
-            
+
             # Execute request
             async with self.http_client as client:
                 response = await client.get(url, params=params)
                 response.raise_for_status()
-                
+
                 # Parse response
                 data_points = await self._parse_response(response, query)
-                
+
                 # Calculate execution time
                 execution_time = (datetime.now() - start_time).total_seconds() * 1000
-                
+
                 # Build response
                 from vprism.core.models import ResponseMetadata, ProviderInfo
-                
+
                 metadata = ResponseMetadata(
                     query_time=start_time,
                     execution_time_ms=execution_time,
                     record_count=len(data_points),
                     cache_hit=False,
                 )
-                
+
                 provider_info = ProviderInfo(
                     name=self.name,
                     version=None,
                     url=self.http_config.base_url,
                     rate_limit=self.rate_limit.requests_per_minute,
                 )
-                
+
                 return DataResponse(
                     data=data_points,
                     metadata=metadata,
                     source=provider_info,
                     query=query,
                 )
-                
+
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 401:
                 raise AuthenticationException(
-                    provider=self.name,
-                    details={"status_code": e.response.status_code}
+                    provider=self.name, details={"status_code": e.response.status_code}
                 )
             elif e.response.status_code == 429:
                 raise RateLimitException(
-                    provider=self.name,
-                    details={"status_code": e.response.status_code}
+                    provider=self.name, details={"status_code": e.response.status_code}
                 )
             else:
                 raise ProviderException(
                     f"HTTP error from provider {self.name}: {e.response.status_code}",
                     provider=self.name,
                     error_code="HTTP_ERROR",
-                    details={"status_code": e.response.status_code}
+                    details={"status_code": e.response.status_code},
                 )
         except Exception as e:
             raise ProviderException(
                 f"Error retrieving data from provider {self.name}: {str(e)}",
                 provider=self.name,
                 error_code="PROVIDER_ERROR",
-                details={"error_type": type(e).__name__}
+                details={"error_type": type(e).__name__},
             )
 
     async def stream_data(self, query: DataQuery) -> AsyncIterator[DataPoint]:
         """Stream data via HTTP (default implementation using polling)."""
         # Default implementation for providers that don't support native streaming
         # Override this method for providers with WebSocket or SSE support
-        
+
         if not self.capability.supports_real_time:
             raise ProviderException(
                 f"Provider {self.name} does not support real-time streaming",
                 provider=self.name,
-                error_code="STREAMING_NOT_SUPPORTED"
+                error_code="STREAMING_NOT_SUPPORTED",
             )
-        
+
         # Simple polling-based streaming
         while True:
             try:
                 response = await self.get_data(query)
                 for data_point in response.data:
                     yield data_point
-                
+
                 # Wait before next poll
                 await asyncio.sleep(1.0)  # 1 second polling interval
-                
+
             except Exception as e:
                 logger.error(f"Streaming error from provider {self.name}: {e}")
                 break
 
 
 def create_http_config(
-    base_url: str,
-    timeout: float = 30.0,
-    user_agent: str = "vprism/1.0.0",
-    **kwargs
+    base_url: str, timeout: float = 30.0, user_agent: str = "vprism/1.0.0", **kwargs
 ) -> HttpConfig:
     """Factory function to create HTTP configuration."""
     return HttpConfig(
-        base_url=base_url,
-        timeout=timeout,
-        user_agent=user_agent,
-        **kwargs
+        base_url=base_url, timeout=timeout, user_agent=user_agent, **kwargs
     )
 
 
 def create_retry_config(
-    max_retries: int = 3,
-    backoff_factor: float = 2.0,
-    **kwargs
+    max_retries: int = 3, backoff_factor: float = 2.0, **kwargs
 ) -> RetryConfig:
     """Factory function to create retry configuration."""
-    return RetryConfig(
-        max_retries=max_retries,
-        backoff_factor=backoff_factor,
-        **kwargs
-    )
+    return RetryConfig(max_retries=max_retries, backoff_factor=backoff_factor, **kwargs)

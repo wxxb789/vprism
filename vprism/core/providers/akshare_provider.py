@@ -39,6 +39,7 @@ logger = logging.getLogger(__name__)
 # Optional import for akshare
 try:
     import akshare as ak
+
     AKSHARE_AVAILABLE = True
 except ImportError:
     AKSHARE_AVAILABLE = False
@@ -48,7 +49,7 @@ except ImportError:
 class AkshareProvider(EnhancedDataProvider):
     """
     Akshare data provider implementation.
-    
+
     Provides access to Chinese financial data through the akshare library.
     This provider is primarily used for data validation and compatibility
     testing with the original akshare functions.
@@ -60,17 +61,17 @@ class AkshareProvider(EnhancedDataProvider):
             raise ProviderException(
                 "akshare library is not installed",
                 provider="akshare",
-                error_code="DEPENDENCY_MISSING"
+                error_code="DEPENDENCY_MISSING",
             )
 
         # Akshare doesn't require authentication
         auth_config = AuthConfig(auth_type=AuthType.NONE)
-        
+
         # Conservative rate limiting for akshare
         rate_limit = RateLimitConfig(
             requests_per_minute=30,  # Conservative limit
             requests_per_hour=1000,
-            concurrent_requests=2,   # Limit concurrent requests
+            concurrent_requests=2,  # Limit concurrent requests
         )
 
         super().__init__(
@@ -107,10 +108,10 @@ class AkshareProvider(EnhancedDataProvider):
                 TimeFrame.MONTH_1,
             },
             max_symbols_per_request=1,  # Akshare typically handles one symbol at a time
-            supports_real_time=False,   # Akshare has data delays
+            supports_real_time=False,  # Akshare has data delays
             supports_historical=True,
-            data_delay_seconds=900,     # 15-minute delay
-            max_history_days=3650,      # ~10 years of history
+            data_delay_seconds=900,  # 15-minute delay
+            max_history_days=3650,  # ~10 years of history
         )
 
     async def _authenticate(self) -> bool:
@@ -132,7 +133,7 @@ class AkshareProvider(EnhancedDataProvider):
         """Map vprism timeframe to akshare period parameter."""
         mapping = {
             TimeFrame.MINUTE_1: "1",
-            TimeFrame.MINUTE_5: "5", 
+            TimeFrame.MINUTE_5: "5",
             TimeFrame.MINUTE_15: "15",
             TimeFrame.MINUTE_30: "30",
             TimeFrame.HOUR_1: "60",
@@ -145,33 +146,31 @@ class AkshareProvider(EnhancedDataProvider):
     def _standardize_dataframe(self, df: pd.DataFrame, symbol: str) -> List[DataPoint]:
         """Convert akshare DataFrame to standardized DataPoint list."""
         data_points = []
-        
+
         if df is None or df.empty:
             return data_points
 
         # Common column mappings for akshare data
         column_mappings = {
             # Date/time columns
-            'date': 'timestamp',
-            '日期': 'timestamp', 
-            'datetime': 'timestamp',
-            '时间': 'timestamp',
-            
+            "date": "timestamp",
+            "日期": "timestamp",
+            "datetime": "timestamp",
+            "时间": "timestamp",
             # Price columns
-            'open': 'open',
-            '开盘': 'open',
-            'high': 'high', 
-            '最高': 'high',
-            'low': 'low',
-            '最低': 'low',
-            'close': 'close',
-            '收盘': 'close',
-            
+            "open": "open",
+            "开盘": "open",
+            "high": "high",
+            "最高": "high",
+            "low": "low",
+            "最低": "low",
+            "close": "close",
+            "收盘": "close",
             # Volume columns
-            'volume': 'volume',
-            '成交量': 'volume',
-            'amount': 'amount',
-            '成交额': 'amount',
+            "volume": "volume",
+            "成交量": "volume",
+            "amount": "amount",
+            "成交额": "amount",
         }
 
         # Normalize column names
@@ -182,11 +181,11 @@ class AkshareProvider(EnhancedDataProvider):
             try:
                 # Parse timestamp
                 timestamp = None
-                if 'timestamp' in row:
-                    timestamp_val = row['timestamp']
+                if "timestamp" in row:
+                    timestamp_val = row["timestamp"]
                     if isinstance(timestamp_val, str):
                         # Try different date formats
-                        for fmt in ['%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%Y/%m/%d']:
+                        for fmt in ["%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y/%m/%d"]:
                             try:
                                 timestamp = datetime.strptime(timestamp_val, fmt)
                                 break
@@ -212,17 +211,27 @@ class AkshareProvider(EnhancedDataProvider):
                 data_point = DataPoint(
                     symbol=symbol,
                     timestamp=timestamp,
-                    open=safe_decimal(row.get('open')),
-                    high=safe_decimal(row.get('high')),
-                    low=safe_decimal(row.get('low')),
-                    close=safe_decimal(row.get('close')),
-                    volume=safe_decimal(row.get('volume')),
-                    amount=safe_decimal(row.get('amount')),
+                    open=safe_decimal(row.get("open")),
+                    high=safe_decimal(row.get("high")),
+                    low=safe_decimal(row.get("low")),
+                    close=safe_decimal(row.get("close")),
+                    volume=safe_decimal(row.get("volume")),
+                    amount=safe_decimal(row.get("amount")),
                     extra_fields={
-                        k: v for k, v in row.items() 
-                        if k not in ['timestamp', 'open', 'high', 'low', 'close', 'volume', 'amount']
+                        k: v
+                        for k, v in row.items()
+                        if k
+                        not in [
+                            "timestamp",
+                            "open",
+                            "high",
+                            "low",
+                            "close",
+                            "volume",
+                            "amount",
+                        ]
                         and not pd.isna(v)
-                    }
+                    },
                 )
                 data_points.append(data_point)
 
@@ -239,7 +248,7 @@ class AkshareProvider(EnhancedDataProvider):
                 f"Akshare provider cannot handle query",
                 provider=self.name,
                 error_code="UNSUPPORTED_QUERY",
-                details={"query": query.model_dump()}
+                details={"query": query.model_dump()},
             )
 
         start_time = datetime.now()
@@ -252,12 +261,12 @@ class AkshareProvider(EnhancedDataProvider):
                 # Get all stocks if no symbols specified
                 if query.asset == AssetType.STOCK:
                     stock_list = ak.stock_zh_a_spot_em()
-                    symbols = stock_list['代码'].head(10).tolist()  # Limit to first 10
+                    symbols = stock_list["代码"].head(10).tolist()  # Limit to first 10
                 else:
                     raise ProviderException(
                         "No symbols specified and asset type not supported for listing",
                         provider=self.name,
-                        error_code="MISSING_SYMBOLS"
+                        error_code="MISSING_SYMBOLS",
                     )
 
             for symbol in symbols:
@@ -278,16 +287,16 @@ class AkshareProvider(EnhancedDataProvider):
                 execution_time_ms=execution_time,
                 record_count=len(all_data_points),
                 cache_hit=False,
-                warnings=[] if all_data_points else ["No data returned from akshare"]
+                warnings=[] if all_data_points else ["No data returned from akshare"],
             )
 
             # Build provider info
             provider_info = ProviderInfo(
                 name=self.name,
-                version=getattr(ak, '__version__', None),
+                version=getattr(ak, "__version__", None),
                 url="https://akshare.akfamily.xyz/",
                 rate_limit=self.rate_limit.requests_per_minute,
-                cost="free"
+                cost="free",
             )
 
             return DataResponse(
@@ -302,7 +311,7 @@ class AkshareProvider(EnhancedDataProvider):
                 f"Error retrieving data from akshare: {str(e)}",
                 provider=self.name,
                 error_code="FETCH_ERROR",
-                details={"error_type": type(e).__name__}
+                details={"error_type": type(e).__name__},
             )
 
     async def _fetch_symbol_data(self, symbol: str, query: DataQuery) -> pd.DataFrame:
@@ -315,51 +324,48 @@ class AkshareProvider(EnhancedDataProvider):
                     return ak.stock_zh_a_hist_min_em(
                         symbol=symbol,
                         period=period,
-                        start_date=query.start.strftime('%Y-%m-%d') if query.start else None,
-                        end_date=query.end.strftime('%Y-%m-%d') if query.end else None,
+                        start_date=query.start.strftime("%Y-%m-%d")
+                        if query.start
+                        else None,
+                        end_date=query.end.strftime("%Y-%m-%d") if query.end else None,
                     )
                 else:
                     # Daily data
                     return ak.stock_zh_a_hist(
                         symbol=symbol,
                         period="daily",
-                        start_date=query.start.strftime('%Y%m%d') if query.start else None,
-                        end_date=query.end.strftime('%Y%m%d') if query.end else None,
+                        start_date=query.start.strftime("%Y%m%d")
+                        if query.start
+                        else None,
+                        end_date=query.end.strftime("%Y%m%d") if query.end else None,
                     )
             elif query.asset == AssetType.ETF:
                 return ak.fund_etf_hist_em(
                     symbol=symbol,
                     period="daily",
-                    start_date=query.start.strftime('%Y%m%d') if query.start else None,
-                    end_date=query.end.strftime('%Y%m%d') if query.end else None,
+                    start_date=query.start.strftime("%Y%m%d") if query.start else None,
+                    end_date=query.end.strftime("%Y%m%d") if query.end else None,
                 )
             elif query.asset == AssetType.FUND:
-                return ak.fund_open_fund_info_em(
-                    fund=symbol,
-                    indicator="累计净值走势"
-                )
+                return ak.fund_open_fund_info_em(fund=symbol, indicator="累计净值走势")
             elif query.asset == AssetType.BOND:
                 # Bond data support
-                return ak.bond_zh_hs_cov_daily(
-                    symbol=symbol
-                )
+                return ak.bond_zh_hs_cov_daily(symbol=symbol)
             elif query.asset == AssetType.FUTURES:
                 # Futures data support
-                return ak.futures_zh_daily_sina(
-                    symbol=symbol
-                )
+                return ak.futures_zh_daily_sina(symbol=symbol)
             elif query.asset == AssetType.INDEX:
                 # Index data support
                 return ak.stock_zh_index_daily_em(
                     symbol=symbol,
-                    start_date=query.start.strftime('%Y%m%d') if query.start else None,
-                    end_date=query.end.strftime('%Y%m%d') if query.end else None,
+                    start_date=query.start.strftime("%Y%m%d") if query.start else None,
+                    end_date=query.end.strftime("%Y%m%d") if query.end else None,
                 )
             else:
                 raise ProviderException(
                     f"Asset type {query.asset} not supported by akshare provider",
                     provider=self.name,
-                    error_code="UNSUPPORTED_ASSET"
+                    error_code="UNSUPPORTED_ASSET",
                 )
 
         except Exception as e:
@@ -368,7 +374,7 @@ class AkshareProvider(EnhancedDataProvider):
                 f"Failed to fetch data for symbol {symbol}: {str(e)}",
                 provider=self.name,
                 error_code="FETCH_ERROR",
-                details={"symbol": symbol, "error_type": type(e).__name__}
+                details={"symbol": symbol, "error_type": type(e).__name__},
             )
 
     async def stream_data(self, query: DataQuery) -> List[DataPoint]:
@@ -376,7 +382,7 @@ class AkshareProvider(EnhancedDataProvider):
         raise ProviderException(
             "Akshare provider does not support real-time streaming",
             provider=self.name,
-            error_code="STREAMING_NOT_SUPPORTED"
+            error_code="STREAMING_NOT_SUPPORTED",
         )
 
     def get_stock_list(self, market: str = "A") -> List[Dict[str, Any]]:
@@ -393,28 +399,28 @@ class AkshareProvider(EnhancedDataProvider):
                 df = ak.stock_us_spot_em()
             else:
                 raise ValueError(f"Unsupported market: {market}")
-            
+
             if df is not None and not df.empty:
                 # Standardize column names
                 columns_map = {
-                    '代码': 'symbol',
-                    '名称': 'name', 
-                    '最新价': 'price',
-                    '涨跌幅': 'change_percent',
-                    '涨跌额': 'change_amount',
-                    '成交量': 'volume',
-                    '成交额': 'amount',
-                    '市盈率': 'pe_ratio',
-                    '市净率': 'pb_ratio'
+                    "代码": "symbol",
+                    "名称": "name",
+                    "最新价": "price",
+                    "涨跌幅": "change_percent",
+                    "涨跌额": "change_amount",
+                    "成交量": "volume",
+                    "成交额": "amount",
+                    "市盈率": "pe_ratio",
+                    "市净率": "pb_ratio",
                 }
-                
+
                 # Rename columns if they exist
                 for old_name, new_name in columns_map.items():
                     if old_name in df.columns:
                         df = df.rename(columns={old_name: new_name})
-                
-                return df.to_dict('records')
-            
+
+                return df.to_dict("records")
+
         except Exception as e:
             logger.error(f"Failed to get stock list for market {market}: {e}")
             return []
@@ -424,72 +430,84 @@ class AkshareProvider(EnhancedDataProvider):
         try:
             # Get major indices
             indices_data = {}
-            
+
             # Shanghai Composite
             try:
-                sh_index = ak.stock_zh_index_daily_em(symbol="000001", start_date="20240101")
+                sh_index = ak.stock_zh_index_daily_em(
+                    symbol="000001", start_date="20240101"
+                )
                 if not sh_index.empty:
                     latest = sh_index.iloc[-1]
-                    indices_data['shanghai_composite'] = {
-                        'symbol': '000001',
-                        'name': '上证指数',
-                        'close': float(latest.get('close', 0)),
-                        'change': float(latest.get('change', 0)) if 'change' in latest else None,
-                        'date': latest.get('date', '').strftime('%Y-%m-%d') if 'date' in latest else None
+                    indices_data["shanghai_composite"] = {
+                        "symbol": "000001",
+                        "name": "上证指数",
+                        "close": float(latest.get("close", 0)),
+                        "change": float(latest.get("change", 0))
+                        if "change" in latest
+                        else None,
+                        "date": latest.get("date", "").strftime("%Y-%m-%d")
+                        if "date" in latest
+                        else None,
                     }
             except Exception:
                 pass
-            
+
             # Shenzhen Component
             try:
-                sz_index = ak.stock_zh_index_daily_em(symbol="399001", start_date="20240101")
+                sz_index = ak.stock_zh_index_daily_em(
+                    symbol="399001", start_date="20240101"
+                )
                 if not sz_index.empty:
                     latest = sz_index.iloc[-1]
-                    indices_data['shenzhen_component'] = {
-                        'symbol': '399001',
-                        'name': '深证成指',
-                        'close': float(latest.get('close', 0)),
-                        'change': float(latest.get('change', 0)) if 'change' in latest else None,
-                        'date': latest.get('date', '').strftime('%Y-%m-%d') if 'date' in latest else None
+                    indices_data["shenzhen_component"] = {
+                        "symbol": "399001",
+                        "name": "深证成指",
+                        "close": float(latest.get("close", 0)),
+                        "change": float(latest.get("change", 0))
+                        if "change" in latest
+                        else None,
+                        "date": latest.get("date", "").strftime("%Y-%m-%d")
+                        if "date" in latest
+                        else None,
                     }
             except Exception:
                 pass
-            
+
             return {
-                'market': 'CN',
-                'indices': indices_data,
-                'timestamp': datetime.now().isoformat()
+                "market": "CN",
+                "indices": indices_data,
+                "timestamp": datetime.now().isoformat(),
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to get market summary: {e}")
-            return {'error': str(e)}
+            return {"error": str(e)}
 
     def get_sector_performance(self) -> List[Dict[str, Any]]:
         """Get sector performance data."""
         try:
             # Get sector data
             sector_df = ak.stock_board_industry_name_em()
-            
+
             if sector_df is not None and not sector_df.empty:
                 # Standardize column names
                 columns_map = {
-                    '板块名称': 'sector_name',
-                    '板块代码': 'sector_code', 
-                    '最新价': 'price',
-                    '涨跌幅': 'change_percent',
-                    '涨跌额': 'change_amount',
-                    '总市值': 'market_cap',
-                    '换手率': 'turnover_rate'
+                    "板块名称": "sector_name",
+                    "板块代码": "sector_code",
+                    "最新价": "price",
+                    "涨跌幅": "change_percent",
+                    "涨跌额": "change_amount",
+                    "总市值": "market_cap",
+                    "换手率": "turnover_rate",
                 }
-                
+
                 # Rename columns if they exist
                 for old_name, new_name in columns_map.items():
                     if old_name in sector_df.columns:
                         sector_df = sector_df.rename(columns={old_name: new_name})
-                
-                return sector_df.to_dict('records')
-            
+
+                return sector_df.to_dict("records")
+
         except Exception as e:
             logger.error(f"Failed to get sector performance: {e}")
             return []
