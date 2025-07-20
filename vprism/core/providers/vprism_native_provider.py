@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any
 
 import pandas as pd
 
@@ -23,8 +23,8 @@ from vprism.core.models import (
     DataQuery,
     DataResponse,
     MarketType,
-    ResponseMetadata,
     ProviderInfo,
+    ResponseMetadata,
     TimeFrame,
 )
 from vprism.core.provider_abstraction import (
@@ -60,7 +60,7 @@ class AkshareModernAdapter:
         self._function_mapping = self._build_function_mapping()
         self._column_mappings = self._build_column_mappings()
 
-    def _build_function_mapping(self) -> Dict[str, Dict[str, Any]]:
+    def _build_function_mapping(self) -> dict[str, dict[str, Any]]:
         """
         Build comprehensive mapping from query parameters to akshare functions.
 
@@ -167,7 +167,7 @@ class AkshareModernAdapter:
             },
         }
 
-    def _build_column_mappings(self) -> Dict[str, Dict[str, str]]:
+    def _build_column_mappings(self) -> dict[str, dict[str, str]]:
         """
         Build column name mappings for different data types.
 
@@ -296,7 +296,7 @@ class AkshareModernAdapter:
         else:
             return f"{asset_str}_{market_str}_{data_type}"
 
-    def get_akshare_function(self, query: DataQuery) -> Optional[Dict[str, Any]]:
+    def get_akshare_function(self, query: DataQuery) -> dict[str, Any] | None:
         """
         Get akshare function configuration for query.
 
@@ -325,7 +325,7 @@ class AkshareModernAdapter:
 
     def standardize_dataframe(
         self, df: pd.DataFrame, symbol: str, asset_type: AssetType
-    ) -> List[DataPoint]:
+    ) -> list[DataPoint]:
         """
         Convert akshare DataFrame to standardized DataPoint list.
 
@@ -379,7 +379,7 @@ class AkshareModernAdapter:
 
         return data_points
 
-    def _parse_timestamp(self, row: pd.Series) -> Optional[datetime]:
+    def _parse_timestamp(self, row: pd.Series) -> datetime | None:
         """Parse timestamp from row data."""
         timestamp = None
 
@@ -407,7 +407,7 @@ class AkshareModernAdapter:
 
         return timestamp
 
-    def _safe_decimal(self, value) -> Optional[Decimal]:
+    def _safe_decimal(self, value) -> Decimal | None:
         """Safely convert value to Decimal."""
         if pd.isna(value) or value is None:
             return None
@@ -417,8 +417,8 @@ class AkshareModernAdapter:
             return None
 
     def _extract_extra_fields(
-        self, row: pd.Series, column_mapping: Dict[str, str]
-    ) -> Dict[str, Any]:
+        self, row: pd.Series, column_mapping: dict[str, str]
+    ) -> dict[str, Any]:
         """Extract extra fields not in standard DataPoint."""
         standard_fields = {
             "timestamp",
@@ -462,7 +462,7 @@ class AkshareModernAdapter:
         function_config = self.get_akshare_function(query)
         if not function_config:
             raise ProviderException(
-                f"No akshare function available for query",
+                "No akshare function available for query",
                 provider="vprism_native",
                 error_code="UNSUPPORTED_QUERY",
                 details={"query": query.model_dump()},
@@ -505,7 +505,7 @@ class AkshareModernAdapter:
         except Exception as e:
             logger.error(f"Error calling {function_name}: {e}")
             raise ProviderException(
-                f"Failed to fetch data from akshare: {str(e)}",
+                f"Failed to fetch data from akshare: {e!s}",
                 provider="vprism_native",
                 error_code="FETCH_ERROR",
                 details={
@@ -513,11 +513,11 @@ class AkshareModernAdapter:
                     "params": params,
                     "error_type": type(e).__name__,
                 },
-            )
+            ) from e
 
     async def _build_function_params(
-        self, query: DataQuery, base_params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, query: DataQuery, base_params: dict[str, Any]
+    ) -> dict[str, Any]:
         """Build parameters for akshare function call."""
         params = base_params.copy()
 
@@ -535,21 +535,17 @@ class AkshareModernAdapter:
             }
 
         # Add date range for historical data functions
-        if query.start:
-            # Check if this is a historical data function that needs date parameters
-            if any(
-                keyword in str(params)
-                for keyword in ["hist", "daily", "weekly", "monthly"]
-            ):
-                params["start_date"] = query.start.strftime("%Y%m%d")
+        if query.start and any(
+            keyword in str(params)
+            for keyword in ["hist", "daily", "weekly", "monthly"]
+        ):
+            params["start_date"] = query.start.strftime("%Y%m%d")
 
-        if query.end:
-            # Check if this is a historical data function that needs date parameters
-            if any(
-                keyword in str(params)
-                for keyword in ["hist", "daily", "weekly", "monthly"]
-            ):
-                params["end_date"] = query.end.strftime("%Y%m%d")
+        if query.end and any(
+            keyword in str(params)
+            for keyword in ["hist", "daily", "weekly", "monthly"]
+        ):
+            params["end_date"] = query.end.strftime("%Y%m%d")
 
         return params
 
@@ -650,7 +646,7 @@ class VPrismNativeProvider(EnhancedDataProvider):
         """Retrieve data using the modern akshare adapter."""
         if not self.can_handle_query(query):
             raise ProviderException(
-                f"VPrism native provider cannot handle query",
+                "VPrism native provider cannot handle query",
                 provider=self.name,
                 error_code="UNSUPPORTED_QUERY",
                 details={"query": query.model_dump()},
@@ -729,13 +725,13 @@ class VPrismNativeProvider(EnhancedDataProvider):
 
         except Exception as e:
             raise ProviderException(
-                f"Error retrieving data from vprism native: {str(e)}",
+                f"Error retrieving data from vprism native: {e!s}",
                 provider=self.name,
                 error_code="FETCH_ERROR",
                 details={"error_type": type(e).__name__},
-            )
+            ) from e
 
-    async def _get_default_symbols(self, query: DataQuery) -> List[str]:
+    async def _get_default_symbols(self, query: DataQuery) -> list[str]:
         """Get default symbols when none specified."""
         try:
             if query.asset == AssetType.STOCK and query.market == MarketType.CN:
@@ -753,7 +749,7 @@ class VPrismNativeProvider(EnhancedDataProvider):
             logger.warning(f"Failed to get default symbols: {e}")
             return []
 
-    async def stream_data(self, query: DataQuery) -> List[DataPoint]:
+    async def stream_data(self, query: DataQuery) -> list[DataPoint]:
         """Stream data (not supported by akshare backend)."""
         raise ProviderException(
             "VPrism native provider does not support real-time streaming",
@@ -761,13 +757,13 @@ class VPrismNativeProvider(EnhancedDataProvider):
             error_code="STREAMING_NOT_SUPPORTED",
         )
 
-    def get_supported_functions(self) -> Dict[str, str]:
+    def get_supported_functions(self) -> dict[str, str]:
         """Get list of supported akshare functions with descriptions."""
         return {
             key: config["description"]
             for key, config in self._adapter._function_mapping.items()
         }
 
-    def get_function_mapping(self) -> Dict[str, Dict[str, Any]]:
+    def get_function_mapping(self) -> dict[str, dict[str, Any]]:
         """Get complete function mapping for debugging/inspection."""
         return self._adapter._function_mapping.copy()

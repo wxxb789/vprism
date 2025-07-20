@@ -7,7 +7,8 @@ which provides a modern interface to akshare's 1000+ functions.
 
 import asyncio
 from datetime import datetime
-from vprism.core.models import AssetType, MarketType, TimeFrame, DataQuery
+
+from vprism.core.models import AssetType, DataQuery, MarketType, TimeFrame
 from vprism.core.providers.vprism_native_provider import VPrismNativeProvider
 
 
