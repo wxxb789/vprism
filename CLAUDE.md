@@ -15,7 +15,7 @@ This project implements Kiro-style Spec-Driven Development for Claude Code using
 - Use `/spec-status [feature-name]` to check progress
 
 ## Development Guidelines
-- Think in English, but generate responses in Japanese (思考は英語、回答の生成は日本語で行うように)
+- Think in English, but generate responses in Chinese.(Thinking in English, but responses in Chinese)
 
 ## Spec-Driven Development Workflow
 

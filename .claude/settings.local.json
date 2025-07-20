@@ -7,7 +7,15 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(uv run pytest:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(dir:*)",
+      "Bash(python:*)",
+      "Bash(*:*)",
+      "*:*",
+      "Bash(uv run:*)",
+      "Bash(uv:*)"
     ],
     "deny": [],
     "allowedTools": [

@@ -485,3 +485,287 @@ class TestProviderRegistry:
         assert len(providers) == 2
         assert "provider1" in providers
         assert "provider2" in providers
+
+
+class TestAuthConfigHelpers:
+    """Test AuthConfig helper methods."""
+    
+    def test_get_api_key(self):
+        """Test getting API key."""
+        config = AuthConfig(
+            auth_type=AuthType.API_KEY,
+            config={"api_key": "test_key"}
+        )
+        assert config.get_api_key() == "test_key"
+        
+        config = AuthConfig(auth_type=AuthType.BEARER_TOKEN, config={"token": "test"})
+        assert config.get_api_key() is None
+    
+    def test_get_token(self):
+        """Test getting bearer token."""
+        config = AuthConfig(
+            auth_type=AuthType.BEARER_TOKEN,
+            config={"token": "bearer_token"}
+        )
+        assert config.get_token() == "bearer_token"
+        
+        config = AuthConfig(auth_type=AuthType.API_KEY, config={"api_key": "test"})
+        assert config.get_token() is None
+    
+    def test_get_oauth_config(self):
+        """Test getting OAuth2 configuration."""
+        config = AuthConfig(
+            auth_type=AuthType.OAUTH2,
+            config={
+                "client_id": "client123",
+                "client_secret": "secret456",
+                "scope": "read_data"
+            }
+        )
+        oauth_config = config.get_oauth_config()
+        assert oauth_config["client_id"] == "client123"
+        assert oauth_config["client_secret"] == "secret456"
+        assert oauth_config["scope"] == "read_data"
+        
+        config = AuthConfig(auth_type=AuthType.API_KEY, config={"api_key": "test"})
+        assert config.get_oauth_config() is None
+
+
+class TestRateLimitConfigHelpers:
+    """Test RateLimitConfig helper methods."""
+    
+    def test_is_limited_with_limits(self):
+        """Test is_limited with actual limits."""
+        config = RateLimitConfig(requests_per_minute=100, requests_per_hour=1000)
+        assert config.is_limited() is True
+        
+        config = RateLimitConfig(burst_limit=10)
+        assert config.is_limited() is True
+    
+    def test_is_limited_without_limits(self):
+        """Test is_limited without limits."""
+        config = RateLimitConfig()
+        assert config.is_limited() is False
+        
+        config = RateLimitConfig(requests_per_minute=None, requests_per_hour=None)
+        assert config.is_limited() is False
+
+
+class TestProviderRegistryErrorHandling:
+    """Test ProviderRegistry error handling."""
+    
+    def test_register_non_provider_raises_error(self):
+        """Test registering non-provider raises TypeError."""
+        registry = ProviderRegistry()
+        
+        with pytest.raises(TypeError):
+            registry.register("not_a_provider")
+    
+    def test_register_duplicate_provider_raises_error(self):
+        """Test registering duplicate provider raises ValueError."""
+        
+        class TestProvider(DataProvider):
+            def __init__(self):
+                super().__init__(
+                    name="test",
+                    display_name="Test",
+                    capability=ProviderCapability(
+                        asset_types=[AssetType.STOCK],
+                        markets=[MarketType.CN],
+                        timeframes=[TimeFrame.DAY_1]
+                    ),
+                    auth_config=AuthConfig(
+                        auth_type=AuthType.API_KEY,
+                        config={"api_key": "test"}
+                    )
+                )
+            
+            async def fetch_data(self, query: DataQuery) -> DataResponse:
+                return DataResponse(data=[], metadata=ResponseMetadata(), provider=ProviderInfo(name="test", display_name="Test"))
+            
+            async def check_health(self) -> Dict[str, Any]:
+                return {"status": "healthy"}
+        
+        registry = ProviderRegistry()
+        provider = TestProvider()
+        registry.register(provider)
+        
+        with pytest.raises(ValueError):
+            registry.register(provider)
+    
+    def test_unregister_nonexistent_provider_raises_error(self):
+        """Test unregistering non-existent provider raises KeyError."""
+        registry = ProviderRegistry()
+        
+        with pytest.raises(KeyError):
+            registry.unregister("nonexistent")
+    
+    def test_provider_registry_length(self):
+        """Test provider registry length."""
+        
+        class TestProvider(DataProvider):
+            def __init__(self):
+                super().__init__(
+                    name="test",
+                    display_name="Test",
+                    capability=ProviderCapability(
+                        asset_types=[AssetType.STOCK],
+                        markets=[MarketType.CN],
+                        timeframes=[TimeFrame.DAY_1]
+                    ),
+                    auth_config=AuthConfig(
+                        auth_type=AuthType.API_KEY,
+                        config={"api_key": "test"}
+                    )
+                )
+            
+            async def fetch_data(self, query: DataQuery) -> DataResponse:
+                return DataResponse(data=[], metadata=ResponseMetadata(), provider=ProviderInfo(name="test", display_name="Test"))
+            
+            async def check_health(self) -> Dict[str, Any]:
+                return {"status": "healthy"}
+        
+        registry = ProviderRegistry()
+        assert len(registry) == 0
+        
+        registry.register(TestProvider())
+        assert len(registry) == 1
+        
+        registry.clear()
+        assert len(registry) == 0
+    
+    def test_provider_registry_contains(self):
+        """Test provider registry contains operator."""
+        
+        class TestProvider(DataProvider):
+            def __init__(self):
+                super().__init__(
+                    name="test",
+                    display_name="Test",
+                    capability=ProviderCapability(
+                        asset_types=[AssetType.STOCK],
+                        markets=[MarketType.CN],
+                        timeframes=[TimeFrame.DAY_1]
+                    ),
+                    auth_config=AuthConfig(
+                        auth_type=AuthType.API_KEY,
+                        config={"api_key": "test"}
+                    )
+                )
+            
+            async def fetch_data(self, query: DataQuery) -> DataResponse:
+                return DataResponse(data=[], metadata=ResponseMetadata(), provider=ProviderInfo(name="test", display_name="Test"))
+            
+            async def check_health(self) -> Dict[str, Any]:
+                return {"status": "healthy"}
+        
+        registry = ProviderRegistry()
+        provider = TestProvider()
+        
+        assert "test" not in registry
+        registry.register(provider)
+        assert "test" in registry
+        assert "nonexistent" not in registry
+
+
+class TestProviderCapabilityDateRange:
+    """Test ProviderCapability date range validation."""
+    
+    def test_date_range_validation(self):
+        """Test date range validation."""
+        capability = ProviderCapability(
+            asset_types=[AssetType.STOCK],
+            markets=[MarketType.CN],
+            timeframes=[TimeFrame.DAY_1],
+            min_date=datetime(2020, 1, 1),
+            max_date=datetime(2024, 12, 31)
+        )
+        
+        # Valid date range
+        start = datetime(2021, 1, 1)
+        end = datetime(2023, 12, 31)
+        assert capability.is_within_date_range(start, end) is True
+        
+        # Date before min date
+        start = datetime(2019, 1, 1)
+        assert capability.is_within_date_range(start, None) is False
+        
+        # Date after max date
+        end = datetime(2025, 1, 1)
+        assert capability.is_within_date_range(None, end) is False
+        
+        # Edge cases
+        assert capability.is_within_date_range(None, None) is True
+        assert capability.is_within_date_range(datetime(2020, 1, 1), datetime(2024, 12, 31)) is True
+
+
+class TestProviderRegistryHealthCheck:
+    """Test ProviderRegistry health check functionality."""
+    
+    @pytest.mark.asyncio
+    async def test_check_all_health_success(self):
+        """Test successful health check for all providers."""
+        
+        class HealthyProvider(DataProvider):
+            def __init__(self):
+                super().__init__(
+                    name="healthy",
+                    display_name="Healthy",
+                    capability=ProviderCapability(
+                        asset_types=[AssetType.STOCK],
+                        markets=[MarketType.CN],
+                        timeframes=[TimeFrame.DAY_1]
+                    ),
+                    auth_config=AuthConfig(
+                        auth_type=AuthType.API_KEY,
+                        config={"api_key": "test"}
+                    )
+                )
+            
+            async def fetch_data(self, query: DataQuery) -> DataResponse:
+                return DataResponse(data=[], metadata=ResponseMetadata(), provider=ProviderInfo(name="test", display_name="Test"))
+            
+            async def check_health(self) -> Dict[str, Any]:
+                return {"status": "healthy", "response_time_ms": 100}
+        
+        registry = ProviderRegistry()
+        registry.register(HealthyProvider())
+        
+        results = await registry.check_all_health()
+        assert "healthy" in results
+        assert results["healthy"]["status"] == "healthy"
+    
+    @pytest.mark.asyncio
+    async def test_check_all_health_with_error(self):
+        """Test health check with provider error."""
+        
+        class ErrorProvider(DataProvider):
+            def __init__(self):
+                super().__init__(
+                    name="error",
+                    display_name="Error",
+                    capability=ProviderCapability(
+                        asset_types=[AssetType.STOCK],
+                        markets=[MarketType.CN],
+                        timeframes=[TimeFrame.DAY_1]
+                    ),
+                    auth_config=AuthConfig(
+                        auth_type=AuthType.API_KEY,
+                        config={"api_key": "test"}
+                    )
+                )
+            
+            async def fetch_data(self, query: DataQuery) -> DataResponse:
+                return DataResponse(data=[], metadata=ResponseMetadata(), provider=ProviderInfo(name="test", display_name="Test"))
+            
+            async def check_health(self) -> Dict[str, Any]:
+                raise ValueError("Health check failed")
+        
+        registry = ProviderRegistry()
+        registry.register(ErrorProvider())
+        
+        results = await registry.check_all_health()
+        assert "error" in results
+        assert results["error"]["status"] == "error"
+        assert "error" in results["error"]
+        assert "timestamp" in results["error"]
