@@ -1,7 +1,7 @@
 """vprism客户端实现 - 提供简单和复杂的API接口"""
 
 import asyncio
-from typing import Any, List, Optional
+from typing import Any
 
 from vprism.core.models import AssetType, DataQuery, MarketType, TimeFrame
 from vprism.core.services.data_router import DataRouter
@@ -12,13 +12,13 @@ class QueryBuilder:
     """构建器模式API - 支持复杂查询构建"""
 
     def __init__(self):
-        self._asset: Optional[AssetType] = None
-        self._market: Optional[MarketType] = None
-        self._symbols: Optional[List[str]] = None
-        self._timeframe: Optional[TimeFrame] = None
-        self._start: Optional[str] = None
-        self._end: Optional[str] = None
-        self._provider: Optional[str] = None
+        self._asset: AssetType | None = None
+        self._market: MarketType | None = None
+        self._symbols: list[str] | None = None
+        self._timeframe: TimeFrame | None = None
+        self._start: str | None = None
+        self._end: str | None = None
+        self._provider: str | None = None
 
     def asset(self, asset: str) -> "QueryBuilder":
         """设置资产类型"""
@@ -30,7 +30,7 @@ class QueryBuilder:
         self._market = MarketType(market)
         return self
 
-    def symbols(self, symbols: List[str]) -> "QueryBuilder":
+    def symbols(self, symbols: list[str]) -> "QueryBuilder":
         """设置股票代码列表"""
         self._symbols = symbols
         return self
@@ -104,7 +104,7 @@ class VPrismClient:
         self,
         asset: str = None,
         market: str = None,
-        symbols: List[str] = None,
+        symbols: list[str] = None,
         timeframe: str = None,
         start: str = None,
         end: str = None,

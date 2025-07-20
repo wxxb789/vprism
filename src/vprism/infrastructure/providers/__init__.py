@@ -8,7 +8,7 @@ from .base import (
     ProviderCapability,
     RateLimitConfig,
 )
-from .factory import ProviderFactory, get_provider, create_default_providers
+from .factory import ProviderFactory, create_default_providers, get_provider
 from .registry import ProviderRegistry
 from .yahoo_provider import YahooFinanceProvider
 

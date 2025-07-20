@@ -4,10 +4,10 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from vprism.core.models import DataQuery
 from vprism.core.exceptions import NoCapableProviderError
-from vprism.infrastructure.providers.registry import ProviderRegistry
+from vprism.core.models import DataQuery
 from vprism.infrastructure.providers.base import DataProvider
+from vprism.infrastructure.providers.registry import ProviderRegistry
 
 logger = logging.getLogger(__name__)
 

@@ -2,13 +2,13 @@
 
 import asyncio
 import logging
-from datetime import datetime
-from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
 
-from vprism.core.models import DataQuery, DataResponse, DataPoint
-from vprism.core.services.data_service import DataService
+from vprism.core.models import DataQuery, DataResponse
 from vprism.core.services.data_router import DataRouter
+from vprism.core.services.data_service import DataService
 from vprism.infrastructure.providers.registry import ProviderRegistry
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class BatchRequest:
     """批量请求数据结构."""
 
-    queries: List[DataQuery]
+    queries: list[DataQuery]
     concurrent_limit: int = 10
     timeout: int = 30
     retry_count: int = 3
@@ -38,12 +38,12 @@ class BatchRequest:
 class BatchResult:
     """批量处理结果."""
 
-    results: Dict[str, DataResponse]
+    results: dict[str, DataResponse]
     success_count: int
     failure_count: int
     total_time_seconds: float
-    errors: Dict[str, str]
-    processed_queries: List[str]
+    errors: dict[str, str]
+    processed_queries: list[str]
 
 
 class BatchProcessor:
@@ -52,8 +52,8 @@ class BatchProcessor:
     def __init__(
         self,
         data_service: DataService,
-        router: Optional[DataRouter] = None,
-        registry: Optional[ProviderRegistry] = None,
+        router: DataRouter | None = None,
+        registry: ProviderRegistry | None = None,
     ):
         """初始化批量处理器.
 
@@ -143,8 +143,8 @@ class BatchProcessor:
         return result
 
     def _group_queries_by_provider(
-        self, queries: List[DataQuery]
-    ) -> Dict[str, List[DataQuery]]:
+        self, queries: list[DataQuery]
+    ) -> dict[str, list[DataQuery]]:
         """按提供商分组查询.
 
         Args:
@@ -174,7 +174,7 @@ class BatchProcessor:
 
         return groups
 
-    def _find_capable_providers(self, query: DataQuery) -> List[Any]:
+    def _find_capable_providers(self, query: DataQuery) -> list[Any]:
         """找到能处理查询的提供商.
 
         Args:
@@ -188,7 +188,7 @@ class BatchProcessor:
 
         return self.registry.find_capable_providers(query)
 
-    def _select_best_provider(self, providers: List[Any]) -> Optional[Any]:
+    def _select_best_provider(self, providers: list[Any]) -> Any | None:
         """选择最佳提供商.
 
         Args:
@@ -211,8 +211,8 @@ class BatchProcessor:
         return providers[0]
 
     async def _process_provider_group(
-        self, provider_name: str, queries: List[DataQuery], batch_request: BatchRequest
-    ) -> Dict[str, DataResponse]:
+        self, provider_name: str, queries: list[DataQuery], batch_request: BatchRequest
+    ) -> dict[str, DataResponse]:
         """处理单个提供商的查询组.
 
         Args:
@@ -227,7 +227,7 @@ class BatchProcessor:
 
         async def process_single_query(
             query: DataQuery, index: int
-        ) -> Tuple[str, DataResponse]:
+        ) -> tuple[str, DataResponse]:
             """处理单个查询."""
             async with semaphore:
                 query_id = f"{provider_name}_{index}"
@@ -240,7 +240,7 @@ class BatchProcessor:
                         )
                         return query_id, response
 
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         if attempt == batch_request.retry_count:
                             error_msg = f"Query timeout after {batch_request.retry_count} retries"
                             logger.error(f"{query_id}: {error_msg}")
@@ -289,7 +289,7 @@ class BatchProcessor:
 
     async def process_optimized_batch(
         self,
-        symbols: List[str],
+        symbols: list[str],
         market: Any,
         timeframe: Any,
         start: datetime,
@@ -327,7 +327,7 @@ class BatchProcessor:
 
     async def get_market_data_batch(
         self,
-        symbols: List[str],
+        symbols: list[str],
         market: Any,
         period: str = "1m",
         concurrent_limit: int = 10,
@@ -366,7 +366,7 @@ class BatchProcessor:
             concurrent_limit=concurrent_limit,
         )
 
-    def get_performance_metrics(self, result: BatchResult) -> Dict[str, Any]:
+    def get_performance_metrics(self, result: BatchResult) -> dict[str, Any]:
         """获取性能指标.
 
         Args:

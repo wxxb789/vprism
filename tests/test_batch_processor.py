@@ -1,14 +1,12 @@
 """测试批量数据处理管道."""
 
-import asyncio
 from datetime import datetime, timedelta
 from decimal import Decimal
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
 from vprism.core.models import (
-    AssetType,
     DataPoint,
     DataQuery,
     DataResponse,

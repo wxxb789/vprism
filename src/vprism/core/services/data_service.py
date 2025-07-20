@@ -3,12 +3,9 @@
 import asyncio
 import logging
 from datetime import date, datetime, timedelta
-from decimal import Decimal
-from typing import Dict, List, Optional, Union
 
 from vprism.core.models import (
     AssetType,
-    DataPoint,
     DataQuery,
     DataResponse,
     MarketType,
@@ -18,7 +15,6 @@ from vprism.core.models import (
 )
 from vprism.core.services.data_router import DataRouter
 from vprism.infrastructure.cache.multilevel import MultiLevelCache
-from vprism.infrastructure.providers import ProviderRegistry
 from vprism.infrastructure.repositories.data import DataRepository
 
 logger = logging.getLogger(__name__)
@@ -29,9 +25,9 @@ class DataService:
 
     def __init__(
         self,
-        router: Optional[DataRouter] = None,
-        cache: Optional[MultiLevelCache] = None,
-        repository: Optional[DataRepository] = None,
+        router: DataRouter | None = None,
+        cache: MultiLevelCache | None = None,
+        repository: DataRepository | None = None,
     ):
         """初始化数据服务.
 
@@ -48,9 +44,9 @@ class DataService:
 
     async def get(
         self,
-        symbols: Union[str, List[str]],
-        start: Optional[Union[str, date, datetime]] = None,
-        end: Optional[Union[str, date, datetime]] = None,
+        symbols: str | list[str],
+        start: str | date | datetime | None = None,
+        end: str | date | datetime | None = None,
         market: MarketType = MarketType.CN,
         asset_type: AssetType = AssetType.STOCK,
         timeframe: TimeFrame = TimeFrame.DAY_1,
@@ -187,7 +183,7 @@ class DataService:
 
     async def get_latest(
         self,
-        symbols: List[str],
+        symbols: list[str],
         market: MarketType = MarketType.CN,
         asset_type: AssetType = AssetType.STOCK,
     ) -> DataResponse:
@@ -218,7 +214,7 @@ class DataService:
 
     async def get_historical(
         self,
-        symbols: List[str],
+        symbols: list[str],
         period: str,
         market: MarketType = MarketType.CN,
         asset_type: AssetType = AssetType.STOCK,
@@ -260,7 +256,7 @@ class DataService:
 
         return await self.query_data(query)
 
-    async def batch_query(self, queries: List[DataQuery]) -> Dict[str, DataResponse]:
+    async def batch_query(self, queries: list[DataQuery]) -> dict[str, DataResponse]:
         """批量查询多个数据请求.
 
         Args:
@@ -277,7 +273,7 @@ class DataService:
 
         # 构建响应映射
         results = {}
-        for i, (query, response) in enumerate(zip(queries, responses)):
+        for i, (query, response) in enumerate(zip(queries, responses, strict=False)):
             query_id = f"query_{i}"
             if isinstance(response, Exception):
                 logger.error(f"Query {query_id} failed: {response}")
@@ -308,7 +304,7 @@ class DataService:
             f"{query.start_date}:{query.end_date}"
         )
 
-    async def health_check(self) -> Dict[str, bool]:
+    async def health_check(self) -> dict[str, bool]:
         """健康检查.
 
         Returns:
@@ -354,7 +350,7 @@ class QueryBuilder:
             end_date=datetime.now().date(),
         )
 
-    def asset(self, asset_type: Union[str, AssetType]) -> "QueryBuilder":
+    def asset(self, asset_type: str | AssetType) -> "QueryBuilder":
         """设置资产类型.
 
         Args:
@@ -368,7 +364,7 @@ class QueryBuilder:
         self.query.asset = asset_type
         return self
 
-    def market(self, market: Union[str, MarketType]) -> "QueryBuilder":
+    def market(self, market: str | MarketType) -> "QueryBuilder":
         """设置市场类型.
 
         Args:
@@ -382,7 +378,7 @@ class QueryBuilder:
         self.query.market = market
         return self
 
-    def symbols(self, symbols: Union[str, List[str]]) -> "QueryBuilder":
+    def symbols(self, symbols: str | list[str]) -> "QueryBuilder":
         """设置股票代码.
 
         Args:
@@ -396,7 +392,7 @@ class QueryBuilder:
         self.query.symbols = symbols
         return self
 
-    def start(self, start_date: Union[str, date]) -> "QueryBuilder":
+    def start(self, start_date: str | date) -> "QueryBuilder":
         """设置开始日期.
 
         Args:
@@ -410,7 +406,7 @@ class QueryBuilder:
         self.query.start_date = start_date
         return self
 
-    def end(self, end_date: Union[str, date]) -> "QueryBuilder":
+    def end(self, end_date: str | date) -> "QueryBuilder":
         """设置结束日期.
 
         Args:
@@ -424,7 +420,7 @@ class QueryBuilder:
         self.query.end_date = end_date
         return self
 
-    def timeframe(self, timeframe: Union[str, TimeFrame]) -> "QueryBuilder":
+    def timeframe(self, timeframe: str | TimeFrame) -> "QueryBuilder":
         """设置时间框架.
 
         Args:

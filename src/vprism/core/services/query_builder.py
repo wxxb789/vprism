@@ -1,7 +1,6 @@
 """查询构建器模块."""
 
 from datetime import date, datetime, timedelta
-from typing import List, Union
 
 from vprism.core.models import AssetType, DataQuery, MarketType, TimeFrame
 
@@ -25,7 +24,7 @@ class QueryBuilder:
         )
         self._service = service
 
-    def asset(self, asset_type: Union[str, AssetType]) -> "QueryBuilder":
+    def asset(self, asset_type: str | AssetType) -> "QueryBuilder":
         """设置资产类型.
 
         Args:
@@ -39,7 +38,7 @@ class QueryBuilder:
         self._query.asset = asset_type
         return self
 
-    def market(self, market: Union[str, MarketType]) -> "QueryBuilder":
+    def market(self, market: str | MarketType) -> "QueryBuilder":
         """设置市场类型.
 
         Args:
@@ -53,7 +52,7 @@ class QueryBuilder:
         self._query.market = market
         return self
 
-    def symbols(self, symbols: Union[str, List[str]]) -> "QueryBuilder":
+    def symbols(self, symbols: str | list[str]) -> "QueryBuilder":
         """设置股票代码.
 
         Args:
@@ -67,7 +66,7 @@ class QueryBuilder:
         self._query.symbols = symbols
         return self
 
-    def start(self, start_date: Union[str, date]) -> "QueryBuilder":
+    def start(self, start_date: str | date) -> "QueryBuilder":
         """设置开始日期.
 
         Args:
@@ -81,7 +80,7 @@ class QueryBuilder:
         self._query.start = start_date
         return self
 
-    def end(self, end_date: Union[str, date]) -> "QueryBuilder":
+    def end(self, end_date: str | date) -> "QueryBuilder":
         """设置结束日期.
 
         Args:
@@ -95,7 +94,7 @@ class QueryBuilder:
         self._query.end = end_date
         return self
 
-    def timeframe(self, timeframe: Union[str, TimeFrame]) -> "QueryBuilder":
+    def timeframe(self, timeframe: str | TimeFrame) -> "QueryBuilder":
         """设置时间框架.
 
         Args:

@@ -1,9 +1,8 @@
 """测试核心数据服务和双重API设计."""
 
-import asyncio
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -27,7 +26,6 @@ class TestDataService:
     @pytest.fixture
     def mock_router(self):
         """创建mock路由器."""
-        from vprism.infrastructure.providers.registry import ProviderRegistry
 
         registry = AsyncMock()
         router = AsyncMock(spec=DataRouter)

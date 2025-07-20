@@ -29,7 +29,9 @@ from .base import (
 class AkShareProvider(DataProvider):
     """akshare数据提供商实现."""
 
-    def __init__(self, auth_config: AuthConfig = None, rate_limit: RateLimitConfig = None):
+    def __init__(
+        self, auth_config: AuthConfig = None, rate_limit: RateLimitConfig = None
+    ):
         """初始化akshare提供商."""
         if auth_config is None:
             auth_config = AuthConfig(

@@ -1,6 +1,6 @@
 """测试数据提供商适配器框架."""
 
-from datetime import datetime, timedelta, date
+from datetime import date, datetime
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -10,9 +10,8 @@ from vprism.core.models import AssetType, DataPoint, DataQuery, MarketType, Time
 from vprism.infrastructure.providers import (
     AkShareProvider,
     ProviderRegistry,
-    YahooFinanceProvider
+    YahooFinanceProvider,
 )
-from vprism.infrastructure.providers.base import AuthConfig, AuthType, RateLimitConfig
 
 
 class TestProviderBase:
@@ -40,7 +39,7 @@ class TestProviderBase:
             symbols=["000001"],
             timeframe=TimeFrame.DAY_1,
             start_date=date(2024, 1, 1),
-            end_date=date(2024, 1, 10)
+            end_date=date(2024, 1, 10),
         )
 
         assert provider.can_handle_query(query) is True
@@ -52,7 +51,7 @@ class TestProviderBase:
             symbols=["AAPL"],
             timeframe=TimeFrame.DAY_1,
             start_date=date(2024, 1, 1),
-            end_date=date(2024, 1, 10)
+            end_date=date(2024, 1, 10),
         )
 
         assert provider.can_handle_query(us_query) is True
@@ -92,11 +91,11 @@ class TestAkShareProvider:
             symbols=["000001"],
             timeframe=TimeFrame.DAY_1,
             start_date=date(2024, 1, 1),
-            end_date=date(2024, 1, 10)
+            end_date=date(2024, 1, 10),
         )
 
         # 使用mock避免真实API调用
-        with patch.object(provider, '_fetch_data') as mock_fetch:
+        with patch.object(provider, "_fetch_data") as mock_fetch:
             mock_response = Mock()
             mock_response.data = [
                 DataPoint(
@@ -108,7 +107,7 @@ class TestAkShareProvider:
                     low_price=Decimal("9.0"),
                     close_price=Decimal("10.5"),
                     volume=Decimal("1000000"),
-                    provider="akshare"
+                    provider="akshare",
                 )
             ]
             mock_fetch.return_value = mock_response
@@ -142,11 +141,11 @@ class TestYahooFinanceProvider:
             symbols=["AAPL"],
             timeframe=TimeFrame.DAY_1,
             start_date=date(2024, 1, 1),
-            end_date=date(2024, 1, 10)
+            end_date=date(2024, 1, 10),
         )
 
         # 使用mock避免真实API调用
-        with patch.object(provider, '_get_historical_data') as mock_fetch:
+        with patch.object(provider, "_get_historical_data") as mock_fetch:
             mock_response = Mock()
             mock_response.data = [
                 DataPoint(
@@ -158,7 +157,7 @@ class TestYahooFinanceProvider:
                     low_price=Decimal("149.0"),
                     close_price=Decimal("152.0"),
                     volume=Decimal("5000000"),
-                    provider="yahoo"
+                    provider="yahoo",
                 )
             ]
             mock_fetch.return_value = mock_response
@@ -166,8 +165,6 @@ class TestYahooFinanceProvider:
             response = await provider.get_data(query)
             assert len(response.data) > 0
             assert response.data[0].symbol == "AAPL"
-
-
 
 
 class TestIntegration:
@@ -191,7 +188,7 @@ class TestIntegration:
             symbols=["000001"],
             timeframe=TimeFrame.DAY_1,
             start_date=date(2024, 1, 1),
-            end_date=date(2024, 1, 10)
+            end_date=date(2024, 1, 10),
         )
 
         # 美国股票查询
@@ -201,7 +198,7 @@ class TestIntegration:
             symbols=["AAPL"],
             timeframe=TimeFrame.DAY_1,
             start_date=date(2024, 1, 1),
-            end_date=date(2024, 1, 10)
+            end_date=date(2024, 1, 10),
         )
 
         cn_providers = registry.find_capable_providers(cn_query)
@@ -211,8 +208,6 @@ class TestIntegration:
         assert any(p.name == "akshare" for p in cn_providers)
         # yahoo应该能处理美国股票
         assert any(p.name == "yahoo" for p in us_providers)
-
-
 
     def test_registry_register_unregister(self):
         """测试注册和注销."""

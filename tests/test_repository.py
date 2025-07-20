@@ -1,15 +1,20 @@
 """测试数据仓储模式"""
 
-import pytest
 import asyncio
 from datetime import date, datetime
 from decimal import Decimal
 
-from vprism.core.models import AssetType, MarketType, TimeFrame
-from vprism.infrastructure.storage.repository import (
-    DuckDBRepository, AssetInfo, OHLCVData, RealTimeQuote, DataQualityMetrics
-)
+import pytest
+
+from vprism.core.models import MarketType
 from vprism.infrastructure.storage.factory import RepositoryFactory
+from vprism.infrastructure.storage.repository import (
+    AssetInfo,
+    DataQualityMetrics,
+    DuckDBRepository,
+    OHLCVData,
+    RealTimeQuote,
+)
 
 
 class TestDuckDBRepository:
@@ -32,7 +37,7 @@ class TestDuckDBRepository:
             exchange="SZSE",
             sector="金融",
             industry="银行业",
-            provider="tushare"
+            provider="tushare",
         )
 
         # 保存资产信息
@@ -59,7 +64,7 @@ class TestDuckDBRepository:
                 low_price=Decimal("10.30"),
                 close_price=Decimal("10.60"),
                 volume=Decimal("1000000"),
-                provider="tushare"
+                provider="tushare",
             ),
             OHLCVData(
                 symbol="000001",
@@ -70,8 +75,8 @@ class TestDuckDBRepository:
                 low_price=Decimal("10.40"),
                 close_price=Decimal("10.75"),
                 volume=Decimal("1200000"),
-                provider="tushare"
-            )
+                provider="tushare",
+            ),
         ]
 
         # 保存数据
@@ -80,9 +85,7 @@ class TestDuckDBRepository:
 
         # 获取数据
         retrieved = await repository.get_ohlcv_data(
-            "000001", "cn", 
-            date(2024, 1, 1), 
-            date(2024, 1, 2)
+            "000001", "cn", date(2024, 1, 1), date(2024, 1, 2)
         )
         assert len(retrieved) == 2
         assert retrieved[0].close_price == Decimal("10.60")
@@ -99,7 +102,7 @@ class TestDuckDBRepository:
             change_percent=Decimal("0.47"),
             volume=Decimal("500000"),
             timestamp=datetime.now(),
-            provider="tushare"
+            provider="tushare",
         )
 
         # 保存报价
@@ -127,7 +130,7 @@ class TestDuckDBRepository:
             missing_records=0,
             anomaly_count=1,
             provider="tushare",
-            checked_at=datetime.now()
+            checked_at=datetime.now(),
         )
 
         # 保存指标
@@ -136,9 +139,7 @@ class TestDuckDBRepository:
 
         # 获取指标
         retrieved = await repository.get_data_quality_metrics(
-            "000001", "cn", 
-            date(2024, 1, 1), 
-            date(2024, 1, 31)
+            "000001", "cn", date(2024, 1, 1), date(2024, 1, 31)
         )
         assert retrieved is not None
         assert retrieved.completeness_score == 98.5
@@ -148,9 +149,33 @@ class TestDuckDBRepository:
     async def test_get_symbols_by_market(self, repository):
         """测试按市场获取股票代码"""
         assets = [
-            AssetInfo(symbol="000001", market="cn", name="平安银行", asset_type="stock", currency="CNY", exchange="SZSE", provider="tushare"),
-            AssetInfo(symbol="AAPL", market="us", name="Apple", asset_type="stock", currency="USD", exchange="NASDAQ", provider="yahoo"),
-            AssetInfo(symbol="600000", market="cn", name="浦发银行", asset_type="stock", currency="CNY", exchange="SSE", provider="tushare")
+            AssetInfo(
+                symbol="000001",
+                market="cn",
+                name="平安银行",
+                asset_type="stock",
+                currency="CNY",
+                exchange="SZSE",
+                provider="tushare",
+            ),
+            AssetInfo(
+                symbol="AAPL",
+                market="us",
+                name="Apple",
+                asset_type="stock",
+                currency="USD",
+                exchange="NASDAQ",
+                provider="yahoo",
+            ),
+            AssetInfo(
+                symbol="600000",
+                market="cn",
+                name="浦发银行",
+                asset_type="stock",
+                currency="CNY",
+                exchange="SSE",
+                provider="tushare",
+            ),
         ]
 
         for asset in assets:
@@ -181,7 +206,7 @@ class TestDuckDBRepository:
                 low_price=Decimal("10.30"),
                 close_price=Decimal("10.60"),
                 volume=Decimal("1000000"),
-                provider="tushare"
+                provider="tushare",
             )
         ]
         await repository.save_ohlcv_data(ohlcv_data)
@@ -199,9 +224,7 @@ class TestDuckDBRepository:
 
         # 获取不存在的OHLCV数据
         ohlcv = await repository.get_ohlcv_data(
-            "NONEXISTENT", "cn", 
-            date(2024, 1, 1), 
-            date(2024, 1, 1)
+            "NONEXISTENT", "cn", date(2024, 1, 1), date(2024, 1, 1)
         )
         assert len(ohlcv) == 0
 
@@ -220,7 +243,7 @@ class TestDuckDBRepository:
             asset_type="stock",
             currency="CNY",
             exchange="SZSE",
-            provider="tushare"
+            provider="tushare",
         )
         await repository.save_asset_info(asset)
 
@@ -233,7 +256,7 @@ class TestDuckDBRepository:
             currency="CNY",
             exchange="SZSE",
             sector="金融业",
-            provider="tushare"
+            provider="tushare",
         )
         await repository.save_asset_info(updated_asset)
 
@@ -254,9 +277,9 @@ class TestRepositoryFactory:
         repo.close()
 
         # 测试文件数据库
-        import tempfile
         import os
-        
+        import tempfile
+
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = os.path.join(tmp_dir, "test.duckdb")
             repo = RepositoryFactory.create_repository(db_path=tmp_path)
@@ -267,9 +290,9 @@ class TestRepositoryFactory:
         """测试单例模式"""
         repo1 = RepositoryFactory.get_default_repository()
         repo2 = RepositoryFactory.get_default_repository()
-        
+
         assert repo1 is repo2
-        
+
         # 清理
         RepositoryFactory.reset_instance()
 
@@ -290,6 +313,7 @@ class TestConcurrentOperations:
     @pytest.mark.asyncio
     async def test_concurrent_save_operations(self, repository):
         """测试并发保存操作"""
+
         async def save_worker(worker_id):
             asset = AssetInfo(
                 symbol=f"TEST{worker_id}",
@@ -298,16 +322,16 @@ class TestConcurrentOperations:
                 asset_type="stock",
                 currency="CNY",
                 exchange="SZSE",
-                provider="tushare"
+                provider="tushare",
             )
             return await repository.save_asset_info(asset)
 
         # 并发保存多个资产
         tasks = [save_worker(i) for i in range(10)]
         results = await asyncio.gather(*tasks)
-        
+
         assert all(results)
-        
+
         # 验证所有资产都已保存
         for i in range(10):
             asset = await repository.get_asset_info(f"TEST{i}", "cn")

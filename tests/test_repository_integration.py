@@ -1,14 +1,17 @@
 """数据仓储集成测试"""
 
-import pytest
-import asyncio
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
-from vprism.core.models import AssetType, MarketType, TimeFrame
+import pytest
+
+from vprism.core.models import MarketType
 from vprism.infrastructure.storage.factory import RepositoryFactory
 from vprism.infrastructure.storage.repository import (
-    AssetInfo, OHLCVData, RealTimeQuote, DataQualityMetrics
+    AssetInfo,
+    DataQualityMetrics,
+    OHLCVData,
+    RealTimeQuote,
 )
 
 
@@ -33,7 +36,7 @@ class TestRepositoryIntegration:
                 exchange="SZSE",
                 sector="金融",
                 industry="银行业",
-                provider="tushare"
+                provider="tushare",
             ),
             AssetInfo(
                 symbol="AAPL",
@@ -44,7 +47,7 @@ class TestRepositoryIntegration:
                 exchange="NASDAQ",
                 sector="科技",
                 industry="消费电子",
-                provider="yahoo"
+                provider="yahoo",
             ),
             AssetInfo(
                 symbol="600000",
@@ -55,8 +58,8 @@ class TestRepositoryIntegration:
                 exchange="SSE",
                 sector="金融",
                 industry="银行业",
-                provider="tushare"
-            )
+                provider="tushare",
+            ),
         ]
 
     @pytest.fixture
@@ -64,43 +67,49 @@ class TestRepositoryIntegration:
         """创建测试OHLCV数据"""
         base_date = date(2024, 1, 1)
         data = []
-        
+
         # 为000001创建日线数据
         for i in range(30):
             current_date = base_date + timedelta(days=i)
             base_price = Decimal("10.0") + Decimal(str(i * 0.1))
-            data.append(OHLCVData(
-                symbol="000001",
-                market="cn",
-                timestamp=datetime.combine(current_date, datetime.min.time()),
-                open_price=base_price,
-                high_price=base_price + Decimal("0.5"),
-                low_price=base_price - Decimal("0.3"),
-                close_price=base_price + Decimal("0.1"),
-                volume=Decimal(str(1000000 + i * 100000)),
-                provider="tushare"
-            ))
-        
+            data.append(
+                OHLCVData(
+                    symbol="000001",
+                    market="cn",
+                    timestamp=datetime.combine(current_date, datetime.min.time()),
+                    open_price=base_price,
+                    high_price=base_price + Decimal("0.5"),
+                    low_price=base_price - Decimal("0.3"),
+                    close_price=base_price + Decimal("0.1"),
+                    volume=Decimal(str(1000000 + i * 100000)),
+                    provider="tushare",
+                )
+            )
+
         # 为AAPL创建日线数据
         for i in range(30):
             current_date = base_date + timedelta(days=i)
             base_price = Decimal("150.0") + Decimal(str(i * 2))
-            data.append(OHLCVData(
-                symbol="AAPL",
-                market="us",
-                timestamp=datetime.combine(current_date, datetime.min.time()),
-                open_price=base_price,
-                high_price=base_price + Decimal("2.5"),
-                low_price=base_price - Decimal("1.5"),
-                close_price=base_price + Decimal("1.0"),
-                volume=Decimal(str(50000000 + i * 1000000)),
-                provider="yahoo"
-            ))
-        
+            data.append(
+                OHLCVData(
+                    symbol="AAPL",
+                    market="us",
+                    timestamp=datetime.combine(current_date, datetime.min.time()),
+                    open_price=base_price,
+                    high_price=base_price + Decimal("2.5"),
+                    low_price=base_price - Decimal("1.5"),
+                    close_price=base_price + Decimal("1.0"),
+                    volume=Decimal(str(50000000 + i * 1000000)),
+                    provider="yahoo",
+                )
+            )
+
         return data
 
     @pytest.mark.asyncio
-    async def test_full_data_workflow(self, repository, sample_assets, sample_ohlcv_data):
+    async def test_full_data_workflow(
+        self, repository, sample_assets, sample_ohlcv_data
+    ):
         """测试完整的数据工作流程"""
         # 1. 保存资产信息
         for asset in sample_assets:
@@ -122,16 +131,12 @@ class TestRepositoryIntegration:
 
         # 4. 验证OHLCV数据保存成功
         ohlcv_000001 = await repository.get_ohlcv_data(
-            "000001", "cn",
-            date(2024, 1, 1),
-            date(2024, 1, 30)
+            "000001", "cn", date(2024, 1, 1), date(2024, 1, 30)
         )
         assert len(ohlcv_000001) == 30
 
         ohlcv_aapl = await repository.get_ohlcv_data(
-            "AAPL", "us",
-            date(2024, 1, 1),
-            date(2024, 1, 30)
+            "AAPL", "us", date(2024, 1, 1), date(2024, 1, 30)
         )
         assert len(ohlcv_aapl) == 30
 
@@ -160,7 +165,7 @@ class TestRepositoryIntegration:
             missing_records=0,
             anomaly_count=1,
             provider="tushare",
-            checked_at=datetime.now()
+            checked_at=datetime.now(),
         )
 
         # 保存指标
@@ -169,9 +174,7 @@ class TestRepositoryIntegration:
 
         # 验证指标保存成功
         retrieved = await repository.get_data_quality_metrics(
-            "000001", "cn",
-            date(2024, 1, 1),
-            date(2024, 1, 31)
+            "000001", "cn", date(2024, 1, 1), date(2024, 1, 31)
         )
         assert retrieved is not None
         assert retrieved.completeness_score == 98.5
@@ -183,13 +186,23 @@ class TestRepositoryIntegration:
         # 创建不同市场的资产
         assets = [
             AssetInfo(
-                symbol="000001", market="cn", name="平安银行", 
-                asset_type="stock", currency="CNY", exchange="SZSE", provider="tushare"
+                symbol="000001",
+                market="cn",
+                name="平安银行",
+                asset_type="stock",
+                currency="CNY",
+                exchange="SZSE",
+                provider="tushare",
             ),
             AssetInfo(
-                symbol="AAPL", market="us", name="Apple", 
-                asset_type="stock", currency="USD", exchange="NASDAQ", provider="yahoo"
-            )
+                symbol="AAPL",
+                market="us",
+                name="Apple",
+                asset_type="stock",
+                currency="USD",
+                exchange="NASDAQ",
+                provider="yahoo",
+            ),
         ]
 
         for asset in assets:
@@ -221,7 +234,7 @@ class TestRepositoryIntegration:
                 change_percent=Decimal("0.47"),
                 volume=Decimal("500000"),
                 timestamp=datetime.now(),
-                provider="tushare"
+                provider="tushare",
             ),
             RealTimeQuote(
                 symbol="AAPL",
@@ -231,8 +244,8 @@ class TestRepositoryIntegration:
                 change_percent=Decimal("-1.15"),
                 volume=Decimal("25000000"),
                 timestamp=datetime.now(),
-                provider="yahoo"
-            )
+                provider="yahoo",
+            ),
         ]
 
         # 保存报价
@@ -267,21 +280,22 @@ class TestRepositoryIntegration:
             asset_type="stock",
             currency="CNY",
             exchange="SZSE",
-            provider="tushare"
+            provider="tushare",
         )
 
         ohlcv_data = [
             OHLCVData(
                 symbol="TEST001",
                 market="cn",
-                timestamp=datetime.combine(date(2024, 1, i+1), datetime.min.time()),
+                timestamp=datetime.combine(date(2024, 1, i + 1), datetime.min.time()),
                 open_price=Decimal(str(10.0 + i * 0.1)),
                 high_price=Decimal(str(10.5 + i * 0.1)),
                 low_price=Decimal(str(9.8 + i * 0.1)),
                 close_price=Decimal(str(10.2 + i * 0.1)),
                 volume=Decimal(str(1000000 + i * 100000)),
-                provider="tushare"
-            ) for i in range(10)
+                provider="tushare",
+            )
+            for i in range(10)
         ]
 
         # 保存数据
@@ -293,9 +307,7 @@ class TestRepositoryIntegration:
         assert retrieved_asset is not None
 
         retrieved_ohlcv = await repository.get_ohlcv_data(
-            "TEST001", "cn",
-            date(2024, 1, 1),
-            date(2024, 1, 10)
+            "TEST001", "cn", date(2024, 1, 1), date(2024, 1, 10)
         )
         assert len(retrieved_ohlcv) == 10
 
@@ -303,8 +315,8 @@ class TestRepositoryIntegration:
         for i, ohlcv in enumerate(retrieved_ohlcv):
             assert ohlcv.symbol == "TEST001"
             assert ohlcv.market == "cn"
-            expected_price = Decimal(str(10.2 + i * 0.1)).quantize(Decimal('0.01'))
-            assert abs(ohlcv.close_price - expected_price) < Decimal('0.01')
+            expected_price = Decimal(str(10.2 + i * 0.1)).quantize(Decimal("0.01"))
+            assert abs(ohlcv.close_price - expected_price) < Decimal("0.01")
 
     @pytest.mark.asyncio
     async def test_bulk_operations_performance(self, repository):
@@ -318,25 +330,28 @@ class TestRepositoryIntegration:
                 asset_type="stock",
                 currency="CNY",
                 exchange="SZSE",
-                provider="tushare"
-            ) for i in range(100)
+                provider="tushare",
+            )
+            for i in range(100)
         ]
 
         ohlcv_data = []
         for asset in assets:
             for day in range(30):
                 current_date = date(2024, 1, 1) + timedelta(days=day)
-                ohlcv_data.append(OHLCVData(
-                    symbol=asset.symbol,
-                    market="cn",
-                    timestamp=datetime.combine(current_date, datetime.min.time()),
-                    open_price=Decimal("10.0"),
-                    high_price=Decimal("10.5"),
-                    low_price=Decimal("9.5"),
-                    close_price=Decimal("10.2"),
-                    volume=Decimal("1000000"),
-                    provider="tushare"
-                ))
+                ohlcv_data.append(
+                    OHLCVData(
+                        symbol=asset.symbol,
+                        market="cn",
+                        timestamp=datetime.combine(current_date, datetime.min.time()),
+                        open_price=Decimal("10.0"),
+                        high_price=Decimal("10.5"),
+                        low_price=Decimal("9.5"),
+                        close_price=Decimal("10.2"),
+                        volume=Decimal("1000000"),
+                        provider="tushare",
+                    )
+                )
 
         # 批量保存资产信息
         for asset in assets:
@@ -353,9 +368,7 @@ class TestRepositoryIntegration:
 
         # 验证某个资产的数据
         sample_ohlcv = await repository.get_ohlcv_data(
-            "TEST0001", "cn",
-            date(2024, 1, 1),
-            date(2024, 1, 30)
+            "TEST0001", "cn", date(2024, 1, 1), date(2024, 1, 30)
         )
         assert len(sample_ohlcv) == 30
 

@@ -1,19 +1,18 @@
 """Yahoo Finance数据提供商实现."""
 
-import asyncio
 import logging
 from collections.abc import AsyncIterator
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
 
 try:
     import yfinance as yf
+
     YFINANCE_AVAILABLE = True
 except ImportError:
     YFINANCE_AVAILABLE = False
 
-from vprism.core.models import DataPoint, DataQuery, DataResponse, MarketType, TimeFrame
+from vprism.core.models import DataPoint, DataQuery, DataResponse, MarketType
 from vprism.infrastructure.providers.base import (
     AuthConfig,
     DataProvider,
@@ -41,7 +40,21 @@ class YahooFinanceProvider(DataProvider):
         return ProviderCapability(
             supported_assets={"stock", "index", "etf", "crypto", "forex"},
             supported_markets={"us", "global"},
-            supported_timeframes={"1min", "2min", "5min", "15min", "30min", "60min", "90min", "1h", "1d", "5d", "1wk", "1mo", "3mo"},
+            supported_timeframes={
+                "1min",
+                "2min",
+                "5min",
+                "15min",
+                "30min",
+                "60min",
+                "90min",
+                "1h",
+                "1d",
+                "5d",
+                "1wk",
+                "1mo",
+                "3mo",
+            },
             max_symbols_per_request=50,
             supports_real_time=True,
             supports_historical=True,
@@ -55,7 +68,7 @@ class YahooFinanceProvider(DataProvider):
 
     async def authenticate(self) -> bool:
         """与Yahoo Finance进行身份验证.
-        
+
         Yahoo Finance不需要身份验证，只需要检查依赖是否可用。
         """
         if not YFINANCE_AVAILABLE:
@@ -106,7 +119,7 @@ class YahooFinanceProvider(DataProvider):
             return DataResponse(data=[], metadata={"error": "No symbols provided"})
 
         symbol = query.symbols[0]
-        
+
         # 转换时间框架
         timeframe_map = {
             "1min": "1m",
@@ -121,27 +134,23 @@ class YahooFinanceProvider(DataProvider):
             "5d": "5d",
             "1wk": "1wk",
             "1mo": "1mo",
-            "3mo": "3mo"
+            "3mo": "3mo",
         }
-        
+
         yf_timeframe = timeframe_map.get(query.timeframe.value, "1d")
-        
+
         try:
             ticker = yf.Ticker(symbol)
-            
+
             if yf_timeframe == "1d":
                 # 日线数据
                 data = ticker.history(
-                    start=query.start_date,
-                    end=query.end_date,
-                    interval=yf_timeframe
+                    start=query.start_date, end=query.end_date, interval=yf_timeframe
                 )
             else:
                 # 分钟级数据
                 data = ticker.history(
-                    start=query.start_date,
-                    end=query.end_date,
-                    interval=yf_timeframe
+                    start=query.start_date, end=query.end_date, interval=yf_timeframe
                 )
 
             if data is None or data.empty:
@@ -171,7 +180,7 @@ class YahooFinanceProvider(DataProvider):
                     low_price=Decimal(str(row["Low"])),
                     close_price=Decimal(str(row["Close"])),
                     volume=Decimal(str(int(row["Volume"]))),
-                    provider="yahoo"
+                    provider="yahoo",
                 )
                 data_points.append(data_point)
 
@@ -181,15 +190,15 @@ class YahooFinanceProvider(DataProvider):
                     "total_records": len(data_points),
                     "source": "yahoo",
                     "symbol": symbol,
-                    "timeframe": yf_timeframe
-                }
+                    "timeframe": yf_timeframe,
+                },
             )
 
         except Exception as e:
             logger.error(f"Error getting historical data from Yahoo Finance: {e}")
             return DataResponse(data=[], metadata={"error": str(e)})
 
-    async def get_real_time_quote(self, symbol: str) -> Optional[dict]:
+    async def get_real_time_quote(self, symbol: str) -> dict | None:
         """获取实时报价."""
         if not self._is_authenticated:
             return None
@@ -197,7 +206,7 @@ class YahooFinanceProvider(DataProvider):
         try:
             ticker = yf.Ticker(symbol)
             info = ticker.info
-            
+
             if info:
                 # 确定市场类型
                 market = MarketType.US
@@ -214,13 +223,19 @@ class YahooFinanceProvider(DataProvider):
 
                 return {
                     "symbol": symbol,
-                    "price": Decimal(str(info.get("currentPrice", info.get("regularMarketPrice", 0)))),
+                    "price": Decimal(
+                        str(info.get("currentPrice", info.get("regularMarketPrice", 0)))
+                    ),
                     "change": Decimal(str(info.get("regularMarketChange", 0))),
-                    "change_percent": Decimal(str(info.get("regularMarketChangePercent", 0))),
+                    "change_percent": Decimal(
+                        str(info.get("regularMarketChangePercent", 0))
+                    ),
                     "volume": Decimal(str(info.get("regularMarketVolume", 0))),
-                    "previous_close": Decimal(str(info.get("regularMarketPreviousClose", 0))),
+                    "previous_close": Decimal(
+                        str(info.get("regularMarketPreviousClose", 0))
+                    ),
                     "timestamp": datetime.now(),
-                    "market": market
+                    "market": market,
                 }
 
         except Exception as e:
@@ -228,7 +243,7 @@ class YahooFinanceProvider(DataProvider):
 
         return None
 
-    async def get_company_info(self, symbol: str) -> Optional[dict]:
+    async def get_company_info(self, symbol: str) -> dict | None:
         """获取公司信息."""
         if not self._is_authenticated:
             return None
@@ -236,7 +251,7 @@ class YahooFinanceProvider(DataProvider):
         try:
             ticker = yf.Ticker(symbol)
             info = ticker.info
-            
+
             if info:
                 return {
                     "symbol": symbol,
@@ -247,7 +262,7 @@ class YahooFinanceProvider(DataProvider):
                     "currency": info.get("currency", "USD"),
                     "exchange": info.get("exchange", ""),
                     "country": info.get("country", ""),
-                    "description": info.get("longBusinessSummary", "")
+                    "description": info.get("longBusinessSummary", ""),
                 }
 
         except Exception as e:
