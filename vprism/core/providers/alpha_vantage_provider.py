@@ -18,7 +18,7 @@ from collections.abc import AsyncIterator
 import httpx
 
 from vprism.core.http_adapter import HttpConfig, HttpDataProvider, RetryConfig
-from vprism.core.exceptions import ProviderException, AuthenticationException
+from vprism.core.exceptions import ProviderException, AuthenticationException, RateLimitException
 from vprism.core.models import (
     AssetType,
     DataPoint,
@@ -165,10 +165,26 @@ class AlphaVantageProvider(HttpDataProvider):
                     params["to_symbol"] = symbol[3:]
                     
         elif query.asset == AssetType.CRYPTO:
-            params["function"] = "DIGITAL_CURRENCY_DAILY"
+            if query.timeframe and query.timeframe != TimeFrame.DAY_1:
+                params["function"] = "CRYPTO_INTRADAY"
+                params["interval"] = self._map_timeframe_to_alpha_vantage(query.timeframe)
+            else:
+                params["function"] = "DIGITAL_CURRENCY_DAILY"
+            
             if query.symbols:
                 params["symbol"] = query.symbols[0]
                 params["market"] = "USD"  # Default to USD market
+                
+        elif query.asset == AssetType.INDEX:
+            # For indices, use stock functions with index symbols
+            if query.timeframe and query.timeframe != TimeFrame.DAY_1:
+                params["function"] = "TIME_SERIES_INTRADAY"
+                params["interval"] = self._map_timeframe_to_alpha_vantage(query.timeframe)
+            else:
+                params["function"] = "TIME_SERIES_DAILY"
+            
+            if query.symbols:
+                params["symbol"] = query.symbols[0]
 
         # Add output size
         params["outputsize"] = "full" if query.start or query.end else "compact"
@@ -225,9 +241,22 @@ class AlphaVantageProvider(HttpDataProvider):
                     data_points = self._parse_forex_data(time_series, symbol, query)
                     
             elif query.asset == AssetType.CRYPTO:
-                if "Time Series (Digital Currency Daily)" in data:
-                    time_series = data["Time Series (Digital Currency Daily)"]
-                    data_points = self._parse_crypto_data(time_series, symbol, query)
+                crypto_keys = [
+                    "Time Series (Digital Currency Daily)",
+                    "Time Series (Digital Currency Intraday)"
+                ]
+                for key in crypto_keys:
+                    if key in data:
+                        time_series = data[key]
+                        data_points = self._parse_crypto_data(time_series, symbol, query)
+                        break
+                        
+            elif query.asset == AssetType.INDEX:
+                # Index data uses same format as stocks
+                time_series_key = self._get_time_series_key(data, query)
+                if time_series_key and time_series_key in data:
+                    time_series = data[time_series_key]
+                    data_points = self._parse_stock_data(time_series, symbol, query)
 
             # Filter by date range if specified
             if query.start or query.end:
@@ -399,6 +428,78 @@ class AlphaVantageProvider(HttpDataProvider):
 
         return filtered
 
+    async def get_quote(self, symbol: str) -> Optional[DataPoint]:
+        """Get real-time quote for a symbol."""
+        try:
+            params = {
+                "function": "GLOBAL_QUOTE",
+                "symbol": symbol,
+                "apikey": self.api_key
+            }
+            
+            async with self.http_client as client:
+                response = await client.get("", params=params)
+                response.raise_for_status()
+                
+                data = response.json()
+                
+                if "Global Quote" in data:
+                    quote_data = data["Global Quote"]
+                    
+                    return DataPoint(
+                        symbol=symbol,
+                        timestamp=datetime.now(),
+                        open=Decimal(quote_data.get("02. open", "0")),
+                        high=Decimal(quote_data.get("03. high", "0")),
+                        low=Decimal(quote_data.get("04. low", "0")),
+                        close=Decimal(quote_data.get("05. price", "0")),
+                        volume=Decimal(quote_data.get("06. volume", "0")),
+                        extra_fields={
+                            "previous_close": quote_data.get("08. previous close"),
+                            "change": quote_data.get("09. change"),
+                            "change_percent": quote_data.get("10. change percent")
+                        }
+                    )
+                    
+        except Exception as e:
+            logger.warning(f"Failed to get quote for {symbol}: {e}")
+            return None
+
+    async def search_symbols(self, keywords: str) -> List[Dict[str, Any]]:
+        """Search for symbols using Alpha Vantage symbol search."""
+        try:
+            params = {
+                "function": "SYMBOL_SEARCH",
+                "keywords": keywords,
+                "apikey": self.api_key
+            }
+            
+            async with self.http_client as client:
+                response = await client.get("", params=params)
+                response.raise_for_status()
+                
+                data = response.json()
+                
+                if "bestMatches" in data:
+                    return [
+                        {
+                            "symbol": match.get("1. symbol"),
+                            "name": match.get("2. name"),
+                            "type": match.get("3. type"),
+                            "region": match.get("4. region"),
+                            "market_open": match.get("5. marketOpen"),
+                            "market_close": match.get("6. marketClose"),
+                            "timezone": match.get("7. timezone"),
+                            "currency": match.get("8. currency"),
+                            "match_score": match.get("9. matchScore")
+                        }
+                        for match in data["bestMatches"]
+                    ]
+                    
+        except Exception as e:
+            logger.warning(f"Symbol search failed for '{keywords}': {e}")
+            return []
+
     async def stream_data(self, query: DataQuery) -> AsyncIterator[DataPoint]:
         """Stream real-time data (polling-based implementation)."""
         if not self.capability.supports_real_time:
@@ -417,26 +518,44 @@ class AlphaVantageProvider(HttpDataProvider):
             )
 
         # Alpha Vantage rate limits are strict, so we use longer polling intervals
+        last_timestamps = {}  # Track last timestamp for each symbol
+        symbol_index = 0  # Round-robin through symbols
+        
         while True:
             try:
+                # Get current symbol (round-robin for multiple symbols)
+                current_symbol = symbols[symbol_index % len(symbols)]
+                symbol_index += 1
+                
                 # Create a modified query for current data
                 current_query = DataQuery(
                     asset=query.asset,
                     market=query.market,
-                    symbols=[symbols[0]],  # One symbol at a time
+                    symbols=[current_symbol],  # One symbol at a time
                     timeframe=TimeFrame.MINUTE_1,
-                    limit=1
                 )
                 
                 response = await self.get_data(current_query)
                 
-                # Yield the latest data points
-                for data_point in response.data[-1:]:  # Only the latest point
-                    yield data_point
+                # Yield only new data points
+                for data_point in response.data:
+                    symbol = data_point.symbol
+                    timestamp = data_point.timestamp
+                    
+                    # Check if this is a new data point
+                    if symbol not in last_timestamps or timestamp > last_timestamps[symbol]:
+                        last_timestamps[symbol] = timestamp
+                        yield data_point
                 
                 # Wait before next poll (12 seconds to respect rate limits)
                 await asyncio.sleep(12)
                 
+            except RateLimitException:
+                logger.warning("Alpha Vantage rate limit hit, waiting longer")
+                await asyncio.sleep(60)  # Wait 1 minute on rate limit
+                continue
             except Exception as e:
                 logger.error(f"Streaming error from Alpha Vantage: {e}")
-                break
+                # Don't break immediately, try to recover
+                await asyncio.sleep(30)  # Wait 30 seconds before retry
+                continue

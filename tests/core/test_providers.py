@@ -562,3 +562,313 @@ class TestProviderIntegration:
         # Invalid configuration should raise error during initialization
         with pytest.raises(ProviderException):
             AlphaVantageProvider(api_key="")
+
+
+class TestProviderAdditionalFeatures:
+    """Test additional provider features and edge cases."""
+
+    @pytest.mark.asyncio
+    async def test_akshare_additional_asset_types(self):
+        """Test akshare provider with additional asset types."""
+        with patch('vprism.core.providers.akshare_provider.AKSHARE_AVAILABLE', True):
+            with patch('vprism.core.providers.akshare_provider.ak', create=True) as mock_ak:
+                from vprism.core.providers.akshare_provider import AkshareProvider
+                
+                # Mock bond data
+                mock_bond_df = pd.DataFrame({
+                    '日期': ['2024-01-01'],
+                    '开盘': [100.0],
+                    '收盘': [101.0]
+                })
+                mock_ak.bond_zh_hs_cov_daily.return_value = mock_bond_df
+                
+                provider = AkshareProvider()
+                
+                # Test bond query
+                query = DataQuery(
+                    asset=AssetType.BOND,
+                    market=MarketType.CN,
+                    symbols=["123456"]
+                )
+                
+                response = await provider.get_data(query)
+                assert response is not None
+                assert len(response.data) == 1
+
+    @pytest.mark.asyncio
+    async def test_akshare_fetch_error_handling(self):
+        """Test akshare provider error handling in fetch."""
+        with patch('vprism.core.providers.akshare_provider.AKSHARE_AVAILABLE', True):
+            with patch('vprism.core.providers.akshare_provider.ak', create=True) as mock_ak:
+                from vprism.core.providers.akshare_provider import AkshareProvider
+                
+                # Mock akshare to raise exception
+                mock_ak.stock_zh_a_hist.side_effect = Exception("Network error")
+                # Also mock the spot data for health check
+                mock_ak.stock_zh_a_spot_em.return_value = pd.DataFrame({'代码': ['000001']})
+                
+                provider = AkshareProvider()
+                query = DataQuery(
+                    asset=AssetType.STOCK,
+                    market=MarketType.CN,
+                    symbols=["000001"]
+                )
+                
+                # The provider should return a response with warnings, not raise an exception
+                # because it continues processing other symbols
+                response = await provider.get_data(query)
+                assert response is not None
+                assert len(response.data) == 0  # No data due to error
+                assert len(response.metadata.warnings) > 0  # Should have warnings
+
+    def test_akshare_get_stock_list(self):
+        """Test akshare stock list functionality."""
+        with patch('vprism.core.providers.akshare_provider.AKSHARE_AVAILABLE', True):
+            with patch('vprism.core.providers.akshare_provider.ak', create=True) as mock_ak:
+                from vprism.core.providers.akshare_provider import AkshareProvider
+                
+                # Mock stock list data
+                mock_stock_df = pd.DataFrame({
+                    '代码': ['000001', '000002'],
+                    '名称': ['平安银行', '万科A'],
+                    '最新价': [10.5, 20.3]
+                })
+                mock_ak.stock_zh_a_spot_em.return_value = mock_stock_df
+                
+                provider = AkshareProvider()
+                stock_list = provider.get_stock_list("A")
+                
+                assert len(stock_list) == 2
+                assert stock_list[0]['symbol'] == '000001'
+                assert stock_list[0]['name'] == '平安银行'
+
+    @pytest.mark.asyncio
+    async def test_yfinance_batch_download_fallback(self):
+        """Test yfinance batch download with fallback."""
+        with patch('vprism.core.providers.yfinance_provider.YFINANCE_AVAILABLE', True):
+            with patch('vprism.core.providers.yfinance_provider.yf', create=True) as mock_yf:
+                from vprism.core.providers.yfinance_provider import YfinanceProvider
+                
+                # Mock batch download to fail
+                mock_yf.download.side_effect = Exception("Batch failed")
+                
+                # Mock individual ticker success
+                mock_ticker = Mock()
+                mock_hist_df = pd.DataFrame({
+                    'Open': [150.0],
+                    'High': [155.0],
+                    'Low': [149.0],
+                    'Close': [152.0],
+                    'Volume': [1000000]
+                }, index=pd.date_range('2024-01-01', periods=1, freq='D'))
+                
+                mock_ticker.history.return_value = mock_hist_df
+                mock_yf.Ticker.return_value = mock_ticker
+                
+                provider = YfinanceProvider()
+                query = DataQuery(
+                    asset=AssetType.STOCK,
+                    symbols=["AAPL", "GOOGL"]  # Multiple symbols
+                )
+                
+                response = await provider.get_data(query)
+                assert response is not None
+                # Should have data from fallback individual requests
+                assert len(response.data) >= 1
+
+    @pytest.mark.asyncio
+    async def test_yfinance_get_quote(self):
+        """Test yfinance real-time quote functionality."""
+        with patch('vprism.core.providers.yfinance_provider.YFINANCE_AVAILABLE', True):
+            with patch('vprism.core.providers.yfinance_provider.yf', create=True) as mock_yf:
+                from vprism.core.providers.yfinance_provider import YfinanceProvider
+                
+                # Mock ticker with minute data
+                mock_ticker = Mock()
+                mock_hist_df = pd.DataFrame({
+                    'Open': [150.0],
+                    'High': [155.0],
+                    'Low': [149.0],
+                    'Close': [152.0],
+                    'Volume': [1000000]
+                }, index=pd.date_range('2024-01-01 09:30:00', periods=1, freq='1min'))
+                
+                mock_ticker.history.return_value = mock_hist_df
+                mock_yf.Ticker.return_value = mock_ticker
+                
+                provider = YfinanceProvider()
+                quote = await provider.get_quote("AAPL")
+                
+                assert quote is not None
+                assert quote.symbol == "AAPL"
+                assert quote.close == Decimal("152.0")
+
+    def test_yfinance_get_options_chain(self):
+        """Test yfinance options chain functionality."""
+        with patch('vprism.core.providers.yfinance_provider.YFINANCE_AVAILABLE', True):
+            with patch('vprism.core.providers.yfinance_provider.yf', create=True) as mock_yf:
+                from vprism.core.providers.yfinance_provider import YfinanceProvider
+                
+                # Mock ticker with options
+                mock_ticker = Mock()
+                mock_ticker.options = ['2024-01-19', '2024-02-16']
+                
+                # Mock option chain
+                mock_option_chain = Mock()
+                mock_option_chain.calls = pd.DataFrame({
+                    'strike': [150.0, 155.0],
+                    'lastPrice': [5.0, 2.5]
+                })
+                mock_option_chain.puts = pd.DataFrame({
+                    'strike': [150.0, 155.0],
+                    'lastPrice': [3.0, 6.0]
+                })
+                
+                mock_ticker.option_chain.return_value = mock_option_chain
+                mock_yf.Ticker.return_value = mock_ticker
+                
+                provider = YfinanceProvider()
+                options = provider.get_options_chain("AAPL")
+                
+                assert options['symbol'] == "AAPL"
+                assert len(options['expiration_dates']) == 2
+                assert len(options['calls']) == 2
+                assert len(options['puts']) == 2
+
+    @pytest.mark.asyncio
+    async def test_alpha_vantage_additional_assets(self):
+        """Test Alpha Vantage with additional asset types."""
+        from vprism.core.providers.alpha_vantage_provider import AlphaVantageProvider
+        
+        provider = AlphaVantageProvider(api_key="test_key")
+        
+        # Test crypto parameters
+        query = DataQuery(
+            asset=AssetType.CRYPTO,
+            symbols=["BTC"],
+            timeframe=TimeFrame.MINUTE_5
+        )
+        
+        params = provider._build_request_params(query)
+        assert params["function"] == "CRYPTO_INTRADAY"
+        assert params["interval"] == "5min"
+        assert params["symbol"] == "BTC"
+
+    @pytest.mark.asyncio
+    async def test_alpha_vantage_get_quote(self):
+        """Test Alpha Vantage real-time quote functionality."""
+        from vprism.core.providers.alpha_vantage_provider import AlphaVantageProvider
+        
+        provider = AlphaVantageProvider(api_key="test_key")
+        
+        # Mock HTTP client response
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "Global Quote": {
+                "01. symbol": "AAPL",
+                "02. open": "150.00",
+                "03. high": "155.00",
+                "04. low": "149.00",
+                "05. price": "152.00",
+                "06. volume": "1000000",
+                "08. previous close": "151.00",
+                "09. change": "1.00",
+                "10. change percent": "0.66%"
+            }
+        }
+        mock_response.raise_for_status.return_value = None
+        
+        # Mock the HTTP client's get method directly
+        with patch('vprism.core.http_adapter.HttpClient.get', new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = mock_response
+            
+            quote = await provider.get_quote("AAPL")
+            
+            assert quote is not None
+            assert quote.symbol == "AAPL"
+            assert quote.close == Decimal("152.00")
+            assert quote.extra_fields["change"] == "1.00"
+
+    @pytest.mark.asyncio
+    async def test_alpha_vantage_symbol_search(self):
+        """Test Alpha Vantage symbol search functionality."""
+        from vprism.core.providers.alpha_vantage_provider import AlphaVantageProvider
+        
+        provider = AlphaVantageProvider(api_key="test_key")
+        
+        # Mock HTTP client response
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "bestMatches": [
+                {
+                    "1. symbol": "AAPL",
+                    "2. name": "Apple Inc.",
+                    "3. type": "Equity",
+                    "4. region": "United States",
+                    "8. currency": "USD",
+                    "9. matchScore": "1.0000"
+                }
+            ]
+        }
+        mock_response.raise_for_status.return_value = None
+        
+        # Mock the HTTP client's get method directly
+        with patch('vprism.core.http_adapter.HttpClient.get', new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = mock_response
+            
+            results = await provider.search_symbols("Apple")
+            
+            assert len(results) == 1
+            assert results[0]["symbol"] == "AAPL"
+            assert results[0]["name"] == "Apple Inc."
+
+    @pytest.mark.asyncio
+    async def test_provider_streaming_with_rate_limits(self):
+        """Test provider streaming behavior with rate limits."""
+        from vprism.core.providers.alpha_vantage_provider import AlphaVantageProvider
+        from vprism.core.exceptions import RateLimitException
+        
+        provider = AlphaVantageProvider(api_key="test_key")
+        
+        query = DataQuery(
+            asset=AssetType.STOCK,
+            symbols=["AAPL"]
+        )
+        
+        # Mock get_data to raise rate limit exception first, then succeed
+        call_count = 0
+        async def mock_get_data(q):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise RateLimitException(provider="alpha_vantage")
+            else:
+                # Return mock response
+                from vprism.core.models import DataResponse, DataPoint, ResponseMetadata, ProviderInfo
+                return DataResponse(
+                    data=[DataPoint(symbol="AAPL", timestamp=datetime.now(), close=Decimal("150.0"))],
+                    metadata=ResponseMetadata(
+                        query_time=datetime.now(),
+                        execution_time_ms=100,
+                        record_count=1,
+                        cache_hit=False
+                    ),
+                    source=ProviderInfo(name="alpha_vantage"),
+                    query=q
+                )
+        
+        with patch.object(provider, 'get_data', side_effect=mock_get_data):
+            with patch('asyncio.sleep', new_callable=AsyncMock) as mock_sleep:
+                # Test streaming - should handle rate limit gracefully
+                stream_gen = provider.stream_data(query)
+                
+                # Get first item (should trigger rate limit handling)
+                try:
+                    first_item = await stream_gen.__anext__()
+                    assert first_item.symbol == "AAPL"
+                    
+                    # Verify that sleep was called for rate limit handling
+                    mock_sleep.assert_called()
+                    
+                except StopAsyncIteration:
+                    pass  # Expected if stream ends

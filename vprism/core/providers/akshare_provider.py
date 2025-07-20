@@ -338,6 +338,23 @@ class AkshareProvider(EnhancedDataProvider):
                     fund=symbol,
                     indicator="累计净值走势"
                 )
+            elif query.asset == AssetType.BOND:
+                # Bond data support
+                return ak.bond_zh_hs_cov_daily(
+                    symbol=symbol
+                )
+            elif query.asset == AssetType.FUTURES:
+                # Futures data support
+                return ak.futures_zh_daily_sina(
+                    symbol=symbol
+                )
+            elif query.asset == AssetType.INDEX:
+                # Index data support
+                return ak.stock_zh_index_daily_em(
+                    symbol=symbol,
+                    start_date=query.start.strftime('%Y%m%d') if query.start else None,
+                    end_date=query.end.strftime('%Y%m%d') if query.end else None,
+                )
             else:
                 raise ProviderException(
                     f"Asset type {query.asset} not supported by akshare provider",
@@ -347,7 +364,12 @@ class AkshareProvider(EnhancedDataProvider):
 
         except Exception as e:
             logger.error(f"Akshare fetch error for {symbol}: {e}")
-            raise
+            raise ProviderException(
+                f"Failed to fetch data for symbol {symbol}: {str(e)}",
+                provider=self.name,
+                error_code="FETCH_ERROR",
+                details={"symbol": symbol, "error_type": type(e).__name__}
+            )
 
     async def stream_data(self, query: DataQuery) -> List[DataPoint]:
         """Stream data (akshare doesn't support real-time streaming)."""
@@ -356,3 +378,118 @@ class AkshareProvider(EnhancedDataProvider):
             provider=self.name,
             error_code="STREAMING_NOT_SUPPORTED"
         )
+
+    def get_stock_list(self, market: str = "A") -> List[Dict[str, Any]]:
+        """Get list of stocks for a specific market."""
+        try:
+            if market.upper() == "A":
+                # A-share stocks
+                df = ak.stock_zh_a_spot_em()
+            elif market.upper() == "HK":
+                # Hong Kong stocks
+                df = ak.stock_hk_spot_em()
+            elif market.upper() == "US":
+                # US stocks (limited support in akshare)
+                df = ak.stock_us_spot_em()
+            else:
+                raise ValueError(f"Unsupported market: {market}")
+            
+            if df is not None and not df.empty:
+                # Standardize column names
+                columns_map = {
+                    '代码': 'symbol',
+                    '名称': 'name', 
+                    '最新价': 'price',
+                    '涨跌幅': 'change_percent',
+                    '涨跌额': 'change_amount',
+                    '成交量': 'volume',
+                    '成交额': 'amount',
+                    '市盈率': 'pe_ratio',
+                    '市净率': 'pb_ratio'
+                }
+                
+                # Rename columns if they exist
+                for old_name, new_name in columns_map.items():
+                    if old_name in df.columns:
+                        df = df.rename(columns={old_name: new_name})
+                
+                return df.to_dict('records')
+            
+        except Exception as e:
+            logger.error(f"Failed to get stock list for market {market}: {e}")
+            return []
+
+    def get_market_summary(self) -> Dict[str, Any]:
+        """Get market summary information."""
+        try:
+            # Get major indices
+            indices_data = {}
+            
+            # Shanghai Composite
+            try:
+                sh_index = ak.stock_zh_index_daily_em(symbol="000001", start_date="20240101")
+                if not sh_index.empty:
+                    latest = sh_index.iloc[-1]
+                    indices_data['shanghai_composite'] = {
+                        'symbol': '000001',
+                        'name': '上证指数',
+                        'close': float(latest.get('close', 0)),
+                        'change': float(latest.get('change', 0)) if 'change' in latest else None,
+                        'date': latest.get('date', '').strftime('%Y-%m-%d') if 'date' in latest else None
+                    }
+            except Exception:
+                pass
+            
+            # Shenzhen Component
+            try:
+                sz_index = ak.stock_zh_index_daily_em(symbol="399001", start_date="20240101")
+                if not sz_index.empty:
+                    latest = sz_index.iloc[-1]
+                    indices_data['shenzhen_component'] = {
+                        'symbol': '399001',
+                        'name': '深证成指',
+                        'close': float(latest.get('close', 0)),
+                        'change': float(latest.get('change', 0)) if 'change' in latest else None,
+                        'date': latest.get('date', '').strftime('%Y-%m-%d') if 'date' in latest else None
+                    }
+            except Exception:
+                pass
+            
+            return {
+                'market': 'CN',
+                'indices': indices_data,
+                'timestamp': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get market summary: {e}")
+            return {'error': str(e)}
+
+    def get_sector_performance(self) -> List[Dict[str, Any]]:
+        """Get sector performance data."""
+        try:
+            # Get sector data
+            sector_df = ak.stock_board_industry_name_em()
+            
+            if sector_df is not None and not sector_df.empty:
+                # Standardize column names
+                columns_map = {
+                    '板块名称': 'sector_name',
+                    '板块代码': 'sector_code', 
+                    '最新价': 'price',
+                    '涨跌幅': 'change_percent',
+                    '涨跌额': 'change_amount',
+                    '总市值': 'market_cap',
+                    '换手率': 'turnover_rate'
+                }
+                
+                # Rename columns if they exist
+                for old_name, new_name in columns_map.items():
+                    if old_name in sector_df.columns:
+                        sector_df = sector_df.rename(columns={old_name: new_name})
+                
+                return sector_df.to_dict('records')
+            
+        except Exception as e:
+            logger.error(f"Failed to get sector performance: {e}")
+            return []

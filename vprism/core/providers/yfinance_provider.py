@@ -255,13 +255,44 @@ class YfinanceProvider(EnhancedDataProvider):
                     if not df.empty:
                         symbol_data = self._standardize_dataframe(df, symbols[0])
                         all_data_points.extend(symbol_data)
+                    else:
+                        logger.warning(f"No data returned for symbol {symbols[0]}")
                 else:
-                    # Multiple symbols
-                    tickers = yf.Tickers(' '.join(symbols))
-                    for symbol in symbols:
-                        try:
-                            ticker = getattr(tickers.tickers, symbol, None)
-                            if ticker:
+                    # Multiple symbols - use batch download for efficiency
+                    try:
+                        # Try batch download first
+                        data = yf.download(
+                            tickers=' '.join(symbols),
+                            start=start_date,
+                            end=end_date,
+                            interval=interval,
+                            auto_adjust=True,
+                            prepost=True,
+                            threads=True,
+                            group_by='ticker'
+                        )
+                        
+                        if not data.empty:
+                            # Handle multi-symbol response
+                            if len(symbols) == 1:
+                                # Single symbol in batch
+                                symbol_data = self._standardize_dataframe(data, symbols[0])
+                                all_data_points.extend(symbol_data)
+                            else:
+                                # Multiple symbols
+                                for symbol in symbols:
+                                    if symbol in data.columns.levels[0]:
+                                        symbol_df = data[symbol].dropna()
+                                        if not symbol_df.empty:
+                                            symbol_data = self._standardize_dataframe(symbol_df, symbol)
+                                            all_data_points.extend(symbol_data)
+                    except Exception as batch_error:
+                        logger.warning(f"Batch download failed: {batch_error}, falling back to individual requests")
+                        
+                        # Fallback to individual requests
+                        for symbol in symbols:
+                            try:
+                                ticker = yf.Ticker(symbol)
                                 df = ticker.history(
                                     start=start_date,
                                     end=end_date,
@@ -273,13 +304,20 @@ class YfinanceProvider(EnhancedDataProvider):
                                 if not df.empty:
                                     symbol_data = self._standardize_dataframe(df, symbol)
                                     all_data_points.extend(symbol_data)
-                        except Exception as e:
-                            logger.warning(f"Failed to fetch data for symbol {symbol}: {e}")
-                            continue
+                                else:
+                                    logger.warning(f"No data returned for symbol {symbol}")
+                            except Exception as e:
+                                logger.warning(f"Failed to fetch data for symbol {symbol}: {e}")
+                                continue
 
             except Exception as e:
                 logger.error(f"Yahoo Finance fetch error: {e}")
-                raise
+                raise ProviderException(
+                    f"Failed to fetch data from Yahoo Finance: {str(e)}",
+                    provider=self.name,
+                    error_code="FETCH_ERROR",
+                    details={"error_type": type(e).__name__}
+                )
 
             # Calculate execution time
             execution_time = (datetime.now() - start_time).total_seconds() * 1000
@@ -337,6 +375,8 @@ class YfinanceProvider(EnhancedDataProvider):
         # Simple polling-based streaming
         import asyncio
         
+        last_timestamps = {}  # Track last timestamp for each symbol
+        
         while True:
             try:
                 # Create a modified query for current data
@@ -345,21 +385,28 @@ class YfinanceProvider(EnhancedDataProvider):
                     market=query.market,
                     symbols=symbols,
                     timeframe=TimeFrame.MINUTE_1,  # Use 1-minute data for streaming
-                    limit=1  # Get only the latest data point
                 )
                 
                 response = await self.get_data(current_query)
                 
-                # Yield the latest data points
+                # Yield only new data points
                 for data_point in response.data:
-                    yield data_point
+                    symbol = data_point.symbol
+                    timestamp = data_point.timestamp
+                    
+                    # Check if this is a new data point
+                    if symbol not in last_timestamps or timestamp > last_timestamps[symbol]:
+                        last_timestamps[symbol] = timestamp
+                        yield data_point
                 
                 # Wait before next poll (1 minute for Yahoo Finance)
                 await asyncio.sleep(60)
                 
             except Exception as e:
                 logger.error(f"Streaming error from Yahoo Finance: {e}")
-                break
+                # Don't break immediately, try to recover
+                await asyncio.sleep(30)  # Wait 30 seconds before retry
+                continue
 
     def get_asset_info(self, symbol: str) -> Dict[str, Any]:
         """Get detailed asset information from Yahoo Finance."""
@@ -383,3 +430,72 @@ class YfinanceProvider(EnhancedDataProvider):
         except Exception as e:
             logger.warning(f"Failed to get asset info for {symbol}: {e}")
             return {'symbol': symbol, 'error': str(e)}
+
+    async def get_quote(self, symbol: str) -> Optional[DataPoint]:
+        """Get real-time quote for a symbol."""
+        try:
+            ticker = yf.Ticker(symbol)
+            
+            # Get current data
+            hist = ticker.history(period="1d", interval="1m")
+            if not hist.empty:
+                latest = hist.iloc[-1]
+                return DataPoint(
+                    symbol=symbol,
+                    timestamp=hist.index[-1].to_pydatetime(),
+                    open=Decimal(str(latest['Open'])) if not pd.isna(latest['Open']) else None,
+                    high=Decimal(str(latest['High'])) if not pd.isna(latest['High']) else None,
+                    low=Decimal(str(latest['Low'])) if not pd.isna(latest['Low']) else None,
+                    close=Decimal(str(latest['Close'])) if not pd.isna(latest['Close']) else None,
+                    volume=Decimal(str(latest['Volume'])) if not pd.isna(latest['Volume']) else None,
+                )
+                
+        except Exception as e:
+            logger.warning(f"Failed to get quote for {symbol}: {e}")
+            return None
+
+    def get_options_chain(self, symbol: str) -> Dict[str, Any]:
+        """Get options chain for a symbol."""
+        try:
+            ticker = yf.Ticker(symbol)
+            options = ticker.options
+            
+            if not options:
+                return {'symbol': symbol, 'options': []}
+            
+            # Get the nearest expiration
+            nearest_exp = options[0]
+            option_chain = ticker.option_chain(nearest_exp)
+            
+            return {
+                'symbol': symbol,
+                'expiration_dates': list(options),
+                'nearest_expiration': nearest_exp,
+                'calls': option_chain.calls.to_dict('records') if hasattr(option_chain, 'calls') else [],
+                'puts': option_chain.puts.to_dict('records') if hasattr(option_chain, 'puts') else []
+            }
+            
+        except Exception as e:
+            logger.warning(f"Failed to get options chain for {symbol}: {e}")
+            return {'symbol': symbol, 'error': str(e)}
+
+    def get_dividends(self, symbol: str) -> List[Dict[str, Any]]:
+        """Get dividend history for a symbol."""
+        try:
+            ticker = yf.Ticker(symbol)
+            dividends = ticker.dividends
+            
+            if dividends.empty:
+                return []
+            
+            return [
+                {
+                    'date': date.strftime('%Y-%m-%d'),
+                    'dividend': float(amount)
+                }
+                for date, amount in dividends.items()
+            ]
+            
+        except Exception as e:
+            logger.warning(f"Failed to get dividends for {symbol}: {e}")
+            return []
