@@ -4,10 +4,10 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from vprism.core.domain.models import DataQuery
+from vprism.core.models import DataQuery
 from vprism.core.exceptions import NoCapableProviderError
-from vprism.core.infrastructure.repositories import ProviderRegistry
-from vprism.core.interfaces.providers import DataProvider
+from vprism.infrastructure.providers.registry import ProviderRegistry
+from vprism.infrastructure.providers.base import DataProvider
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,8 @@ class DataRouter:
 
     def _init_default_scores(self) -> None:
         """初始化所有提供商的默认评分"""
-        for provider_name in self.registry.providers:
+        providers = getattr(self.registry, "providers", {})
+        for provider_name in providers:
             self.provider_scores[provider_name] = 1.0
 
     async def route_query(self, query: DataQuery) -> DataProvider:

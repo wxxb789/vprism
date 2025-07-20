@@ -29,21 +29,23 @@ from .base import (
 class AkShareProvider(DataProvider):
     """akshare数据提供商实现."""
 
-    def __init__(self):
+    def __init__(self, auth_config: AuthConfig = None, rate_limit: RateLimitConfig = None):
         """初始化akshare提供商."""
-        auth_config = AuthConfig(
-            auth_type=AuthType.NONE, credentials={}, required_fields=[]
-        )
+        if auth_config is None:
+            auth_config = AuthConfig(
+                auth_type=AuthType.NONE, credentials={}, required_fields=[]
+            )
 
-        rate_limit = RateLimitConfig(
-            requests_per_minute=60,
-            requests_per_hour=1000,
-            requests_per_day=10000,
-            concurrent_requests=5,
-            backoff_factor=1.0,
-            max_retries=3,
-            initial_delay=0.5,
-        )
+        if rate_limit is None:
+            rate_limit = RateLimitConfig(
+                requests_per_minute=1000,
+                requests_per_hour=5000,
+                requests_per_day=20000,
+                concurrent_requests=8,
+                backoff_factor=2.0,
+                max_retries=3,
+                initial_delay=1.0,
+            )
 
         super().__init__("akshare", auth_config, rate_limit)
 

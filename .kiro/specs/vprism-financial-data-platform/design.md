@@ -861,7 +861,7 @@ async def get_data():
 
 # 配置管理
 vprism.configure(
-    providers=["tushare", "akshare", "yahoo"],
+    providers=["akshare", "yahoo"],
     cache_backend="redis://localhost:6379",
     log_level="INFO"
 )

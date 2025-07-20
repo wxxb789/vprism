@@ -15,7 +15,8 @@
       "Bash(*:*)",
       "*:*",
       "Bash(uv run:*)",
-      "Bash(uv:*)"
+      "Bash(uv:*)",
+      "Bash(ruff format:*)"
     ],
     "deny": [],
     "allowedTools": [

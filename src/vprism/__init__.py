@@ -40,7 +40,7 @@ vprism 提供统一的、可组合的 API 接口，支持多模态部署。
 """
 
 from vprism.core.client import VPrismClient
-from vprism.core.exceptions import VPrismException
+from vprism.core.exceptions import VPrismError as VPrismException
 from vprism.core.models import AssetType, MarketType, TimeFrame
 
 __version__ = "0.1.0"

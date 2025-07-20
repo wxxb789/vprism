@@ -8,7 +8,7 @@ import pytest
 from vprism.core.exceptions import NoCapableProviderError
 from vprism.core.models import AssetType, DataQuery, MarketType, TimeFrame
 from vprism.infrastructure.providers.base import DataProvider
-from vprism.infrastructure.router import DataRouter
+from vprism.core.services.data_router import DataRouter
 
 
 class MockProvider(DataProvider):
@@ -29,6 +29,7 @@ class MockProvider(DataProvider):
                 concurrent_requests=5,
             ),
         )
+        self.name = name  # 确保name属性被正确设置
         self._capability = capability
 
     def _discover_capability(self):
@@ -54,6 +55,7 @@ class TestDataRouter:
         registry.find_capable_providers = Mock()
         registry.mark_unhealthy = Mock()
         registry.mark_healthy = Mock()
+        registry.providers = {}  # 添加providers属性
         return registry
 
     @pytest.fixture
@@ -120,7 +122,11 @@ class TestDataRouter:
         self, mock_registry, sample_providers
     ):
         """测试多个提供商中选择最佳提供商."""
-        mock_registry.find_capable_providers.return_value = sample_providers
+        # 设置mock注册表的providers属性
+        mock_registry.providers = {p.name: p for p in sample_providers}
+        # 只返回能处理US市场的提供商
+        capable_providers = [p for p in sample_providers if p.name in ["yahoo", "alpha_vantage"]]
+        mock_registry.find_capable_providers.return_value = capable_providers
 
         router = DataRouter(mock_registry)
         query = DataQuery(asset=AssetType.STOCK, market=MarketType.US, symbols=["AAPL"])
