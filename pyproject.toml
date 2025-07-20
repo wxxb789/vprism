@@ -30,6 +30,9 @@ dependencies = [
     "python-jose[cryptography]>=3.3.0",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
+    "akshare>=1.17.24",
+    "yfinance>=0.2.65",
+    "aiohttp>=3.12.14",
 ]
 
 [project.optional-dependencies]

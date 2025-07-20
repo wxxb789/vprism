@@ -123,11 +123,16 @@ class DataProvider(ABC):
         """
         cap = self.capability
         
-        if query.asset and str(query.asset) not in cap.supported_assets:
+        # 获取查询参数的值
+        asset_value = str(query.asset.value) if query.asset else None
+        market_value = str(query.market.value) if query.market else None
+        timeframe_value = str(query.timeframe.value) if query.timeframe else None
+        
+        if asset_value and asset_value not in cap.supported_assets:
             return False
-        if query.market and str(query.market) not in cap.supported_markets:
+        if market_value and market_value not in cap.supported_markets:
             return False
-        if query.timeframe and str(query.timeframe) not in cap.supported_timeframes:
+        if timeframe_value and timeframe_value not in cap.supported_timeframes:
             return False
         if query.symbols and len(query.symbols) > cap.max_symbols_per_request:
             return False
