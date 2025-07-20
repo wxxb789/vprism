@@ -68,7 +68,7 @@ class TestVPrismClientIntegration:
     async def test_client_initialization(self):
         """Test client initialization and cleanup."""
         client = VPrismClient()
-        
+
         # Client should not be initialized yet
         assert not client._initialized
         assert client._data_service is None
@@ -81,13 +81,13 @@ class TestVPrismClientIntegration:
     @pytest.mark.asyncio
     async def test_get_data_basic_query(self, sample_response):
         """Test basic data retrieval through client."""
-        with patch('vprism.core.client.DataService') as mock_service_class:
+        with patch("vprism.core.client.DataService") as mock_service_class:
             mock_service = Mock()
             mock_service.get_data = AsyncMock(return_value=sample_response)
             mock_service_class.return_value = mock_service
 
             client = VPrismClient()
-            
+
             # Test basic query
             result = await client.get(
                 asset=AssetType.STOCK,
@@ -97,7 +97,7 @@ class TestVPrismClientIntegration:
 
             assert result == sample_response
             mock_service.get_data.assert_called_once()
-            
+
             # Verify query parameters
             call_args = mock_service.get_data.call_args[0][0]
             assert call_args.asset == AssetType.STOCK
@@ -107,13 +107,13 @@ class TestVPrismClientIntegration:
     @pytest.mark.asyncio
     async def test_get_data_with_date_parsing(self, sample_response):
         """Test data retrieval with date string parsing."""
-        with patch('vprism.core.client.DataService') as mock_service_class:
+        with patch("vprism.core.client.DataService") as mock_service_class:
             mock_service = Mock()
             mock_service.get_data = AsyncMock(return_value=sample_response)
             mock_service_class.return_value = mock_service
 
             client = VPrismClient()
-            
+
             # Test with date strings
             result = await client.get(
                 asset=AssetType.STOCK,
@@ -122,7 +122,7 @@ class TestVPrismClientIntegration:
             )
 
             assert result == sample_response
-            
+
             # Verify date parsing
             call_args = mock_service.get_data.call_args[0][0]
             assert call_args.start == datetime(2024, 1, 1)
@@ -132,7 +132,7 @@ class TestVPrismClientIntegration:
     async def test_get_data_sync_wrapper(self, sample_response):
         """Test synchronous wrapper method behavior in async context."""
         client = VPrismClient()
-        
+
         # In an async context (like pytest-asyncio), sync method should raise an error
         with pytest.raises(VPrismException) as exc_info:
             client.get_sync(
@@ -144,13 +144,13 @@ class TestVPrismClientIntegration:
 
     def test_get_data_sync_wrapper_no_event_loop(self, sample_response):
         """Test synchronous wrapper method without event loop."""
-        with patch('vprism.core.client.DataService') as mock_service_class:
+        with patch("vprism.core.client.DataService") as mock_service_class:
             mock_service = Mock()
             mock_service.get_data = AsyncMock(return_value=sample_response)
             mock_service_class.return_value = mock_service
 
             client = VPrismClient()
-            
+
             # Test sync method (this will work outside of async context)
             result = client.get_sync(
                 asset=AssetType.STOCK,
@@ -163,13 +163,13 @@ class TestVPrismClientIntegration:
     @pytest.mark.asyncio
     async def test_stream_data_basic(self, sample_response):
         """Test basic streaming functionality."""
-        with patch('vprism.core.client.DataService') as mock_service_class:
+        with patch("vprism.core.client.DataService") as mock_service_class:
             mock_service = Mock()
             mock_service.get_data = AsyncMock(return_value=sample_response)
             mock_service_class.return_value = mock_service
 
             client = VPrismClient()
-            
+
             # Test streaming
             responses = []
             async for response in client.stream(
@@ -185,7 +185,7 @@ class TestVPrismClientIntegration:
     async def test_date_parsing_various_formats(self):
         """Test date parsing with various formats."""
         client = VPrismClient()
-        
+
         # Test different date formats
         test_cases = [
             ("2024-01-01", datetime(2024, 1, 1)),
@@ -204,7 +204,7 @@ class TestVPrismClientIntegration:
     async def test_date_parsing_invalid_format(self):
         """Test date parsing with invalid format."""
         client = VPrismClient()
-        
+
         with pytest.raises(VPrismException) as exc_info:
             client._parse_date_string("invalid-date")
 
@@ -214,7 +214,7 @@ class TestVPrismClientIntegration:
     async def test_date_parsing_empty_string(self):
         """Test date parsing with empty string."""
         client = VPrismClient()
-        
+
         with pytest.raises(VPrismException) as exc_info:
             client._parse_date_string("")
 
@@ -224,22 +224,22 @@ class TestVPrismClientIntegration:
     async def test_client_configuration(self):
         """Test client configuration."""
         client = VPrismClient(config={"key1": "value1"})
-        
+
         # Initial configuration
         assert client.config["key1"] == "value1"
-        
+
         # Update configuration
         client.configure(key2="value2", key1="updated_value1")
         assert client.config["key1"] == "updated_value1"
         assert client.config["key2"] == "value2"
-        
+
         # Configuration should reset initialization
         assert not client._initialized
 
     @pytest.mark.asyncio
     async def test_error_handling_data_service_failure(self):
         """Test error handling when data service fails."""
-        with patch('vprism.core.client.DataService') as mock_service_class:
+        with patch("vprism.core.client.DataService") as mock_service_class:
             mock_service = Mock()
             mock_service.get_data = AsyncMock(
                 side_effect=VPrismException("Service error", "SERVICE_ERROR")
@@ -247,7 +247,7 @@ class TestVPrismClientIntegration:
             mock_service_class.return_value = mock_service
 
             client = VPrismClient()
-            
+
             with pytest.raises(VPrismException) as exc_info:
                 await client.get(asset=AssetType.STOCK)
 
@@ -260,7 +260,7 @@ class TestVPrismClientIntegration:
         # Manually set service to None to simulate initialization failure
         client._data_service = None
         client._initialized = True  # But service is None
-        
+
         with pytest.raises(VPrismException) as exc_info:
             await client.get(asset=AssetType.STOCK)
 
@@ -269,13 +269,13 @@ class TestVPrismClientIntegration:
     @pytest.mark.asyncio
     async def test_client_with_all_parameters(self, sample_response):
         """Test client with all possible parameters."""
-        with patch('vprism.core.client.DataService') as mock_service_class:
+        with patch("vprism.core.client.DataService") as mock_service_class:
             mock_service = Mock()
             mock_service.get_data = AsyncMock(return_value=sample_response)
             mock_service_class.return_value = mock_service
 
             client = VPrismClient()
-            
+
             result = await client.get(
                 asset=AssetType.STOCK,
                 market=MarketType.CN,
@@ -289,7 +289,7 @@ class TestVPrismClientIntegration:
             )
 
             assert result == sample_response
-            
+
             # Verify all parameters were passed correctly
             call_args = mock_service.get_data.call_args[0][0]
             assert call_args.asset == AssetType.STOCK
@@ -305,13 +305,13 @@ class TestVPrismClientIntegration:
     @pytest.mark.asyncio
     async def test_concurrent_requests(self, sample_response):
         """Test handling of concurrent requests."""
-        with patch('vprism.core.client.DataService') as mock_service_class:
+        with patch("vprism.core.client.DataService") as mock_service_class:
             mock_service = Mock()
             mock_service.get_data = AsyncMock(return_value=sample_response)
             mock_service_class.return_value = mock_service
 
             client = VPrismClient()
-            
+
             # Make multiple concurrent requests
             tasks = [
                 client.get(asset=AssetType.STOCK, symbols=[f"00000{i}"])

@@ -195,7 +195,7 @@ class TestDataService:
         # the validation that happens in DataService._validate_query
         # Create a valid query first, then modify it to be invalid
         valid_query = DataQuery(asset=AssetType.STOCK)
-        
+
         # Manually set invalid symbols to bypass Pydantic validation
         valid_query.symbols = []
 
@@ -227,7 +227,9 @@ class TestDataService:
         # Assert
         execution_time = (end_time - start_time) * 1000  # Convert to ms
         assert result.metadata.execution_time_ms >= 100  # At least 100ms
-        assert result.metadata.execution_time_ms <= execution_time + 50  # Some tolerance
+        assert (
+            result.metadata.execution_time_ms <= execution_time + 50
+        )  # Some tolerance
 
     @pytest.mark.asyncio
     async def test_get_data_response_metadata_generation(

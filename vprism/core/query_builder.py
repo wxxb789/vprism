@@ -19,7 +19,7 @@ class QueryBuilder:
     Fluent query builder for constructing DataQuery objects.
 
     Provides a chainable API for building complex queries:
-    
+
     Example:
         query = (vprism.query()
             .asset(AssetType.STOCK)

@@ -20,9 +20,7 @@ class TestQueryBuilder:
 
     def test_basic_query_construction(self):
         """Test basic query construction with required fields."""
-        query = (QueryBuilder()
-            .asset(AssetType.STOCK)
-            .build())
+        query = QueryBuilder().asset(AssetType.STOCK).build()
 
         assert query.asset == AssetType.STOCK
         assert query.market is None
@@ -30,7 +28,8 @@ class TestQueryBuilder:
 
     def test_full_query_construction(self):
         """Test query construction with all fields."""
-        query = (QueryBuilder()
+        query = (
+            QueryBuilder()
             .asset(AssetType.STOCK)
             .market(MarketType.CN)
             .symbols(["000001", "000002"])
@@ -41,7 +40,8 @@ class TestQueryBuilder:
             .limit(100)
             .fields(["open", "close", "volume"])
             .filter("custom_param", "custom_value")
-            .build())
+            .build()
+        )
 
         assert query.asset == AssetType.STOCK
         assert query.market == MarketType.CN
@@ -56,42 +56,46 @@ class TestQueryBuilder:
 
     def test_date_range_method(self):
         """Test date_range convenience method."""
-        query = (QueryBuilder()
+        query = (
+            QueryBuilder()
             .asset(AssetType.STOCK)
             .date_range("2024-01-01", "2024-12-31")
-            .build())
+            .build()
+        )
 
         assert query.start == datetime(2024, 1, 1)
         assert query.end == datetime(2024, 12, 31)
 
     def test_single_symbol_method(self):
         """Test adding single symbols."""
-        query = (QueryBuilder()
+        query = (
+            QueryBuilder()
             .asset(AssetType.STOCK)
             .symbol("000001")
             .symbol("000002")
-            .build())
+            .build()
+        )
 
         assert query.symbols == ["000001", "000002"]
 
     def test_single_field_method(self):
         """Test adding single fields."""
-        query = (QueryBuilder()
-            .asset(AssetType.STOCK)
-            .field("open")
-            .field("close")
-            .build())
+        query = (
+            QueryBuilder().asset(AssetType.STOCK).field("open").field("close").build()
+        )
 
         assert query.fields == ["open", "close"]
 
     def test_multiple_filters(self):
         """Test adding multiple filters."""
-        query = (QueryBuilder()
+        query = (
+            QueryBuilder()
             .asset(AssetType.STOCK)
             .filter("param1", "value1")
             .filter("param2", "value2")
             .filters({"param3": "value3", "param4": "value4"})
-            .build())
+            .build()
+        )
 
         expected_filters = {
             "param1": "value1",
@@ -106,11 +110,9 @@ class TestQueryBuilder:
         start_dt = datetime(2024, 1, 1, 10, 30, 0)
         end_dt = datetime(2024, 12, 31, 15, 45, 0)
 
-        query = (QueryBuilder()
-            .asset(AssetType.STOCK)
-            .start(start_dt)
-            .end(end_dt)
-            .build())
+        query = (
+            QueryBuilder().asset(AssetType.STOCK).start(start_dt).end(end_dt).build()
+        )
 
         assert query.start == start_dt
         assert query.end == end_dt
@@ -171,12 +173,14 @@ class TestQueryBuilder:
 
     def test_reset_method(self):
         """Test resetting builder to initial state."""
-        builder = (QueryBuilder()
+        builder = (
+            QueryBuilder()
             .asset(AssetType.STOCK)
             .market(MarketType.CN)
             .symbols(["000001"])
             .provider("test")
-            .reset())
+            .reset()
+        )
 
         # After reset, should require asset again
         with pytest.raises(ValueError):
@@ -190,12 +194,14 @@ class TestQueryBuilder:
 
     def test_copy_method(self):
         """Test copying builder state."""
-        original = (QueryBuilder()
+        original = (
+            QueryBuilder()
             .asset(AssetType.STOCK)
             .market(MarketType.CN)
             .symbols(["000001"])
             .provider("test")
-            .filter("key", "value"))
+            .filter("key", "value")
+        )
 
         copy = original.copy()
 
@@ -220,11 +226,13 @@ class TestQueryBuilder:
         symbols = ["000001", "000002"]
         fields = ["open", "close"]
 
-        query = (QueryBuilder()
+        query = (
+            QueryBuilder()
             .asset(AssetType.STOCK)
             .symbols(symbols)
             .fields(fields)
-            .build())
+            .build()
+        )
 
         # Modify original lists
         symbols.append("000003")
@@ -236,32 +244,26 @@ class TestQueryBuilder:
 
     def test_empty_lists_handling(self):
         """Test handling of empty lists."""
-        query = (QueryBuilder()
-            .asset(AssetType.STOCK)
-            .symbols([])
-            .fields([])
-            .build())
+        query = QueryBuilder().asset(AssetType.STOCK).symbols([]).fields([]).build()
 
         assert query.symbols is None
         assert query.fields is None
 
     def test_none_values_handling(self):
         """Test handling of None values."""
-        query = (QueryBuilder()
-            .asset(AssetType.STOCK)
-            .symbols(None)
-            .fields(None)
-            .build())
+        query = QueryBuilder().asset(AssetType.STOCK).symbols(None).fields(None).build()
 
         assert query.symbols is None
         assert query.fields is None
 
     def test_repr_method(self):
         """Test string representation of builder."""
-        builder = (QueryBuilder()
+        builder = (
+            QueryBuilder()
             .asset(AssetType.STOCK)
             .market(MarketType.CN)
-            .symbols(["000001"]))
+            .symbols(["000001"])
+        )
 
         repr_str = repr(builder)
         assert "QueryBuilder(" in repr_str
@@ -271,7 +273,8 @@ class TestQueryBuilder:
 
     def test_complex_chaining_example(self):
         """Test a complex real-world example."""
-        query = (QueryBuilder()
+        query = (
+            QueryBuilder()
             .asset(AssetType.STOCK)
             .market(MarketType.CN)
             .symbol("000001")
@@ -285,7 +288,8 @@ class TestQueryBuilder:
             .limit(100)
             .filter("adj", "qfq")
             .filter("ma_period", 20)
-            .build())
+            .build()
+        )
 
         assert query.asset == AssetType.STOCK
         assert query.market == MarketType.CN

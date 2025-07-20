@@ -164,7 +164,9 @@ class VPrismClient:
             raise VPrismException(
                 message="Synchronous method cannot be called from within an async context. Use the async get() method instead.",
                 error_code="SYNC_IN_ASYNC_CONTEXT",
-                details={"suggestion": "Use await client.get(...) instead of client.get_sync(...)"},
+                details={
+                    "suggestion": "Use await client.get(...) instead of client.get_sync(...)"
+                },
             )
         except RuntimeError:
             # No event loop running, safe to use asyncio.run()

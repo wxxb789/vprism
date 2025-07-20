@@ -108,7 +108,9 @@ class DataService:
                 )
 
             # Step 3: Execute query through router
-            logger.debug(f"Cache miss for query: {query.cache_key()}, routing to provider")
+            logger.debug(
+                f"Cache miss for query: {query.cache_key()}, routing to provider"
+            )
             response = await self.router.execute_query(query)
 
             # Step 4: Calculate execution time
@@ -198,7 +200,9 @@ class DataService:
                 },
             )
 
-    async def _calculate_data_quality_score(self, data_points: list[DataPoint]) -> float:
+    async def _calculate_data_quality_score(
+        self, data_points: list[DataPoint]
+    ) -> float:
         """
         Calculate data quality score based on completeness and consistency.
 
@@ -270,7 +274,9 @@ class DataService:
             record_count=len(response.data),
             cache_hit=cache_hit,
             data_quality_score=quality_score,
-            warnings=response.metadata.warnings if hasattr(response.metadata, 'warnings') else [],
+            warnings=response.metadata.warnings
+            if hasattr(response.metadata, "warnings")
+            else [],
         )
 
         # Create new response with enhanced metadata
