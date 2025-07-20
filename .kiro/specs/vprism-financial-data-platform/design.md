@@ -861,7 +861,7 @@ async def get_data():
 
 # 配置管理
 vprism.configure(
-    providers=["tushare", "akshare", "yahoo"],
+    providers=["akshare", "yfinance", "alpha_vantage", "vprism_native"],
     cache_backend="redis://localhost:6379",
     log_level="INFO"
 )
@@ -1004,6 +1004,401 @@ spec:
           periodSeconds: 5
 ```
 
+## 数据提供商策略
+
+### 核心数据提供商架构
+
+vprism 采用多层数据提供商策略，优先使用成熟的 Python 包，同时提供自研的现代化重构版本：
+
+#### 1. 主要数据提供商
+
+```python
+class ProviderType(str, Enum):
+    AKSHARE = "akshare"           # 原始 akshare 包，用于数据一致性验证
+    YFINANCE = "yfinance"         # Yahoo Finance 官方包
+    ALPHA_VANTAGE = "alpha_vantage"  # Alpha Vantage API
+    VPRISM_NATIVE = "vprism_native"  # vprism 自研重构版本
+
+# 提供商优先级和能力配置
+PROVIDER_CONFIG = {
+    "akshare": {
+        "priority": 3,  # 较低优先级，主要用于验证
+        "capabilities": {
+            "markets": ["cn"],
+            "assets": ["stock", "bond", "fund", "etf", "futures"],
+            "real_time": False,
+            "historical": True,
+            "data_delay": 900  # 15分钟延迟
+        },
+        "package": "akshare>=1.12.0"
+    },
+    "yfinance": {
+        "priority": 2,
+        "capabilities": {
+            "markets": ["us", "global"],
+            "assets": ["stock", "etf", "index", "crypto"],
+            "real_time": True,
+            "historical": True,
+            "data_delay": 0
+        },
+        "package": "yfinance>=0.2.0"
+    },
+    "alpha_vantage": {
+        "priority": 2,
+        "capabilities": {
+            "markets": ["us", "global"],
+            "assets": ["stock", "forex", "crypto"],
+            "real_time": True,
+            "historical": True,
+            "data_delay": 0
+        },
+        "auth_required": True
+    },
+    "vprism_native": {
+        "priority": 1,  # 最高优先级
+        "capabilities": {
+            "markets": ["cn", "us", "hk"],
+            "assets": ["stock", "bond", "fund", "etf", "futures", "options"],
+            "real_time": True,
+            "historical": True,
+            "data_delay": 0
+        },
+        "description": "基于 akshare 重构的现代化实现"
+    }
+}
+```
+
+#### 2. vprism 原生提供商设计
+
+vprism 原生提供商是对 akshare 的现代化重构，解决其架构问题：
+
+```python
+class VPrismNativeProvider(DataProvider):
+    """
+    vprism 原生数据提供商
+    基于 akshare 重构，采用现代 Python 架构
+    """
+    
+    def __init__(self):
+        super().__init__(
+            name="vprism_native",
+            auth_config=AuthConfig(auth_type=AuthType.NONE, credentials={}),
+            rate_limit=RateLimitConfig(
+                requests_per_minute=300,
+                requests_per_hour=10000,
+                concurrent_requests=10
+            )
+        )
+        self.akshare_adapter = AkshareModernAdapter()
+    
+    async def get_data(self, query: DataQuery) -> DataResponse:
+        """
+        使用重构的 akshare 逻辑获取数据
+        统一的接口，标准化的数据格式
+        """
+        if query.asset == AssetType.STOCK and query.market == MarketType.CN:
+            return await self._get_cn_stock_data(query)
+        elif query.asset == AssetType.BOND and query.market == MarketType.CN:
+            return await self._get_cn_bond_data(query)
+        # ... 其他资产类型
+    
+    async def _get_cn_stock_data(self, query: DataQuery) -> DataResponse:
+        """
+        重构的中国股票数据获取
+        替代 akshare 的 stock_zh_a_spot() 等分散函数
+        """
+        # 使用现代化的数据获取逻辑
+        # 统一的错误处理和数据验证
+        # 标准化的数据格式输出
+        pass
+
+class AkshareModernAdapter:
+    """
+    akshare 现代化适配器
+    将 akshare 的 1000+ 分散函数重构为统一接口
+    """
+    
+    def __init__(self):
+        self.function_mapping = self._build_function_mapping()
+    
+    def _build_function_mapping(self) -> Dict[str, str]:
+        """
+        构建 akshare 函数映射表
+        将统一查询映射到具体的 akshare 函数
+        """
+        return {
+            "stock_cn_spot": "stock_zh_a_spot",
+            "stock_cn_hist": "stock_zh_a_hist",
+            "bond_cn_yield": "bond_china_yield",
+            "fund_etf_hist": "fund_etf_hist_sina",
+            # ... 更多映射
+        }
+    
+    async def get_unified_data(self, query: DataQuery) -> List[DataPoint]:
+        """
+        统一的数据获取接口
+        内部调用相应的 akshare 函数
+        """
+        function_key = self._resolve_function_key(query)
+        akshare_function = self.function_mapping.get(function_key)
+        
+        if not akshare_function:
+            raise UnsupportedQueryException(f"Query not supported: {query}")
+        
+        # 调用 akshare 函数并标准化输出
+        raw_data = await self._call_akshare_function(akshare_function, query)
+        return self._standardize_data(raw_data, query)
+```
+
+#### 3. 数据一致性验证模块
+
+为确保 vprism 重构版本的正确性，实现与原始 akshare 的数据一致性验证：
+
+```python
+class DataConsistencyValidator:
+    """
+    数据一致性验证器
+    对比 vprism 重构版本与原始 akshare 的数据一致性
+    """
+    
+    def __init__(self):
+        self.vprism_provider = VPrismNativeProvider()
+        self.akshare_provider = AkshareProvider()
+        self.tolerance_config = ToleranceConfig()
+    
+    async def validate_consistency(
+        self, 
+        query: DataQuery,
+        tolerance: Optional[ConsistencyTolerance] = None
+    ) -> ConsistencyReport:
+        """
+        执行数据一致性验证
+        """
+        # 并行获取两个数据源的数据
+        vprism_data, akshare_data = await asyncio.gather(
+            self.vprism_provider.get_data(query),
+            self.akshare_provider.get_data(query)
+        )
+        
+        # 执行一致性检查
+        report = ConsistencyReport(
+            query=query,
+            vprism_data_points=len(vprism_data.data),
+            akshare_data_points=len(akshare_data.data),
+            timestamp=datetime.utcnow()
+        )
+        
+        # 数据点数量检查
+        report.count_match = len(vprism_data.data) == len(akshare_data.data)
+        
+        # 数据值一致性检查
+        if report.count_match:
+            report.value_differences = self._compare_data_values(
+                vprism_data.data, 
+                akshare_data.data,
+                tolerance or self.tolerance_config.default
+            )
+        
+        # 数据结构一致性检查
+        report.schema_match = self._compare_data_schema(
+            vprism_data.data[0] if vprism_data.data else None,
+            akshare_data.data[0] if akshare_data.data else None
+        )
+        
+        # 生成一致性评分
+        report.consistency_score = self._calculate_consistency_score(report)
+        
+        return report
+    
+    def _compare_data_values(
+        self, 
+        vprism_data: List[DataPoint], 
+        akshare_data: List[DataPoint],
+        tolerance: ConsistencyTolerance
+    ) -> List[ValueDifference]:
+        """
+        比较数据值的差异
+        """
+        differences = []
+        
+        for i, (vp_point, ak_point) in enumerate(zip(vprism_data, akshare_data)):
+            # 比较价格数据
+            if vp_point.close and ak_point.close:
+                price_diff = abs(vp_point.close - ak_point.close)
+                if price_diff > tolerance.price_tolerance:
+                    differences.append(ValueDifference(
+                        index=i,
+                        field="close",
+                        vprism_value=vp_point.close,
+                        akshare_value=ak_point.close,
+                        difference=price_diff
+                    ))
+            
+            # 比较成交量数据
+            if vp_point.volume and ak_point.volume:
+                volume_diff = abs(vp_point.volume - ak_point.volume)
+                volume_tolerance = ak_point.volume * tolerance.volume_tolerance_pct
+                if volume_diff > volume_tolerance:
+                    differences.append(ValueDifference(
+                        index=i,
+                        field="volume",
+                        vprism_value=vp_point.volume,
+                        akshare_value=ak_point.volume,
+                        difference=volume_diff
+                    ))
+        
+        return differences
+    
+    async def run_continuous_validation(
+        self, 
+        queries: List[DataQuery],
+        interval_hours: int = 24
+    ):
+        """
+        持续的数据一致性验证
+        定期运行验证并生成报告
+        """
+        while True:
+            validation_results = []
+            
+            for query in queries:
+                try:
+                    report = await self.validate_consistency(query)
+                    validation_results.append(report)
+                    
+                    # 如果一致性评分过低，发送告警
+                    if report.consistency_score < 0.95:
+                        await self._send_consistency_alert(report)
+                        
+                except Exception as e:
+                    logger.error(f"Validation failed for query {query}: {e}")
+            
+            # 生成汇总报告
+            summary_report = self._generate_summary_report(validation_results)
+            await self._save_validation_report(summary_report)
+            
+            # 等待下一次验证
+            await asyncio.sleep(interval_hours * 3600)
+
+@dataclass
+class ConsistencyReport:
+    query: DataQuery
+    vprism_data_points: int
+    akshare_data_points: int
+    count_match: bool
+    value_differences: List[ValueDifference] = field(default_factory=list)
+    schema_match: bool = True
+    consistency_score: float = 0.0
+    timestamp: datetime = field(default_factory=datetime.utcnow)
+
+@dataclass
+class ValueDifference:
+    index: int
+    field: str
+    vprism_value: Any
+    akshare_value: Any
+    difference: Any
+
+@dataclass
+class ConsistencyTolerance:
+    price_tolerance: Decimal = Decimal("0.01")  # 1分钱
+    volume_tolerance_pct: float = 0.05  # 5%
+    timestamp_tolerance_seconds: int = 300  # 5分钟
+
+class ConsistencyValidationCLI:
+    """
+    数据一致性验证的命令行工具
+    """
+    
+    def __init__(self):
+        self.validator = DataConsistencyValidator()
+        self.app = typer.Typer()
+        self._setup_commands()
+    
+    def _setup_commands(self):
+        @self.app.command()
+        async def validate(
+            asset: str = typer.Option("stock", help="资产类型"),
+            market: str = typer.Option("cn", help="市场"),
+            symbols: str = typer.Option("000001", help="股票代码，逗号分隔"),
+            output: str = typer.Option("console", help="输出格式: console, json, html")
+        ):
+            """执行数据一致性验证"""
+            query = DataQuery(
+                asset=AssetType(asset),
+                market=MarketType(market),
+                symbols=symbols.split(",")
+            )
+            
+            report = await self.validator.validate_consistency(query)
+            
+            if output == "console":
+                self._print_console_report(report)
+            elif output == "json":
+                print(report.model_dump_json(indent=2))
+            elif output == "html":
+                self._generate_html_report(report)
+        
+        @self.app.command()
+        async def continuous(
+            config_file: str = typer.Option("validation_config.toml", help="配置文件路径"),
+            interval: int = typer.Option(24, help="验证间隔（小时）")
+        ):
+            """启动持续验证"""
+            queries = self._load_validation_config(config_file)
+            await self.validator.run_continuous_validation(queries, interval)
+```
+
+#### 4. 提供商集成策略
+
+```python
+class ProviderIntegrationStrategy:
+    """
+    提供商集成策略
+    管理多个数据提供商的协调工作
+    """
+    
+    def __init__(self):
+        self.providers = {
+            "akshare": AkshareProvider(),
+            "yfinance": YFinanceProvider(),
+            "alpha_vantage": AlphaVantageProvider(),
+            "vprism_native": VPrismNativeProvider()
+        }
+        self.consistency_validator = DataConsistencyValidator()
+    
+    async def get_data_with_validation(self, query: DataQuery) -> DataResponse:
+        """
+        获取数据并进行一致性验证
+        """
+        # 优先使用 vprism 原生提供商
+        primary_response = await self.providers["vprism_native"].get_data(query)
+        
+        # 如果查询支持 akshare，进行一致性验证
+        if self._supports_akshare_validation(query):
+            try:
+                consistency_report = await self.consistency_validator.validate_consistency(query)
+                primary_response.metadata.consistency_score = consistency_report.consistency_score
+                
+                if consistency_report.consistency_score < 0.9:
+                    logger.warning(f"Low consistency score: {consistency_report.consistency_score}")
+                    
+            except Exception as e:
+                logger.error(f"Consistency validation failed: {e}")
+        
+        return primary_response
+    
+    def _supports_akshare_validation(self, query: DataQuery) -> bool:
+        """
+        检查查询是否支持 akshare 验证
+        """
+        akshare_capability = self.providers["akshare"].capability
+        return (
+            query.market in akshare_capability.supported_markets and
+            query.asset in akshare_capability.supported_assets
+        )
+```
+
 ## 技术栈详细说明
 
 ### 核心技术栈
@@ -1030,6 +1425,11 @@ dependencies = [
     "polars>=0.19.0",
     "duckdb>=0.9.0",
     "sqlite3",  # 内置，用作备选存储
+    
+    # 数据提供商
+    "akshare>=1.12.0",  # 原始 akshare，用于数据验证
+    "yfinance>=0.2.0",  # Yahoo Finance 官方包
+    "alpha-vantage-api>=1.0.0",  # Alpha Vantage API
     
     # 命令行
     "typer>=0.9.0",
