@@ -5,14 +5,14 @@ vprism 是一个现代化的金融数据基础设施平台，旨在解决传统�
 vprism 提供统一的、可组合的 API 接口，支持多模态部署。
 
 基本用法:
-    
+
     库模式 (Library Mode):
     ```python
     import vprism
-    
+
     # 简单用法
     data = vprism.get(asset="stock", market="cn", symbols=["000001"])
-    
+
     # 复杂查询
     query = vprism.query() \
         .asset("stock") \
@@ -40,8 +40,8 @@ vprism 提供统一的、可组合的 API 接口，支持多模态部署。
 """
 
 from vprism.core.client import VPrismClient
-from vprism.core.models import AssetType, MarketType, TimeFrame
 from vprism.core.exceptions import VPrismException
+from vprism.core.models import AssetType, MarketType, TimeFrame
 
 __version__ = "0.1.0"
 __author__ = "vprism Team"
@@ -50,6 +50,7 @@ __email__ = "team@vprism.dev"
 # 客户端实例
 _client = None
 
+
 def get_client() -> VPrismClient:
     """获取全局客户端实例"""
     global _client
@@ -57,11 +58,19 @@ def get_client() -> VPrismClient:
         _client = VPrismClient()
     return _client
 
-def get(asset: str = None, market: str = None, symbols: list = None, 
-        timeframe: str = None, start: str = None, end: str = None,
-        provider: str = None, **kwargs):
+
+def get(
+    asset: str = None,
+    market: str = None,
+    symbols: list = None,
+    timeframe: str = None,
+    start: str = None,
+    end: str = None,
+    provider: str = None,
+    **kwargs,
+):
     """简单API - 获取金融数据
-    
+
     Args:
         asset: 资产类型 (stock, bond, etf, fund, futures, options, forex, crypto)
         market: 市场 (cn, us, hk, eu, jp, global)
@@ -71,7 +80,7 @@ def get(asset: str = None, market: str = None, symbols: list = None,
         end: 结束日期 (YYYY-MM-DD)
         provider: 数据提供商 (可选)
         **kwargs: 其他参数
-    
+
     Returns:
         金融数据
     """
@@ -84,34 +93,38 @@ def get(asset: str = None, market: str = None, symbols: list = None,
         start=start,
         end=end,
         provider=provider,
-        **kwargs
+        **kwargs,
     )
+
 
 def query():
     """构建器模式API - 创建复杂查询"""
     client = get_client()
     return client.query()
 
+
 async def execute(query):
     """执行查询"""
     client = get_client()
     return await client.execute(query)
+
 
 def configure(**config):
     """配置客户端"""
     client = get_client()
     client.configure(**config)
 
+
 # 导出常用类型
 __all__ = [
     "get",
-    "query", 
+    "query",
     "execute",
     "configure",
     "get_client",
     "VPrismClient",
     "AssetType",
-    "MarketType", 
+    "MarketType",
     "TimeFrame",
-    "VPrismException"
+    "VPrismException",
 ]

@@ -24,48 +24,48 @@ graph TB
         API[REST API]
         MCP[MCP 服务器]
     end
-    
+
     subgraph "应用层"
         UC[用例层]
         SVC[服务层]
     end
-    
+
     subgraph "领域层"
         DOM[领域模型]
         REPO[仓储接口]
     end
-    
+
     subgraph "基础设施层"
         PROV[数据提供商适配器]
         CACHE[缓存层]
         STORE[存储层]
         AUTH[认证管理]
     end
-    
+
     subgraph "外部系统"
         EXT1[交易所 API]
         EXT2[第三方数据商]
         EXT3[缓存存储]
         EXT4[持久化存储]
     end
-    
+
     CLI --> UC
     LIB --> UC
     API --> UC
     MCP --> UC
-    
+
     UC --> SVC
     SVC --> DOM
     SVC --> REPO
-    
+
     REPO --> PROV
     REPO --> CACHE
     REPO --> STORE
-    
+
     PROV --> AUTH
     PROV --> EXT1
     PROV --> EXT2
-    
+
     CACHE --> EXT3
     STORE --> EXT4
 ```
@@ -80,22 +80,22 @@ graph LR
         DOMAIN[领域模型<br/>- Asset<br/>- Market<br/>- DataPoint<br/>- Provider]
         SERVICES[领域服务<br/>- DataAggregator<br/>- PriceCalculator<br/>- Validator]
     end
-    
+
     subgraph "应用层"
         USECASE[用例<br/>- GetMarketData<br/>- StreamRealTime<br/>- CacheData]
     end
-    
+
     subgraph "端口"
         INBOUND[入站端口<br/>- DataQuery<br/>- StreamSubscription]
         OUTBOUND[出站端口<br/>- DataRepository<br/>- CacheRepository<br/>- NotificationPort]
     end
-    
+
     subgraph "适配器"
         WEB[Web 适配器<br/>- FastAPI<br/>- WebSocket]
         CLI_ADAPTER[CLI 适配器<br/>- Typer]
         DATA[数据适配器<br/>- Provider APIs<br/>- Database<br/>- Redis]
     end
-    
+
     WEB --> INBOUND
     CLI_ADAPTER --> INBOUND
     INBOUND --> USECASE
@@ -121,7 +121,7 @@ class DataQuery:
     start: Optional[datetime] = None
     end: Optional[datetime] = None
     symbols: Optional[List[str]] = None
-    
+
 class DataResponse:
     data: List[DataPoint]
     metadata: ResponseMetadata
@@ -142,32 +142,32 @@ class QueryBuilder:
         self._start: Optional[datetime] = None
         self._end: Optional[datetime] = None
         self._provider: Optional[str] = None
-    
+
     def asset(self, asset: AssetType) -> 'QueryBuilder':
         self._asset = asset
         return self
-    
+
     def market(self, market: MarketType) -> 'QueryBuilder':
         self._market = market
         return self
-    
+
     def symbols(self, symbols: List[str]) -> 'QueryBuilder':
         self._symbols = symbols
         return self
-    
+
     def timeframe(self, timeframe: TimeFrame) -> 'QueryBuilder':
         self._timeframe = timeframe
         return self
-    
+
     def date_range(self, start: str, end: str) -> 'QueryBuilder':
         self._start = datetime.fromisoformat(start)
         self._end = datetime.fromisoformat(end)
         return self
-    
+
     def provider(self, provider: str) -> 'QueryBuilder':
         self._provider = provider
         return self
-    
+
     def build(self) -> DataQuery:
         return DataQuery(
             asset=self._asset,
@@ -235,30 +235,30 @@ class DataProvider(ABC):
         self.auth_config = auth_config
         self.rate_limit = rate_limit
         self._capability: Optional[ProviderCapability] = None
-    
+
     @property
     def capability(self) -> ProviderCapability:
         if self._capability is None:
             self._capability = self._discover_capability()
         return self._capability
-    
+
     @abstractmethod
     def _discover_capability(self) -> ProviderCapability:
         """发现提供商能力"""
         pass
-    
+
     @abstractmethod
     async def get_data(self, query: DataQuery) -> DataResponse:
         pass
-    
+
     @abstractmethod
     async def stream_data(self, query: DataQuery) -> AsyncIterator[DataPoint]:
         pass
-    
+
     def can_handle_query(self, query: DataQuery) -> bool:
         """检查提供商是否能处理查询"""
         cap = self.capability
-        
+
         if query.asset and query.asset not in cap.supported_assets:
             return False
         if query.market and query.market not in cap.supported_markets:
@@ -267,9 +267,9 @@ class DataProvider(ABC):
             return False
         if query.symbols and len(query.symbols) > cap.max_symbols_per_request:
             return False
-        
+
         return True
-    
+
     async def authenticate(self) -> bool:
         """与提供商进行身份验证"""
         # 根据 auth_type 实现不同的认证方式
@@ -279,23 +279,23 @@ class ProviderRegistry:
     def __init__(self):
         self.providers: Dict[str, DataProvider] = {}
         self.provider_health: Dict[str, bool] = {}
-    
+
     def register(self, provider: DataProvider):
         self.providers[provider.name] = provider
         self.provider_health[provider.name] = True
-    
+
     def find_capable_providers(self, query: DataQuery) -> List[DataProvider]:
         """查找能处理此查询的提供商"""
         capable = []
         for provider in self.providers.values():
-            if (self.provider_health.get(provider.name, False) and 
+            if (self.provider_health.get(provider.name, False) and
                 provider.can_handle_query(query)):
                 capable.append(provider)
         return capable
-    
+
     def mark_unhealthy(self, provider_name: str):
         self.provider_health[provider_name] = False
-    
+
     def mark_healthy(self, provider_name: str):
         self.provider_health[provider_name] = True
 ```
@@ -307,30 +307,30 @@ class DataRouter:
     def __init__(self, registry: ProviderRegistry):
         self.registry = registry
         self.provider_scores: Dict[str, float] = {}
-    
+
     async def route_query(self, query: DataQuery) -> DataProvider:
         capable_providers = self.registry.find_capable_providers(query)
-        
+
         if not capable_providers:
             raise NoCapableProviderException(f"No provider can handle query: {query}")
-        
+
         # 简单评分：优先选择数据延迟较低的提供商
-        best_provider = min(capable_providers, 
+        best_provider = min(capable_providers,
                           key=lambda p: p.capability.data_delay_seconds)
-        
+
         return best_provider
-    
+
     def update_provider_score(self, provider_name: str, success: bool, latency_ms: int):
         """更新提供商性能评分"""
         current_score = self.provider_scores.get(provider_name, 1.0)
-        
+
         if success:
             # 奖励成功和低延迟
             score_delta = 0.1 - (latency_ms / 10000)  # 高延迟惩罚
         else:
             # 失败惩罚
             score_delta = -0.2
-        
+
         self.provider_scores[provider_name] = max(0.1, min(2.0, current_score + score_delta))
 ```
 
@@ -387,7 +387,7 @@ class DataPoint(BaseModel):
     volume: Optional[Decimal] = None
     amount: Optional[Decimal] = None
     extra_fields: Dict[str, Any] = Field(default_factory=dict)
-    
+
     class Config:
         json_encoders = {
             Decimal: str,
@@ -416,12 +416,12 @@ graph TD
         L1[L1: 内存缓存<br/>Python Dict/LRU<br/>实时数据]
         L2[L2: 本地存储<br/>DuckDB/SQLite<br/>历史数据]
     end
-    
+
     subgraph "缓存策略"
         HOT[热数据<br/>实时价格<br/>高频访问]
         WARM[温数据<br/>历史数据<br/>中低频访问]
     end
-    
+
     HOT --> L1
     WARM --> L2
 ```
@@ -439,7 +439,7 @@ class CacheKey:
     def __init__(self, query: DataQuery):
         self.key = self._generate_key(query)
         self.ttl = self._calculate_ttl(query)
-    
+
     def _generate_key(self, query: DataQuery) -> str:
         """生成确定性缓存键"""
         parts = [
@@ -453,12 +453,12 @@ class CacheKey:
         ]
         content = "|".join(parts)
         return hashlib.sha256(content.encode()).hexdigest()[:16]
-    
+
     def _calculate_ttl(self, query: DataQuery) -> int:
         """根据数据类型和时间框架计算 TTL"""
         if not query.timeframe:
             return 300  # 5分钟默认
-        
+
         ttl_map = {
             TimeFrame.TICK: 5,      # 5秒
             TimeFrame.MINUTE_1: 60,  # 1分钟
@@ -472,7 +472,7 @@ class CacheStrategy(ABC):
     @abstractmethod
     async def get(self, key: str) -> Optional[Any]:
         pass
-    
+
     @abstractmethod
     async def set(self, key: str, value: Any, ttl: Optional[int] = None):
         pass
@@ -484,26 +484,26 @@ class ThreadSafeInMemoryCache:
         self.cache: OrderedDict = OrderedDict()
         self.expiry: Dict[str, datetime] = {}
         self._lock = asyncio.Lock()
-    
+
     async def get(self, key: str) -> Optional[Any]:
         async with self._lock:
             now = datetime.now(timezone.utc)
-            
+
             # 检查过期
             if key in self.expiry and now > self.expiry[key]:
                 self._remove_expired(key)
                 return None
-            
+
             if key in self.cache:
                 # 移动到末尾（最近使用）
                 self.cache.move_to_end(key)
                 return self.cache[key]
             return None
-    
+
     async def set(self, key: str, value: Any, ttl: Optional[int] = None):
         async with self._lock:
             now = datetime.now(timezone.utc)
-            
+
             if key in self.cache:
                 self.cache.move_to_end(key)
             else:
@@ -511,11 +511,11 @@ class ThreadSafeInMemoryCache:
                     # 移除最少使用的
                     oldest_key = next(iter(self.cache))
                     self._remove_expired(oldest_key)
-            
+
             self.cache[key] = value
             if ttl:
                 self.expiry[key] = now + timedelta(seconds=ttl)
-    
+
     def _remove_expired(self, key: str):
         self.cache.pop(key, None)
         self.expiry.pop(key, None)
@@ -525,7 +525,7 @@ class SimpleDuckDBCache:
     def __init__(self, db_path: str = "vprism_cache.duckdb"):
         self.db_path = db_path
         self._init_simple_tables()
-    
+
     def _init_simple_tables(self):
         """初始化简化的缓存表和优化的数据表结构"""
         # 简单缓存表
@@ -536,11 +536,11 @@ class SimpleDuckDBCache:
             expires_at TIMESTAMP,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-        
-        CREATE INDEX IF NOT EXISTS idx_cache_expires 
+
+        CREATE INDEX IF NOT EXISTS idx_cache_expires
         ON cache_entries(expires_at);
         """
-        
+
         # 优化的数据表结构 - 按频率和类型分离
         data_tables_sql = """
         -- 日线数据表（分区优化）
@@ -596,25 +596,25 @@ class SimpleDuckDBCache:
         CREATE INDEX IF NOT EXISTS idx_intraday_symbol_time ON intraday_ohlcv(symbol, timestamp DESC);
         CREATE INDEX IF NOT EXISTS idx_asset_type ON asset_info(asset_type, market);
         """
-    
+
     async def get(self, key: str) -> Optional[Any]:
         """从 DuckDB 查询缓存数据"""
         # 解析缓存键，确定查询类型和参数
         query_info = self._parse_cache_key(key)
-        
+
         if query_info['data_type'] == 'ohlcv':
             return await self._get_ohlcv_data(query_info)
         elif query_info['data_type'] == 'quote':
             return await self._get_quote_data(query_info)
         # ... 其他数据类型
-        
+
         return None
-    
+
     async def set(self, key: str, value: Any, ttl: Optional[int] = None):
         """存储数据到 DuckDB"""
         # 根据数据类型存储到相应表
         pass
-    
+
     def _parse_cache_key(self, key: str) -> Dict[str, Any]:
         """解析缓存键获取查询信息"""
         # 实现缓存键解析逻辑
@@ -624,27 +624,27 @@ class MultiLevelCache:
     def __init__(self):
         self.l1_cache = ThreadSafeInMemoryCache(max_size=1000)
         self.l2_cache = SimpleDuckDBCache()
-    
+
     async def get_data(self, query: DataQuery) -> Optional[DataResponse]:
         cache_key_obj = CacheKey(query)
-        
+
         # 尝试 L1 缓存
         result = await self.l1_cache.get(cache_key_obj.key)
         if result:
             return result
-        
+
         # 尝试 L2 缓存
         result = await self.l2_cache.get(cache_key_obj.key)
         if result:
             # 回填到 L1
             await self.l1_cache.set(cache_key_obj.key, result, ttl=300)
             return result
-        
+
         return None
-    
+
     async def set_data(self, query: DataQuery, data: DataResponse):
         cache_key_obj = CacheKey(query)
-        
+
         # 使用适当的 TTL 存储到两个级别
         await self.l1_cache.set(cache_key_obj.key, data, ttl=cache_key_obj.ttl)
         await self.l2_cache.set(cache_key_obj.key, data, ttl=cache_key_obj.ttl * 10)
@@ -699,13 +699,13 @@ class FaultTolerantDataService:
         self.providers = providers
         self.circuit_breaker = CircuitBreaker()
         self.retry_policy = ExponentialBackoffRetry()
-    
+
     async def get_data_with_fallback(self, query: DataQuery) -> DataResponse:
         for provider in self.providers:
             try:
                 if self.circuit_breaker.is_open(provider.name):
                     continue
-                
+
                 return await self.retry_policy.execute(
                     lambda: provider.get_data(query)
                 )
@@ -713,7 +713,7 @@ class FaultTolerantDataService:
                 self.circuit_breaker.record_failure(provider.name)
                 logger.warning(f"Provider {provider.name} failed: {e}")
                 continue
-        
+
         raise NoAvailableProviderException("All providers failed")
 ```
 
@@ -728,13 +728,13 @@ graph TD
         INTEGRATION[集成测试<br/>组件间交互<br/>中等数量]
         UNIT[单元测试<br/>单个组件<br/>大量且快速]
     end
-    
+
     subgraph "测试类型"
         CONTRACT[契约测试<br/>API 兼容性]
         PERFORMANCE[性能测试<br/>延迟和吞吐量]
         CHAOS[混沌测试<br/>故障注入]
     end
-    
+
     E2E --> CONTRACT
     INTEGRATION --> PERFORMANCE
     UNIT --> CHAOS
@@ -751,14 +751,14 @@ class TestDataRouter:
             MockProvider("provider_a", [AssetType.STOCK]),
             MockProvider("provider_b", [AssetType.BOND])
         ]
-    
+
     @pytest.mark.asyncio
     async def test_route_stock_query(self, mock_providers):
         router = DataRouter(mock_providers)
         query = DataQuery(asset=AssetType.STOCK, market=MarketType.CN)
-        
+
         provider = await router.route_query(query)
-        
+
         assert provider.name == "provider_a"
         assert AssetType.STOCK in provider.supported_assets
 
@@ -772,11 +772,11 @@ class TestDataService:
             market=MarketType.CN,
             symbols=["000001"]
         )
-        
+
         # 第一次请求应该从提供商获取
         response1 = await service.get_data(query)
         assert not response1.cached
-        
+
         # 第二次请求应该从缓存获取
         response2 = await service.get_data(query)
         assert response2.cached
@@ -790,13 +790,13 @@ class TestPerformance:
             DataQuery(asset=AssetType.STOCK, symbols=[f"00000{i}"])
             for i in range(100)
         ]
-        
+
         start_time = time.time()
         responses = await asyncio.gather(*[
             service.get_data(query) for query in queries
         ])
         end_time = time.time()
-        
+
         assert len(responses) == 100
         assert end_time - start_time < 5.0  # 5秒内完成100个请求
 ```
@@ -820,7 +820,7 @@ class TestDataFactory:
             )
             for i in range(days)
         ]
-    
+
     @staticmethod
     def create_mock_provider(name: str, assets: List[AssetType]) -> MockProvider:
         return MockProvider(
@@ -1021,36 +1021,36 @@ dependencies = [
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.5.0",
-    
+
     # HTTP 客户端
     "httpx>=0.25.0",
-    
+
     # 数据处理和存储
     "pandas>=2.1.0",
     "polars>=0.19.0",
     "duckdb>=0.9.0",
     "sqlite3",  # 内置，用作备选存储
-    
+
     # 命令行
     "typer>=0.9.0",
     "rich>=13.0.0",
-    
+
     # 日志和监控
     "loguru>=0.7.0",
     "prometheus-client>=0.19.0",
     "opentelemetry-api>=1.21.0",
-    
+
     # 配置管理
     "pydantic-settings>=2.1.0",
     "toml>=0.10.0",
-    
+
     # 安全
     "cryptography>=41.0.0",
     "python-jose[cryptography]>=3.3.0",
-    
+
     # MCP 支持
     "fastmcp>=0.2.0",
-    
+
     # 测试
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
@@ -1086,22 +1086,22 @@ class DataPipeline:
         self.extractors = ExtractorRegistry()
         self.transformers = TransformerRegistry()
         self.loaders = LoaderRegistry()
-    
+
     async def process(self, query: DataQuery) -> DataResponse:
         # ETL 管道
         raw_data = await self.extract(query)
         clean_data = await self.transform(raw_data)
         result = await self.load(clean_data)
         return result
-    
+
     async def extract(self, query: DataQuery) -> RawData:
         extractor = self.extractors.get_extractor(query.provider)
         return await extractor.extract(query)
-    
+
     async def transform(self, raw_data: RawData) -> CleanData:
         transformer = self.transformers.get_transformer(raw_data.source_type)
         return await transformer.transform(raw_data)
-    
+
     async def load(self, clean_data: CleanData) -> DataResponse:
         loader = self.loaders.get_loader(clean_data.target_format)
         return await loader.load(clean_data)
@@ -1114,25 +1114,25 @@ class BatchDataProcessor:
     def __init__(self, cache: MultiLevelCache):
         self.cache = cache
         self.batch_size = 1000
-    
+
     async def process_batch(self, queries: List[DataQuery]) -> List[DataResponse]:
         """批量处理数据查询，优化性能"""
         results = []
-        
+
         # 按提供商分组查询
         grouped_queries = self._group_by_provider(queries)
-        
+
         for provider, provider_queries in grouped_queries.items():
             batch_results = await self._process_provider_batch(provider, provider_queries)
             results.extend(batch_results)
-        
+
         return results
-    
+
     async def _process_provider_batch(self, provider: str, queries: List[DataQuery]) -> List[DataResponse]:
         """处理单个提供商的批量查询"""
         # 实现批量查询逻辑，减少 API 调用次数
         pass
-    
+
     def _group_by_provider(self, queries: List[DataQuery]) -> Dict[str, List[DataQuery]]:
         """按数据提供商分组查询"""
         groups = {}
@@ -1161,13 +1161,13 @@ class MonitoringMiddleware:
     async def __call__(self, request: Request, call_next):
         with tracer.start_as_current_span("http_request") as span:
             start_time = time.time()
-            
+
             # 记录请求
             REQUEST_COUNT.labels(
                 method=request.method,
                 endpoint=request.url.path
             ).inc()
-            
+
             try:
                 response = await call_next(request)
                 span.set_attribute("http.status_code", response.status_code)
@@ -1182,18 +1182,18 @@ class MonitoringMiddleware:
 class HealthCheck:
     def __init__(self, data_service: DataService):
         self.data_service = data_service
-    
+
     async def check_health(self) -> Dict[str, Any]:
         checks = {
             "database": await self.check_database(),
             "cache": await self.check_cache(),
             "providers": await self.check_providers(),
         }
-        
+
         overall_status = "healthy" if all(
             check["status"] == "healthy" for check in checks.values()
         ) else "unhealthy"
-        
+
         return {
             "status": overall_status,
             "timestamp": datetime.utcnow().isoformat(),
@@ -1208,19 +1208,19 @@ class SecurityManager:
     def __init__(self, secret_key: str):
         self.secret_key = secret_key
         self.token_manager = TokenManager(secret_key)
-    
+
     async def authenticate_request(self, request: Request) -> Optional[User]:
         auth_header = request.headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
             return None
-        
+
         token = auth_header[7:]  # Remove "Bearer " prefix
         return await self.token_manager.verify_token(token)
-    
+
     def encrypt_api_key(self, api_key: str) -> str:
         fernet = Fernet(self.secret_key.encode())
         return fernet.encrypt(api_key.encode()).decode()
-    
+
     def decrypt_api_key(self, encrypted_key: str) -> str:
         fernet = Fernet(self.secret_key.encode())
         return fernet.decrypt(encrypted_key.encode()).decode()
@@ -1228,18 +1228,18 @@ class SecurityManager:
 class RateLimiter:
     def __init__(self, redis_client: Redis):
         self.redis = redis_client
-    
+
     async def check_rate_limit(self, user_id: str, endpoint: str) -> bool:
         key = f"rate_limit:{user_id}:{endpoint}"
         current = await self.redis.get(key)
-        
+
         if current is None:
             await self.redis.setex(key, 3600, 1)  # 1 hour window
             return True
-        
+
         if int(current) >= 1000:  # 1000 requests per hour
             return False
-        
+
         await self.redis.incr(key)
         return True
 ```

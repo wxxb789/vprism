@@ -107,6 +107,7 @@ Kiro-style steering provides persistent project knowledge through markdown files
 - **product.md**: Product overview, features, use cases, value proposition
 - **tech.md**: Architecture, tech stack, dev environment, commands, ports
 - **structure.md**: Directory organization, code patterns, naming conventions
+- **development-workflow.md**: Post-task completion protocol and standards
 
 ### Custom Steering
 Create specialized steering documents for:

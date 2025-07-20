@@ -3,12 +3,14 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
 class AssetType(str, Enum):
     """资产类型枚举."""
+
     STOCK = "stock"
     BOND = "bond"
     ETF = "etf"
@@ -23,6 +25,7 @@ class AssetType(str, Enum):
 
 class MarketType(str, Enum):
     """市场类型枚举."""
+
     CN = "cn"  # 中国
     US = "us"  # 美国
     HK = "hk"  # 香港
@@ -33,6 +36,7 @@ class MarketType(str, Enum):
 
 class TimeFrame(str, Enum):
     """时间框架枚举."""
+
     TICK = "tick"
     MINUTE_1 = "1m"
     MINUTE_5 = "5m"
@@ -47,50 +51,52 @@ class TimeFrame(str, Enum):
 
 class DataPoint(BaseModel):
     """单个数据点模型."""
+
     symbol: str
     timestamp: datetime
-    open: Optional[Decimal] = None
-    high: Optional[Decimal] = None
-    low: Optional[Decimal] = None
-    close: Optional[Decimal] = None
-    volume: Optional[Decimal] = None
-    amount: Optional[Decimal] = None
-    extra_fields: Dict[str, Any] = Field(default_factory=dict)
-    
+    open: Decimal | None = None
+    high: Decimal | None = None
+    low: Decimal | None = None
+    close: Decimal | None = None
+    volume: Decimal | None = None
+    amount: Decimal | None = None
+    extra_fields: dict[str, Any] = Field(default_factory=dict)
+
     class Config:
         """Pydantic配置."""
-        json_encoders = {
-            Decimal: str,
-            datetime: lambda v: v.isoformat()
-        }
+
+        json_encoders = {Decimal: str, datetime: lambda v: v.isoformat()}
 
 
 class Asset(BaseModel):
     """资产信息模型."""
+
     symbol: str
     name: str
     asset_type: AssetType
     market: MarketType
     currency: str
-    exchange: Optional[str] = None
-    sector: Optional[str] = None
-    industry: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    exchange: str | None = None
+    sector: str | None = None
+    industry: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class DataQuery(BaseModel):
     """数据查询模型."""
+
     asset: AssetType
-    market: Optional[MarketType] = None
-    provider: Optional[str] = None
-    timeframe: Optional[TimeFrame] = None
-    start: Optional[datetime] = None
-    end: Optional[datetime] = None
-    symbols: Optional[List[str]] = None
+    market: MarketType | None = None
+    provider: str | None = None
+    timeframe: TimeFrame | None = None
+    start: datetime | None = None
+    end: datetime | None = None
+    symbols: list[str] | None = None
 
 
 class ResponseMetadata(BaseModel):
     """响应元数据模型."""
+
     total_records: int
     query_time_ms: float
     data_source: str
@@ -99,15 +105,17 @@ class ResponseMetadata(BaseModel):
 
 class ProviderInfo(BaseModel):
     """提供商信息模型."""
+
     name: str
-    version: Optional[str] = None
-    endpoint: Optional[str] = None
-    last_updated: Optional[datetime] = None
+    version: str | None = None
+    endpoint: str | None = None
+    last_updated: datetime | None = None
 
 
 class DataResponse(BaseModel):
     """数据响应模型."""
-    data: List[DataPoint]
+
+    data: list[DataPoint]
     metadata: ResponseMetadata
     source: ProviderInfo
     cached: bool = False
@@ -116,7 +124,8 @@ class DataResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     """错误响应模型."""
+
     error_code: str
     message: str
-    details: Dict[str, Any] = Field(default_factory=dict)
+    details: dict[str, Any] = Field(default_factory=dict)
     timestamp: datetime = Field(default_factory=datetime.utcnow)

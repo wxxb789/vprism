@@ -28,7 +28,7 @@ Q:/repos/my/vprism/vprism/tests/  # NEVER create nested structure
 - **MUST BE**: `Q:/repos/my/vprism/src/vprism/**/*.py`
 - **NEVER**: Anywhere else in the repository
 
-### Test Code  
+### Test Code
 - **MUST BE**: `Q:/repos/my/vprism/tests/**/*.py`
 - **NEVER**: Anywhere else in the repository
 
@@ -46,7 +46,7 @@ find Q:/repos/my/vprism -maxdepth 2 -name "vprism" -type d
 # Verify source code location
 ls -la Q:/repos/my/vprism/src/vprism/
 
-# Verify test location  
+# Verify test location
 ls -la Q:/repos/my/vprism/tests/
 
 # Check for Python files outside correct locations
@@ -77,9 +77,9 @@ ls Q:/repos/my/vprism/tests/
 ### 3. Before Committing
 ```bash
 # Final verification
-if [ -d "Q:/repos/my/vprism/vprism" ]; then 
-    echo "ERROR: Duplicate directory found!"; 
-    exit 1; 
+if [ -d "Q:/repos/my/vprism/vprism" ]; then
+    echo "ERROR: Duplicate directory found!";
+    exit 1;
 fi
 echo "✅ Directory structure verified"
 ```

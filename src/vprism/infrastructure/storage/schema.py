@@ -1,19 +1,19 @@
 """数据库表结构和初始化."""
 
-import duckdb
-from typing import Optional
 import os
+
+import duckdb
 
 
 def initialize_database(db_path: str = "data/vprism.db") -> duckdb.DuckDBPyConnection:
     """初始化数据库表结构."""
-    
+
     # 确保数据目录存在
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
-    
+
     # 连接数据库
     conn = duckdb.connect(db_path)
-    
+
     # 创建数据记录表
     conn.execute("""
         CREATE TABLE IF NOT EXISTS data_records (
@@ -35,7 +35,7 @@ def initialize_database(db_path: str = "data/vprism.db") -> duckdb.DuckDBPyConne
             metadata JSON
         )
     """)
-    
+
     # 创建提供商记录表
     conn.execute("""
         CREATE TABLE IF NOT EXISTS provider_records (
@@ -53,7 +53,7 @@ def initialize_database(db_path: str = "data/vprism.db") -> duckdb.DuckDBPyConne
             capabilities JSON
         )
     """)
-    
+
     # 创建缓存记录表
     conn.execute("""
         CREATE TABLE IF NOT EXISTS cache_records (
@@ -68,7 +68,7 @@ def initialize_database(db_path: str = "data/vprism.db") -> duckdb.DuckDBPyConne
             metadata JSON
         )
     """)
-    
+
     # 创建查询记录表
     conn.execute("""
         CREATE TABLE IF NOT EXISTS query_records (
@@ -89,18 +89,33 @@ def initialize_database(db_path: str = "data/vprism.db") -> duckdb.DuckDBPyConne
             completed_at TIMESTAMP
         )
     """)
-    
+
     # 创建索引以提高查询性能
     conn.execute("CREATE INDEX IF NOT EXISTS idx_data_symbol ON data_records(symbol)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_data_timestamp ON data_records(timestamp)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_data_asset_market ON data_records(asset_type, market)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_data_provider ON data_records(provider)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_data_timeframe ON data_records(timeframe)")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_data_timestamp ON data_records(timestamp)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_data_asset_market ON "
+        "data_records(asset_type, market)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_data_provider ON data_records(provider)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_data_timeframe ON data_records(timeframe)"
+    )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_key ON cache_records(cache_key)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_expires ON cache_records(expires_at)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_query_hash ON query_records(query_hash)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_query_created ON query_records(created_at)")
-    
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_cache_expires ON cache_records(expires_at)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_query_hash ON query_records(query_hash)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_query_created ON query_records(created_at)"
+    )
+
     # 创建分区表（按月份分区数据记录）
     conn.execute("""
         CREATE TABLE IF NOT EXISTS data_records_partitioned (
@@ -124,22 +139,31 @@ def initialize_database(db_path: str = "data/vprism.db") -> duckdb.DuckDBPyConne
             month INTEGER
         )
     """)
-    
+
     # 创建分区表索引
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_partitioned_symbol ON data_records_partitioned(symbol)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_partitioned_timestamp ON data_records_partitioned(timestamp)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_partitioned_year_month ON data_records_partitioned(year, month)")
-    
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_partitioned_symbol ON "
+        "data_records_partitioned(symbol)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_partitioned_timestamp ON "
+        "data_records_partitioned(timestamp)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_partitioned_year_month ON "
+        "data_records_partitioned(year, month)"
+    )
+
     return conn
 
 
 def create_views(conn: duckdb.DuckDBPyConnection) -> None:
     """创建数据库视图."""
-    
+
     # 创建数据汇总视图
     conn.execute("""
         CREATE OR REPLACE VIEW data_summary AS
-        SELECT 
+        SELECT
             symbol,
             asset_type,
             market,
@@ -155,33 +179,35 @@ def create_views(conn: duckdb.DuckDBPyConnection) -> None:
         FROM data_records
         GROUP BY symbol, asset_type, market, timeframe, provider
     """)
-    
+
     # 创建缓存统计视图
     conn.execute("""
         CREATE OR REPLACE VIEW cache_statistics AS
-        SELECT 
+        SELECT
             data_source,
             COUNT(*) as total_entries,
             SUM(hit_count) as total_hits,
             AVG(hit_count) as avg_hits_per_entry,
-            COUNT(CASE WHEN expires_at > CURRENT_TIMESTAMP THEN 1 END) as active_entries,
-            COUNT(CASE WHEN expires_at <= CURRENT_TIMESTAMP THEN 1 END) as expired_entries
+            COUNT(CASE WHEN expires_at > CURRENT_TIMESTAMP THEN 1 END)
+            as active_entries,
+            COUNT(CASE WHEN expires_at <= CURRENT_TIMESTAMP THEN 1 END)
+            as expired_entries
         FROM cache_records
         GROUP BY data_source
     """)
-    
+
     # 创建提供商性能视图
     conn.execute("""
         CREATE OR REPLACE VIEW provider_performance AS
-        SELECT 
+        SELECT
             name,
             status,
             request_count,
             error_count,
-            CASE 
-                WHEN request_count > 0 
-                THEN CAST(error_count AS DOUBLE) / request_count * 100 
-                ELSE 0 
+            CASE
+                WHEN request_count > 0
+                THEN CAST(error_count AS DOUBLE) / request_count * 100
+                ELSE 0
             END as error_rate,
             avg_response_time_ms,
             last_healthy,

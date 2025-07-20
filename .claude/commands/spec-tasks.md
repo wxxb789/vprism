@@ -195,7 +195,7 @@ Update spec.json with:
   "phase": "tasks-generated",
   "progress": {
     "requirements": 100,
-    "design": 100, 
+    "design": 100,
     "tasks": 100
   },
   "approvals": {
