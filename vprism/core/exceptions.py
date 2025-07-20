@@ -69,6 +69,24 @@ class ValidationException(VPrismException):
         )
 
 
+class DataValidationException(ValidationException):
+    """Raised when data or query validation fails."""
+
+    def __init__(
+        self,
+        message: str,
+        field: str | None = None,
+        value: Any | None = None,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            field=field,
+            value=value,
+            details=details,
+        )
+
+
 class ProviderException(VPrismException):
     """Base class for data provider related errors."""
 

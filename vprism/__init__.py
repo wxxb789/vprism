@@ -18,6 +18,7 @@ from vprism.core.models import (
     MarketType,
     TimeFrame,
 )
+from vprism.core.query_builder import QueryBuilder
 
 __version__ = "0.1.0"
 __all__ = [
@@ -30,6 +31,12 @@ __all__ = [
     "TimeFrame",
     "VPrismClient",
     "VPrismException",
+    "QueryBuilder",
+    "get",
+    "aget",
+    "query",
+    "execute",
+    "execute_sync",
 ]
 
 
@@ -66,3 +73,79 @@ async def aget(**kwargs: Any) -> DataResponse:
     """
     async with VPrismClient() as client:
         return await client.get(**kwargs)
+
+
+def query() -> QueryBuilder:
+    """
+    Create a new QueryBuilder for fluent query construction.
+
+    Returns:
+        QueryBuilder: New query builder instance
+
+    Example:
+        >>> query = (vprism.query()
+        ...     .asset(AssetType.STOCK)
+        ...     .market(MarketType.CN)
+        ...     .symbols(["000001"])
+        ...     .timeframe(TimeFrame.DAY_1)
+        ...     .date_range("2024-01-01", "2024-12-31")
+        ...     .build())
+        >>> data = await execute(query)
+    """
+    return QueryBuilder()
+
+
+async def execute(query: DataQuery) -> DataResponse:
+    """
+    Execute a DataQuery object asynchronously.
+
+    Args:
+        query: DataQuery object to execute
+
+    Returns:
+        DataResponse: The requested financial data
+
+    Example:
+        >>> query = vprism.query().asset(AssetType.STOCK).build()
+        >>> data = await vprism.execute(query)
+    """
+    async with VPrismClient() as client:
+        return await client.get(
+            asset=query.asset,
+            market=query.market,
+            symbols=query.symbols,
+            provider=query.provider,
+            timeframe=query.timeframe,
+            start=query.start.isoformat() if query.start else None,
+            end=query.end.isoformat() if query.end else None,
+            limit=query.limit,
+            **query.filters,
+        )
+
+
+def execute_sync(query: DataQuery) -> DataResponse:
+    """
+    Execute a DataQuery object synchronously.
+
+    Args:
+        query: DataQuery object to execute
+
+    Returns:
+        DataResponse: The requested financial data
+
+    Example:
+        >>> query = vprism.query().asset(AssetType.STOCK).build()
+        >>> data = vprism.execute_sync(query)
+    """
+    client = VPrismClient()
+    return client.get_sync(
+        asset=query.asset,
+        market=query.market,
+        symbols=query.symbols,
+        provider=query.provider,
+        timeframe=query.timeframe,
+        start=query.start.isoformat() if query.start else None,
+        end=query.end.isoformat() if query.end else None,
+        limit=query.limit,
+        **query.filters,
+    )

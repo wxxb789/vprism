@@ -6,6 +6,7 @@ including data models, query interfaces, and core abstractions.
 """
 
 from vprism.core.data_router import DataRouter
+from vprism.core.data_service import DataService
 from vprism.core.mock_providers import (
     MockDataProvider,
     AlwaysFailingProvider,
@@ -30,9 +31,12 @@ from vprism.core.provider_registry import (
     register_provider,
     unregister_provider,
 )
+from vprism.core.query_builder import QueryBuilder
 
 __all__ = [
     "DataRouter",
+    "DataService",
+    "QueryBuilder",
     "MockDataProvider",
     "AlwaysFailingProvider",
     "RateLimitedProvider",

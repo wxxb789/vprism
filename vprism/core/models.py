@@ -214,8 +214,11 @@ class DataQuery(BaseModel):
     @classmethod
     def validate_dates(cls, v: datetime | None) -> datetime | None:
         """Validate date ranges."""
-        if v and v > datetime.now():
-            raise ValueError("Query dates cannot be in the future")
+        if v:
+            # Get current time with same timezone awareness as input
+            now = datetime.now(timezone.utc) if v.tzinfo else datetime.now()
+            if v > now:
+                raise ValueError("Query dates cannot be in the future")
         return v
 
     def cache_key(self) -> str:
