@@ -143,7 +143,29 @@ tests/
 
 #### Common Testing Patterns
 
-##### 1. Database Testing
+#### UV Toolchain Commands - MANDATORY
+```bash
+# Install dependencies
+uv sync
+
+# Run tests
+uv run pytest tests/ -v
+
+# Type checking
+uv run mypy src/vprism --strict
+
+# Code formatting
+uv run ruff format src/
+uv run ruff check src/
+
+# Run service
+uv run uvicorn vprism.service:app --reload --host 0.0.0.0 --port 8000
+
+# Development with hot reload
+uv run python -m vprism.web.main
+```
+
+#### 1. Database Testing
 ```python
 import pytest
 import tempfile
@@ -330,12 +352,12 @@ result = profile_function(my_expensive_function, arg1, arg2)
 # Check database file permissions
 ls -la vprism_data.duckdb
 
-# Verify database integrity
-python -c "import duckdb; duckdb.connect('vprism_data.duckdb').execute('PRAGMA integrity_check')"
+# Verify database integrity - USE UV ONLY
+uv run python -c "import duckdb; duckdb.connect('vprism_data.duckdb').execute('PRAGMA integrity_check')"
 
-# Reset database
+# Reset database - USE UV ONLY
 rm vprism_data.duckdb
-python -m vprism.cli init-db
+uv run python -m vprism.cli init-db
 ```
 
 ##### 2. Provider Rate Limiting
@@ -357,20 +379,38 @@ from vprism.core.cache import CacheManager
 cache = CacheManager()
 cache.clear()
 
-# Clear cache via CLI
-python -m vprism.cli clear-cache
+# Clear cache via CLI - USE UV ONLY
+uv run python -m vprism.cli clear-cache
 ```
 
 ##### 4. Type Checking Issues
 ```bash
-# Run mypy with verbose output
-mypy src/vprism --strict --verbose
+# Run mypy with verbose output - USE UV ONLY
+uv run mypy src/vprism --strict --verbose
 
-# Check specific file
-mypy src/vprism/providers/yahoo.py --strict
+# Check specific file - USE UV ONLY
+uv run mypy src/vprism/providers/yahoo.py --strict
 
-# Generate type coverage report
-mypy src/vprism --strict --html-report mypy_report
+# Generate type coverage report - USE UV ONLY
+uv run mypy src/vprism --strict --html-report mypy_report
+```
+
+##### 5. UV Toolchain Issues
+```bash
+# Install uv if not available
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Verify uv installation
+uv --version
+
+# Sync dependencies
+uv sync
+
+# Clear uv cache if needed
+uv cache clean
+
+# Always use uv prefix for commands
+uv run python -c "import vprism; print('OK')"
 ```
 
 ### Development Tools Setup

@@ -43,7 +43,7 @@
 - **Health Checks**: Built-in health monitoring endpoints
 
 ### Development Tools - IMPLEMENTED
-- **Package Manager**: uv dependency management via pyproject.toml
+- **Package Manager**: uv dependency management via pyproject.toml (MANDATORY)
 - **Code Quality**:
   - ruff 0.1+ for linting (E, F, I, N, W, UP, B, C4, SIM, TCH)
   - mypy 1.7+ for type checking (strict mode)
@@ -55,6 +55,15 @@
   - fastapi: 0.111+ (latest compatible)
   - polars: 0.19+ (latest features)
   - pandas: 2.1+ (current stable)
+
+### UV Toolchain Requirements - MANDATORY
+- **ALWAYS use `uv` instead of direct Python commands**:
+  - ✅ `uv run python -m` instead of `python -m`
+  - ✅ `uv pip install` instead of `pip install`
+  - ✅ `uv sync` instead of `pip install -r requirements.txt`
+  - ✅ `uv run pytest` instead of `pytest`
+  - ✅ `uv run mypy` instead of `mypy`
+- **Project is HEAVY BASED on `uv` toolchain - this is NOT optional**
 
 ## Development Environment
 

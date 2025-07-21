@@ -6,6 +6,8 @@
 - **Git root**: `Q:/repos/my/vprism/` (NEVER create subdirectories with source code)
 - **Source code ONLY**: `Q:/repos/my/vprism/src/vprism/` (ABSOLUTE PATH)
 - **Test code ONLY**: `Q:/repos/my/vprism/tests/` (ABSOLUTE PATH)
+- **DEV JOURNAL**: `Q:/repos/my/vprism/devjournal/` - Development journal and notes
+- **USER GUIDE**: `Q:/repos/my/vprism/guide/` - User documentation and guides
 - **NO EXCEPTIONS**: Never create `Q:/repos/my/vprism/vprism/` or similar duplicates
 
 ## Root Directory Organization - IMPLEMENTED
@@ -14,6 +16,8 @@
 vprism/
 ├── src/vprism/           # Main application source code (IMPLEMENTED) - ONLY HERE
 ├── tests/                # Comprehensive test suite (IMPLEMENTED) - ONLY HERE
+├── devjournal/           # Development journal and notes (MANDATORY)
+├── guide/                # User documentation and guides (MANDATORY)
 ├── pyproject.toml        # Project configuration (IMPLEMENTED)
 ├── uv.lock              # Locked dependency versions (IMPLEMENTED)
 ├── README.md            # Project overview (IMPLEMENTED)
