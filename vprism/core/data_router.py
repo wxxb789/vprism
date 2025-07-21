@@ -69,7 +69,12 @@ class DataRouter:
     def __init__(
         self, 
         registry: EnhancedProviderRegistry,
-        routing_strategy: RoutingStrategy = RoutingStrategy.INTELLIGENT
+        routing_strategy: RoutingStrategy = RoutingStrategy.INTELLIGENT,
+        health_check_interval: int = 300,
+        max_concurrent_health_checks: int = 10,
+        enable_caching: bool = True,
+        score_decay_factor: float = 0.95,
+        **kwargs
     ):
         """
         Initialize DataRouter with provider registry.
@@ -77,15 +82,28 @@ class DataRouter:
         Args:
             registry: Enhanced provider registry containing available providers
             routing_strategy: Strategy to use for provider selection
+            health_check_interval: Interval between health checks in seconds
+            max_concurrent_health_checks: Maximum concurrent health checks
+            enable_caching: Whether to enable caching
+            score_decay_factor: Factor for score decay over time
+            **kwargs: Additional configuration options
         """
         self.registry = registry
         self.routing_strategy = routing_strategy
+        self.health_check_interval = health_check_interval
+        self.max_concurrent_health_checks = max_concurrent_health_checks
+        self.enable_caching = enable_caching
+        self.score_decay_factor = score_decay_factor
+        
         self._provider_scores: dict[str, float] = {}
         self._provider_performance_history: dict[
             str, list[ProviderPerformanceRecord]
         ] = defaultdict(list)
+        self._provider_routing_counts: dict[str, int] = defaultdict(int)  # Track routing selections
         self._lock = threading.RLock()  # Reentrant lock for thread safety
         self._round_robin_index = 0  # For round-robin strategy
+        self._background_tasks: list[asyncio.Task] = []
+        self._health_check_running = False
 
         # Configuration
         self._max_history_per_provider = 1000
@@ -105,7 +123,7 @@ class DataRouter:
         """
         self.registry.register_provider(provider)
 
-    def route_query(self, query: DataQuery) -> EnhancedDataProvider:
+    async def route_query(self, query: DataQuery) -> EnhancedDataProvider:
         """
         Route a query to the most suitable provider.
 
@@ -119,18 +137,37 @@ class DataRouter:
             NoAvailableProviderException: If no suitable provider is available
         """
         with self._lock:
+            # Check if a specific provider is requested
+            if query.provider:
+                all_providers = self.registry.get_all_providers()
+                if query.provider in all_providers:
+                    preferred_provider = all_providers[query.provider]
+                    # Check if the preferred provider can handle the query
+                    if preferred_provider.can_handle_query(query):
+                        # Track routing selection
+                        self._track_routing_selection(preferred_provider.name)
+                        logger.debug(f"Using preferred provider: {preferred_provider.name}")
+                        return preferred_provider
+                    else:
+                        logger.warning(f"Preferred provider {query.provider} cannot handle query, falling back")
+                else:
+                    logger.warning(f"Preferred provider {query.provider} not found, falling back")
+
             # Find providers capable of handling the query
             capable_providers = self.registry.find_capable_providers(query)
 
             if not capable_providers:
                 raise NoAvailableProviderException(
-                    "No capable provider found for query",
+                    "No available provider found for query",
                     query=str(query),
                     details={"asset": query.asset.value if query.asset else None},
                 )
 
             # Select the best provider using scoring algorithm
             selected_provider = self._select_best_provider(capable_providers, query)
+
+            # Track routing statistics (basic routing count)
+            self._track_routing_selection(selected_provider.name)
 
             logger.debug(
                 f"Routed query to provider {selected_provider.name} "
@@ -308,7 +345,7 @@ class DataRouter:
         for attempt in range(self._max_fallback_attempts):
             try:
                 # Route query to best available provider
-                provider = self.route_query(query)
+                provider = await self.route_query(query)
 
                 # Skip if we've already tried this provider
                 if provider.name in attempted_providers:
@@ -468,8 +505,10 @@ class DataRouter:
             min_latency = min(latencies) if latencies else 0.0
             max_latency = max(latencies) if latencies else 0.0
 
+            routing_count = self._provider_routing_counts.get(provider_name, 0)
+            
             return {
-                "total_requests": total_requests,
+                "total_requests": max(total_requests, routing_count),  # Use routing count if higher
                 "successful_requests": successful_requests,
                 "failed_requests": total_requests - successful_requests,
                 "success_rate": success_rate,
@@ -477,6 +516,7 @@ class DataRouter:
                 "min_latency_ms": min_latency,
                 "max_latency_ms": max_latency,
                 "current_score": self.get_provider_score(provider_name),
+                "routing_selections": routing_count,
             }
 
     def get_all_provider_stats(self) -> dict[str, dict[str, Any]]:
@@ -540,3 +580,97 @@ class DataRouter:
             else:
                 self._provider_performance_history.clear()
                 logger.info("Cleared performance history for all providers")
+
+    def _track_routing_selection(self, provider_name: str) -> None:
+        """Track that a provider was selected for routing."""
+        with self._lock:
+            self._provider_routing_counts[provider_name] += 1
+
+    async def check_all_provider_health(self) -> dict[str, bool]:
+        """
+        Check health of all registered providers.
+
+        Returns:
+            Dictionary mapping provider names to health status
+        """
+        return await self.registry.check_all_provider_health()
+
+    def get_provider_statistics(self) -> dict[str, Any]:
+        """
+        Get statistics about registered providers.
+
+        Returns:
+            Dictionary containing provider statistics
+        """
+        all_providers = self.registry.get_all_providers()
+        healthy_providers = self.registry.get_healthy_providers()
+        
+        # Get detailed stats for each provider
+        provider_stats = {}
+        for provider_name in all_providers.keys():
+            stats = self.get_provider_performance_stats(provider_name)
+            if stats:
+                provider_stats[provider_name] = stats
+            else:
+                # Provider has no history, create basic stats
+                routing_count = self._provider_routing_counts.get(provider_name, 0)
+                provider_stats[provider_name] = {
+                    "total_requests": routing_count,
+                    "successful_requests": 0,
+                    "failed_requests": 0,
+                    "success_rate": 0.0,
+                    "average_latency_ms": 0.0,
+                    "min_latency_ms": 0.0,
+                    "max_latency_ms": 0.0,
+                    "current_score": self.get_provider_score(provider_name),
+                    "routing_selections": routing_count,
+                }
+        
+        return {
+            "total_providers": len(all_providers),
+            "healthy_providers": len(healthy_providers),
+            "unhealthy_providers": len(all_providers) - len(healthy_providers),
+            "provider_names": list(all_providers.keys()),
+            "providers": provider_stats,
+        }
+
+    async def start_background_tasks(self) -> None:
+        """Start background tasks for health monitoring."""
+        if self._health_check_running:
+            return
+            
+        self._health_check_running = True
+        
+        # Start periodic health check task
+        health_check_task = asyncio.create_task(self._periodic_health_check())
+        self._background_tasks.append(health_check_task)
+        
+        logger.info("Started background health monitoring")
+
+    async def stop_background_tasks(self) -> None:
+        """Stop all background tasks."""
+        self._health_check_running = False
+        
+        # Cancel all background tasks
+        for task in self._background_tasks:
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+        
+        self._background_tasks.clear()
+        logger.info("Stopped background tasks")
+
+    async def _periodic_health_check(self) -> None:
+        """Periodic health check task."""
+        while self._health_check_running:
+            try:
+                await self.check_all_provider_health()
+                await asyncio.sleep(self.health_check_interval)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Error in periodic health check: {e}")
+                await asyncio.sleep(self.health_check_interval)

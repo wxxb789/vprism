@@ -32,9 +32,16 @@ from vprism.core.models import (
     ResponseMetadata,
     TimeFrame,
 )
+from vprism.core.provider_abstraction import (
+    EnhancedDataProvider,
+    AuthConfig,
+    AuthType,
+    RateLimitConfig,
+    ProviderCapability,
+)
 
 
-class MockDataProvider(DataProvider):
+class MockDataProvider(EnhancedDataProvider):
     """
     Comprehensive mock data provider for testing.
 
@@ -74,6 +81,14 @@ class MockDataProvider(DataProvider):
             version: Provider version
             cost: Cost tier
         """
+        # Initialize parent EnhancedDataProvider
+        auth_config = AuthConfig(AuthType.NONE, {})
+        rate_limit_config = RateLimitConfig(
+            requests_per_minute=rate_limit,
+            requests_per_hour=rate_limit * 60,
+        )
+        super().__init__(name, auth_config, rate_limit_config)
+        
         self._name = name
         self._supported_assets = supported_assets or {AssetType.STOCK}
         self._supported_markets = supported_markets or {MarketType.US, MarketType.CN}
@@ -107,6 +122,44 @@ class MockDataProvider(DataProvider):
     def supported_assets(self) -> set[AssetType]:
         """Set of asset types supported by this provider."""
         return self._supported_assets.copy()
+
+    def _discover_capability(self) -> ProviderCapability:
+        """Discover provider capabilities."""
+        return ProviderCapability(
+            supported_assets=self._supported_assets,
+            supported_markets=self._supported_markets,
+            supported_timeframes={TimeFrame.DAY_1, TimeFrame.HOUR_1, TimeFrame.MINUTE_1},
+            max_symbols_per_request=100,
+            supports_real_time=True,
+            supports_historical=True,
+            data_delay_seconds=0,
+        )
+
+    async def _authenticate(self) -> bool:
+        """Perform authentication with the provider."""
+        # Mock authentication always succeeds
+        return True
+
+    async def health_check(self) -> bool:
+        """Check if the provider is healthy and available."""
+        return self._is_healthy
+
+    async def stream_data(self, query: DataQuery) -> AsyncIterator[DataPoint]:
+        """Stream real-time data based on the provided query."""
+        # Mock streaming - just yield a few data points
+        symbols = query.symbols or ["MOCK"]
+        for i in range(3):
+            for symbol in symbols:
+                yield DataPoint(
+                    symbol=symbol,
+                    timestamp=datetime.now(),
+                    open=Decimal("100.00"),
+                    high=Decimal("105.00"),
+                    low=Decimal("95.00"),
+                    close=Decimal("102.00"),
+                    volume=Decimal("1000000"),
+                )
+            await asyncio.sleep(0.1)  # Simulate streaming delay
 
     async def get_data(self, query: DataQuery) -> DataResponse:
         """

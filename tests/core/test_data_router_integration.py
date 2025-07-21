@@ -19,7 +19,7 @@ from vprism.core.mock_providers import (
     create_test_provider_suite,
 )
 from vprism.core.models import AssetType, DataQuery, MarketType
-from vprism.core.provider_registry import ProviderRegistry
+from vprism.core.provider_abstraction import EnhancedProviderRegistry
 
 
 class TestDataRouterIntegrationComplete:
@@ -27,8 +27,8 @@ class TestDataRouterIntegrationComplete:
 
     @pytest.mark.asyncio
     async def test_complete_routing_workflow_with_registry(self):
-        """Test complete routing workflow using ProviderRegistry."""
-        registry = ProviderRegistry()
+        """Test complete routing workflow using EnhancedProviderRegistry."""
+        registry = EnhancedProviderRegistry()
         router = DataRouter(registry)
 
         # Register diverse providers
@@ -62,7 +62,7 @@ class TestDataRouterIntegrationComplete:
     @pytest.mark.asyncio
     async def test_routing_with_health_monitoring(self):
         """Test routing with automatic health monitoring."""
-        registry = ProviderRegistry()
+        registry = EnhancedProviderRegistry()
         router = DataRouter(registry)
 
         # Mix of healthy and unhealthy providers
@@ -90,7 +90,7 @@ class TestDataRouterIntegrationComplete:
     @pytest.mark.asyncio
     async def test_routing_strategies_comparison(self):
         """Test different routing strategies with same provider set."""
-        registry = ProviderRegistry()
+        registry = EnhancedProviderRegistry()
 
         providers = [
             MockDataProvider("provider1"),
@@ -134,7 +134,7 @@ class TestDataRouterIntegrationComplete:
     @pytest.mark.asyncio
     async def test_provider_performance_tracking(self):
         """Test provider performance tracking and scoring."""
-        registry = ProviderRegistry()
+        registry = EnhancedProviderRegistry()
         router = DataRouter(registry)
 
         provider1 = MockDataProvider("provider1")
@@ -168,7 +168,7 @@ class TestDataRouterIntegrationComplete:
     @pytest.mark.asyncio
     async def test_comprehensive_provider_suite_integration(self):
         """Test integration with comprehensive provider suite."""
-        registry = ProviderRegistry()
+        registry = EnhancedProviderRegistry()
         router = DataRouter(registry)
 
         # Use the complete test provider suite
@@ -199,7 +199,7 @@ class TestDataRouterIntegrationComplete:
     @pytest.mark.asyncio
     async def test_routing_with_preferred_providers(self):
         """Test routing with preferred provider specifications."""
-        registry = ProviderRegistry()
+        registry = EnhancedProviderRegistry()
         router = DataRouter(registry)
 
         provider1 = MockDataProvider("preferred_provider")
@@ -227,7 +227,7 @@ class TestDataRouterIntegrationComplete:
     @pytest.mark.asyncio
     async def test_routing_error_scenarios(self):
         """Test routing behavior in various error scenarios."""
-        registry = ProviderRegistry()
+        registry = EnhancedProviderRegistry()
         router = DataRouter(registry)
 
         # Test with no providers
@@ -254,7 +254,7 @@ class TestDataRouterIntegrationComplete:
         """Test concurrent routing requests with health monitoring."""
         import asyncio
 
-        registry = ProviderRegistry()
+        registry = EnhancedProviderRegistry()
         router = DataRouter(registry)
 
         providers = [MockDataProvider(f"concurrent_provider_{i}") for i in range(3)]
@@ -291,7 +291,7 @@ class TestDataRouterIntegrationComplete:
 
     def test_router_configuration_options(self):
         """Test DataRouter with various configuration options."""
-        registry = ProviderRegistry()
+        registry = EnhancedProviderRegistry()
 
         # Test different configurations
         configs = [

@@ -76,15 +76,15 @@ class TestVPrismClient:
         await client._cleanup()
 
     @pytest.mark.asyncio
-    async def test_get_method_not_implemented(self):
-        """Test that get method raises NotImplementedError."""
+    async def test_get_method_no_providers_available(self):
+        """Test that get method raises NoAvailableProviderException when no providers are configured."""
         client = VPrismClient()
 
         with pytest.raises(VPrismException) as exc_info:
             await client.get(asset=AssetType.STOCK)
 
-        assert exc_info.value.error_code == "NOT_IMPLEMENTED"
-        assert "Data service not yet implemented" in exc_info.value.message
+        assert exc_info.value.error_code == "NO_PROVIDER_AVAILABLE"
+        assert "All capable providers failed to execute query" in exc_info.value.message
 
     @pytest.mark.asyncio
     async def test_get_method_with_all_parameters(self):
