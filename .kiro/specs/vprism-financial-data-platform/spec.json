@@ -57,7 +57,7 @@
       "id": "multi-modal-deployment",
       "title": "多模态部署架构",
       "description": "支持库、服务、MCP、容器四种部署模式",
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": "high-performance",
@@ -154,7 +154,7 @@
     {
       "name": "多模态部署",
       "description": "四种部署模式完整实现",
-      "status": "pending",
+      "status": "in_progress",
       "tasks": ["8.x", "9.x", "10.x", "11.x", "12.x"]
     },
     {
@@ -165,9 +165,9 @@
     }
   ],
   "next_actions": [
-    "继续错误处理和容错机制实现 (任务6.x)",
-    "开始多模态部署架构开发 (任务8.x-12.x)",
-    "建立持续集成测试流程",
-    "准备数据提供商集成测试环境"
+    "继续服务模式部署开发 (任务9.x)",
+    "实现 FastAPI Web 服务接口",
+    "创建 RESTful API 端点和文档",
+    "建立服务模式测试和部署流程"
   ]
 }

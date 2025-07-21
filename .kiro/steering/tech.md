@@ -154,10 +154,19 @@ uvicorn vprism.service:app --reload --host 0.0.0.0 --port 8000
 
 ## Deployment Modes - IMPLEMENTED
 
-### Library Mode
+### Library Mode - COMPLETED
 - **Use Case**: Direct Python library integration
 - **Entry Point**: `import vprism`
 - **Dependencies**: Python 3.11+, DuckDB, httpx
+- **APIs Available**:
+  - Simple API: `vprism.get(asset, market, symbols, ...)`
+  - Async API: `vprism.get_async(asset, market, symbols, ...)`
+  - Query Builder: `vprism.query().asset().market().build()`
+  - Global Config: `vprism.configure(cache={}, providers={})`
+- **Installation**: `pip install -e .` or `uv pip install -e .`
+- **Usage**: Direct import and use in Python applications
+- **Testing**: 287+ test cases with 95%+ coverage
+- **Documentation**: Complete usage examples and API reference
 
 ### Service Mode
 - **Use Case**: REST API server

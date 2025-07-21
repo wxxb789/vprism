@@ -42,6 +42,12 @@ vprism/
 ```
 vprism/
 ├── __init__.py          # Package initialization and exports (IMPLEMENTED)
+│   # Library Mode APIs:
+│   # - vprism.get() - Simple sync data retrieval
+│   # - vprism.get_async() - Simple async data retrieval
+│   # - vprism.query() - Query builder for complex queries
+│   # - vprism.execute() - Execute built queries
+│   # - vprism.configure() - Global configuration management
 ├── core/                # Core business logic and services (IMPLEMENTED)
 │   ├── __init__.py
 │   ├── exceptions.py    # Custom exception hierarchy

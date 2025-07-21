@@ -10,8 +10,18 @@ vprism 提供统一的、可组合的 API 接口，支持多模态部署。
     ```python
     import vprism
 
-    # 简单用法
+    # 简单用法 - 同步
     data = vprism.get(asset="stock", market="cn", symbols=["000001"])
+
+    # 简单用法 - 异步
+    import asyncio
+    async def main():
+        data = await vprism.get_async(
+            asset="crypto", 
+            market="global", 
+            symbols=["BTC", "ETH"]
+        )
+    asyncio.run(main())
 
     # 复杂查询
     query = vprism.query() \
@@ -69,7 +79,7 @@ def get(
     provider: str = None,
     **kwargs,
 ):
-    """简单API - 获取金融数据
+    """简单API - 同步获取金融数据
 
     Args:
         asset: 资产类型 (stock, bond, etf, fund, futures, options, forex, crypto)
@@ -83,9 +93,71 @@ def get(
 
     Returns:
         金融数据
+
+    Examples:
+        >>> import vprism
+        >>> data = vprism.get(
+        ...     asset="stock",
+        ...     market="cn", 
+        ...     symbols=["000001", "000002"],
+        ...     timeframe="1d"
+        ... )
     """
     client = get_client()
     return client.get(
+        asset=asset,
+        market=market,
+        symbols=symbols,
+        timeframe=timeframe,
+        start=start,
+        end=end,
+        provider=provider,
+        **kwargs,
+    )
+
+
+async def get_async(
+    asset: str = None,
+    market: str = None,
+    symbols: list = None,
+    timeframe: str = None,
+    start: str = None,
+    end: str = None,
+    provider: str = None,
+    **kwargs,
+):
+    """异步简单API - 异步获取金融数据
+
+    Args:
+        asset: 资产类型 (stock, bond, etf, fund, futures, options, forex, crypto)
+        market: 市场 (cn, us, hk, eu, jp, global)
+        symbols: 股票代码列表
+        timeframe: 时间框架 (tick, 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w, 1M)
+        start: 开始日期 (YYYY-MM-DD)
+        end: 结束日期 (YYYY-MM-DD)
+        provider: 数据提供商 (可选)
+        **kwargs: 其他参数
+
+    Returns:
+        金融数据
+
+    Examples:
+        >>> import asyncio
+        >>> import vprism
+        >>> 
+        >>> async def main():
+        ...     data = await vprism.get_async(
+        ...         asset="crypto",
+        ...         market="global",
+        ...         symbols=["BTC", "ETH"],
+        ...         timeframe="1h"
+        ...     )
+        ...     print(data)
+        >>> 
+        >>> asyncio.run(main())
+    """
+    client = get_client()
+    return await client.get_async(
         asset=asset,
         market=market,
         symbols=symbols,
@@ -118,6 +190,7 @@ def configure(**config):
 # 导出常用类型
 __all__ = [
     "get",
+    "get_async",
     "query",
     "execute",
     "configure",
