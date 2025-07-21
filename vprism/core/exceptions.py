@@ -493,6 +493,33 @@ class DataValidationException(ValidationException):
         )
 
 
+class QueryValidationException(ValidationException):
+    """Raised when query validation fails."""
+
+    def __init__(
+        self,
+        message: Optional[str] = None,
+        field: Optional[str] = None,
+        value: Any = None,
+        query_type: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if query_type:
+            error_details["query_type"] = query_type
+            
+        super().__init__(
+            message=message,
+            field=field,
+            value=value,
+            details=error_details,
+            **kwargs,
+        )
+        # Override error code after initialization
+        self.error_code = ErrorCode.QUERY_VALIDATION_ERROR
+
+
 class ProviderException(VPrismException):
     """Base class for data provider related errors."""
 
@@ -569,6 +596,36 @@ class AuthenticationException(ProviderException):
         )
 
 
+class AuthorizationException(ProviderException):
+    """Raised when authorization with a provider fails."""
+
+    def __init__(
+        self,
+        provider: Optional[str] = None,
+        resource: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if resource:
+            error_details["resource"] = resource
+            
+        message = None
+        if provider:
+            message = f"Authorization failed for provider {provider}"
+            if resource:
+                message += f" accessing resource {resource}"
+
+        super().__init__(
+            message=message,
+            provider=provider,
+            error_code=ErrorCode.AUTHORIZATION_FAILED,
+            details=error_details,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
+
+
 class DataNotFoundException(VPrismException):
     """Raised when requested data is not found."""
 
@@ -592,6 +649,58 @@ class DataNotFoundException(VPrismException):
         )
 
 
+class DataCorruptedException(VPrismException):
+    """Raised when data is corrupted or invalid."""
+
+    def __init__(
+        self,
+        message: Optional[str] = None,
+        data_source: Optional[str] = None,
+        corruption_type: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if data_source:
+            error_details["data_source"] = data_source
+        if corruption_type:
+            error_details["corruption_type"] = corruption_type
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.DATA_CORRUPTED,
+            details=error_details,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
+
+
+class DataFormatException(VPrismException):
+    """Raised when data format is invalid or unexpected."""
+
+    def __init__(
+        self,
+        message: Optional[str] = None,
+        expected_format: Optional[str] = None,
+        actual_format: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if expected_format:
+            error_details["expected_format"] = expected_format
+        if actual_format:
+            error_details["actual_format"] = actual_format
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.DATA_FORMAT_ERROR,
+            details=error_details,
+            severity=ErrorSeverity.MEDIUM,
+            **kwargs,
+        )
+
+
 class ConfigurationException(VPrismException):
     """Raised when configuration is invalid or missing."""
 
@@ -600,14 +709,66 @@ class ConfigurationException(VPrismException):
         message: str,
         config_key: str | None = None,
         details: dict[str, Any] | None = None,
+        **kwargs,
     ) -> None:
         error_details = details or {}
         if config_key:
             error_details["config_key"] = config_key
 
         super().__init__(
-            message=message, error_code="CONFIGURATION_ERROR", details=error_details
+            message=message, error_code=ErrorCode.CONFIGURATION_ERROR, details=error_details, **kwargs
         )
+
+
+class MissingConfigurationException(ConfigurationException):
+    """Raised when required configuration is missing."""
+
+    def __init__(
+        self,
+        config_key: str,
+        message: str | None = None,
+        details: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> None:
+        if not message:
+            message = f"Missing required configuration: {config_key}"
+            
+        super().__init__(
+            message=message,
+            config_key=config_key,
+            details=details,
+            **kwargs,
+        )
+        # Override error code for missing configuration
+        self.error_code = ErrorCode.MISSING_CONFIGURATION
+
+
+class InvalidConfigurationException(ConfigurationException):
+    """Raised when configuration is invalid."""
+
+    def __init__(
+        self,
+        config_key: str,
+        config_value: Any = None,
+        message: str | None = None,
+        details: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if config_value is not None:
+            error_details["config_value"] = str(config_value)
+            
+        if not message:
+            message = f"Invalid configuration for key: {config_key}"
+            
+        super().__init__(
+            message=message,
+            config_key=config_key,
+            details=error_details,
+            **kwargs,
+        )
+        # Override error code for invalid configuration
+        self.error_code = ErrorCode.INVALID_CONFIGURATION
 
 
 class CacheException(VPrismException):
@@ -619,6 +780,7 @@ class CacheException(VPrismException):
         operation: str | None = None,
         details: dict[str, Any] | None = None,
         cause: Exception | None = None,
+        **kwargs,
     ) -> None:
         error_details = details or {}
         if operation:
@@ -626,10 +788,65 @@ class CacheException(VPrismException):
 
         super().__init__(
             message=message,
-            error_code="CACHE_ERROR",
+            error_code=ErrorCode.CACHE_ERROR,
             details=error_details,
             cause=cause,
+            **kwargs,
         )
+
+
+class CacheMissException(CacheException):
+    """Raised when cache miss occurs."""
+
+    def __init__(
+        self,
+        cache_key: str,
+        message: str | None = None,
+        details: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        error_details["cache_key"] = cache_key
+        
+        if not message:
+            message = f"Cache miss for key: {cache_key}"
+
+        super().__init__(
+            message=message,
+            operation="get",
+            details=error_details,
+            **kwargs,
+        )
+        # Override error code for cache miss
+        self.error_code = ErrorCode.CACHE_MISS
+
+
+class CacheWriteException(CacheException):
+    """Raised when cache write operations fail."""
+
+    def __init__(
+        self,
+        cache_key: str,
+        message: str | None = None,
+        details: dict[str, Any] | None = None,
+        cause: Exception | None = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        error_details["cache_key"] = cache_key
+        
+        if not message:
+            message = f"Failed to write to cache for key: {cache_key}"
+
+        super().__init__(
+            message=message,
+            operation="set",
+            details=error_details,
+            cause=cause,
+            **kwargs,
+        )
+        # Override error code for cache write error
+        self.error_code = ErrorCode.CACHE_WRITE_ERROR
 
 
 class NetworkException(VPrismException):
@@ -642,6 +859,7 @@ class NetworkException(VPrismException):
         status_code: int | None = None,
         details: dict[str, Any] | None = None,
         cause: Exception | None = None,
+        **kwargs,
     ) -> None:
         error_details = details or {}
         if url:
@@ -651,10 +869,39 @@ class NetworkException(VPrismException):
 
         super().__init__(
             message=message,
-            error_code="NETWORK_ERROR",
+            error_code=ErrorCode.NETWORK_ERROR,
             details=error_details,
             cause=cause,
+            **kwargs,
         )
+
+
+class ConnectionException(NetworkException):
+    """Raised when connection operations fail."""
+
+    def __init__(
+        self,
+        message: str = "Connection failed",
+        host: str | None = None,
+        port: int | None = None,
+        details: dict[str, Any] | None = None,
+        cause: Exception | None = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if host:
+            error_details["host"] = host
+        if port:
+            error_details["port"] = port
+
+        super().__init__(
+            message=message,
+            details=error_details,
+            cause=cause,
+            **kwargs,
+        )
+        # Override error code for connection-specific errors
+        self.error_code = ErrorCode.CONNECTION_ERROR
 
 
 class TimeoutException(VPrismException):
@@ -665,13 +912,14 @@ class TimeoutException(VPrismException):
         message: str = "Operation timed out",
         timeout_seconds: float | None = None,
         details: dict[str, Any] | None = None,
+        **kwargs,
     ) -> None:
         error_details = details or {}
         if timeout_seconds:
             error_details["timeout_seconds"] = timeout_seconds
 
         super().__init__(
-            message=message, error_code="TIMEOUT_ERROR", details=error_details
+            message=message, error_code=ErrorCode.TIMEOUT_ERROR, details=error_details, **kwargs
         )
 
 
@@ -684,6 +932,7 @@ class NoAvailableProviderException(VPrismException):
         query: str | None = None,
         attempted_providers: list[str] | None = None,
         details: dict[str, Any] | None = None,
+        **kwargs,
     ) -> None:
         error_details = details or {}
         if query:
@@ -692,7 +941,62 @@ class NoAvailableProviderException(VPrismException):
             error_details["attempted_providers"] = attempted_providers
 
         super().__init__(
-            message=message, error_code="NO_PROVIDER_AVAILABLE", details=error_details
+            message=message, error_code=ErrorCode.NO_PROVIDER_AVAILABLE, details=error_details, **kwargs
+        )
+
+
+class ServiceUnavailableException(VPrismException):
+    """Raised when a service is unavailable."""
+
+    def __init__(
+        self,
+        service_name: str | None = None,
+        message: str | None = None,
+        details: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if service_name:
+            error_details["service_name"] = service_name
+            
+        if not message:
+            message = f"Service unavailable: {service_name}" if service_name else "Service unavailable"
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.SERVICE_UNAVAILABLE,
+            details=error_details,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
+
+
+class CircuitBreakerException(VPrismException):
+    """Raised when circuit breaker is open."""
+
+    def __init__(
+        self,
+        service_name: str | None = None,
+        failure_count: int | None = None,
+        message: str | None = None,
+        details: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if service_name:
+            error_details["service_name"] = service_name
+        if failure_count is not None:
+            error_details["failure_count"] = failure_count
+            
+        if not message:
+            message = f"Circuit breaker open for service: {service_name}" if service_name else "Circuit breaker is open"
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.CIRCUIT_BREAKER_OPEN,
+            details=error_details,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
         )
 
 
@@ -805,3 +1109,167 @@ def create_error_response(exception: VPrismException, include_debug: bool = Fals
             response["error"]["cause"] = str(exception.cause)
     
     return response
+
+
+def wrap_async_exception(func):
+    """
+    Decorator to wrap async functions and convert exceptions to VPrismException.
+    
+    Usage:
+        @wrap_async_exception
+        async def my_function():
+            # Function that might raise exceptions
+            pass
+    """
+    import functools
+    
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except VPrismException:
+            # Re-raise VPrism exceptions as-is
+            raise
+        except Exception as e:
+            # Convert other exceptions to VPrismException
+            raise handle_exception_chain(e)
+    
+    return wrapper
+
+
+def wrap_sync_exception(func):
+    """
+    Decorator to wrap sync functions and convert exceptions to VPrismException.
+    
+    Usage:
+        @wrap_sync_exception
+        def my_function():
+            # Function that might raise exceptions
+            pass
+    """
+    import functools
+    
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except VPrismException:
+            # Re-raise VPrism exceptions as-is
+            raise
+        except Exception as e:
+            # Convert other exceptions to VPrismException
+            raise handle_exception_chain(e)
+    
+    return wrapper
+
+
+def log_exception_metrics(exception: VPrismException) -> None:
+    """
+    Log exception metrics for monitoring and alerting.
+    
+    This function can be extended to integrate with monitoring systems
+    like Prometheus, DataDog, etc.
+    """
+    metrics_data = {
+        "error_code": exception.error_code.value,
+        "severity": exception.severity.value,
+        "timestamp": exception.timestamp.isoformat(),
+        "trace_id": exception.trace_id,
+    }
+    
+    # Add provider information if available
+    if "provider" in exception.details:
+        metrics_data["provider"] = exception.details["provider"]
+    
+    # Log metrics (can be extended to send to monitoring systems)
+    logger.info("Exception metrics", **metrics_data)
+
+
+def create_exception_summary(exceptions: List[VPrismException]) -> Dict[str, Any]:
+    """
+    Create a summary of multiple exceptions for batch error reporting.
+    
+    Args:
+        exceptions: List of VPrismException instances
+        
+    Returns:
+        Summary dictionary with aggregated error information
+    """
+    if not exceptions:
+        return {"total_errors": 0, "error_summary": {}}
+    
+    error_counts = {}
+    severity_counts = {}
+    provider_errors = {}
+    
+    for exc in exceptions:
+        # Count by error code
+        error_counts[exc.error_code.value] = error_counts.get(exc.error_code.value, 0) + 1
+        
+        # Count by severity
+        severity_counts[exc.severity.value] = severity_counts.get(exc.severity.value, 0) + 1
+        
+        # Count by provider if available
+        if "provider" in exc.details:
+            provider = exc.details["provider"]
+            provider_errors[provider] = provider_errors.get(provider, 0) + 1
+    
+    return {
+        "total_errors": len(exceptions),
+        "error_counts": error_counts,
+        "severity_counts": severity_counts,
+        "provider_errors": provider_errors,
+        "time_range": {
+            "earliest": min(exc.timestamp for exc in exceptions).isoformat(),
+            "latest": max(exc.timestamp for exc in exceptions).isoformat(),
+        }
+    }
+
+
+def filter_exceptions_by_severity(
+    exceptions: List[VPrismException], 
+    min_severity: ErrorSeverity = ErrorSeverity.MEDIUM
+) -> List[VPrismException]:
+    """
+    Filter exceptions by minimum severity level.
+    
+    Args:
+        exceptions: List of exceptions to filter
+        min_severity: Minimum severity level to include
+        
+    Returns:
+        Filtered list of exceptions
+    """
+    severity_order = {
+        ErrorSeverity.LOW: 1,
+        ErrorSeverity.MEDIUM: 2,
+        ErrorSeverity.HIGH: 3,
+        ErrorSeverity.CRITICAL: 4,
+    }
+    
+    min_level = severity_order[min_severity]
+    
+    return [
+        exc for exc in exceptions 
+        if severity_order.get(exc.severity, 0) >= min_level
+    ]
+
+
+def group_exceptions_by_error_code(exceptions: List[VPrismException]) -> Dict[str, List[VPrismException]]:
+    """
+    Group exceptions by their error codes.
+    
+    Args:
+        exceptions: List of exceptions to group
+        
+    Returns:
+        Dictionary mapping error codes to lists of exceptions
+    """
+    grouped = {}
+    for exc in exceptions:
+        code = exc.error_code.value
+        if code not in grouped:
+            grouped[code] = []
+        grouped[code].append(exc)
+    
+    return grouped

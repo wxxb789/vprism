@@ -12,28 +12,45 @@ from unittest.mock import patch
 
 from vprism.core.exceptions import (
     AuthenticationException,
+    AuthorizationException,
     CacheException,
+    CacheMissException,
+    CacheWriteException,
+    CircuitBreakerException,
     ConfigurationException,
+    ConnectionException,
+    DataCorruptedException,
+    DataFormatException,
     DataNotFoundException,
+    DataValidationException,
     ErrorCode,
     ErrorMessages,
     ErrorSeverity,
     ErrorTracker,
     ExceptionContext,
+    InvalidConfigurationException,
+    MissingConfigurationException,
     NetworkException,
     NoAvailableProviderException,
     ProviderException,
+    QueryValidationException,
     RateLimitException,
+    ServiceUnavailableException,
     TimeoutException,
     ValidationException,
     VPrismException,
     clear_error_stats,
     clear_request_context,
     create_error_response,
+    create_exception_summary,
+    filter_exceptions_by_severity,
     get_error_stats,
     get_request_context,
+    group_exceptions_by_error_code,
     handle_exception_chain,
     set_request_context,
+    wrap_async_exception,
+    wrap_sync_exception,
 )
 
 
@@ -302,10 +319,10 @@ class TestProviderException:
         exc = ProviderException(
             message="API quota exceeded",
             provider="test_provider",
-            error_code="QUOTA_EXCEEDED",
+            error_code=ErrorCode.RATE_LIMIT_EXCEEDED,  # Use valid ErrorCode
         )
 
-        assert exc.error_code == "QUOTA_EXCEEDED"
+        assert exc.error_code == ErrorCode.RATE_LIMIT_EXCEEDED
         assert exc.details["provider"] == "test_provider"
 
     def test_provider_exception_with_cause(self):
@@ -367,11 +384,13 @@ class TestDataNotFoundException:
 
     def test_basic_data_not_found_exception(self):
         """Test creating a basic data not found exception."""
-        exc = DataNotFoundException()
+        exc = DataNotFoundException(auto_log=False)
 
         assert exc.message == "Requested data not found"
-        assert exc.error_code == "DATA_NOT_FOUND"
-        assert exc.details == {}
+        assert exc.error_code == ErrorCode.DATA_NOT_FOUND
+        # Details now includes system fields
+        assert "timestamp" in exc.details
+        assert "trace_id" in exc.details
 
     def test_data_not_found_exception_with_query(self):
         """Test data not found exception with query information."""
@@ -443,11 +462,13 @@ class TestTimeoutException:
 
     def test_basic_timeout_exception(self):
         """Test creating a basic timeout exception."""
-        exc = TimeoutException()
+        exc = TimeoutException(auto_log=False)
 
         assert exc.message == "Operation timed out"
-        assert exc.error_code == "TIMEOUT_ERROR"
-        assert exc.details == {}
+        assert exc.error_code == ErrorCode.TIMEOUT_ERROR
+        # Details now includes system fields
+        assert "timestamp" in exc.details
+        assert "trace_id" in exc.details
 
     def test_timeout_exception_with_duration(self):
         """Test timeout exception with timeout duration."""
@@ -462,11 +483,13 @@ class TestNoAvailableProviderException:
 
     def test_basic_no_provider_exception(self):
         """Test creating a basic no provider exception."""
-        exc = NoAvailableProviderException()
+        exc = NoAvailableProviderException(auto_log=False)
 
         assert exc.message == "No available data provider for request"
-        assert exc.error_code == "NO_PROVIDER_AVAILABLE"
-        assert exc.details == {}
+        assert exc.error_code == ErrorCode.NO_PROVIDER_AVAILABLE
+        # Details now includes system fields
+        assert "timestamp" in exc.details
+        assert "trace_id" in exc.details
 
     def test_no_provider_exception_with_details(self):
         """Test no provider exception with query and attempted providers."""
@@ -832,3 +855,230 @@ class TestExceptionLogging:
         
         call_args = mock_logger.warning.call_args
         assert "stack_trace" in call_args[1]
+
+
+class TestNewExceptionTypes:
+    """Test new exception types added to the system."""
+
+    def test_query_validation_exception(self):
+        """Test QueryValidationException."""
+        exc = QueryValidationException(
+            message="Invalid query parameter",
+            field="symbol",
+            value="INVALID",
+            query_type="stock_data",
+            auto_log=False
+        )
+        
+        assert exc.error_code == ErrorCode.QUERY_VALIDATION_ERROR
+        assert exc.details["field"] == "symbol"
+        assert exc.details["value"] == "INVALID"
+        assert exc.details["query_type"] == "stock_data"
+
+    def test_authorization_exception(self):
+        """Test AuthorizationException."""
+        exc = AuthorizationException(
+            provider="test_provider",
+            resource="premium_data",
+            auto_log=False
+        )
+        
+        assert exc.error_code == ErrorCode.AUTHORIZATION_FAILED
+        assert exc.details["provider"] == "test_provider"
+        assert exc.details["resource"] == "premium_data"
+        assert "accessing resource premium_data" in exc.message
+
+    def test_data_corrupted_exception(self):
+        """Test DataCorruptedException."""
+        exc = DataCorruptedException(
+            message="Data integrity check failed",
+            data_source="database",
+            corruption_type="checksum_mismatch",
+            auto_log=False
+        )
+        
+        assert exc.error_code == ErrorCode.DATA_CORRUPTED
+        assert exc.details["data_source"] == "database"
+        assert exc.details["corruption_type"] == "checksum_mismatch"
+        assert exc.severity == ErrorSeverity.HIGH
+
+    def test_data_format_exception(self):
+        """Test DataFormatException."""
+        exc = DataFormatException(
+            message="Unexpected data format",
+            expected_format="JSON",
+            actual_format="XML",
+            auto_log=False
+        )
+        
+        assert exc.error_code == ErrorCode.DATA_FORMAT_ERROR
+        assert exc.details["expected_format"] == "JSON"
+        assert exc.details["actual_format"] == "XML"
+
+    def test_connection_exception(self):
+        """Test ConnectionException."""
+        exc = ConnectionException(
+            message="Failed to connect to database",
+            host="localhost",
+            port=5432,
+            auto_log=False
+        )
+        
+        assert exc.error_code == ErrorCode.CONNECTION_ERROR
+        assert exc.details["host"] == "localhost"
+        assert exc.details["port"] == 5432
+
+    def test_missing_configuration_exception(self):
+        """Test MissingConfigurationException."""
+        exc = MissingConfigurationException(
+            config_key="api_key",
+            auto_log=False
+        )
+        
+        assert exc.error_code == ErrorCode.MISSING_CONFIGURATION
+        assert exc.details["config_key"] == "api_key"
+        assert "Missing required configuration: api_key" in exc.message
+
+    def test_invalid_configuration_exception(self):
+        """Test InvalidConfigurationException."""
+        exc = InvalidConfigurationException(
+            config_key="timeout",
+            config_value=-1,
+            auto_log=False
+        )
+        
+        assert exc.error_code == ErrorCode.INVALID_CONFIGURATION
+        assert exc.details["config_key"] == "timeout"
+        assert exc.details["config_value"] == "-1"
+
+    def test_cache_miss_exception(self):
+        """Test CacheMissException."""
+        exc = CacheMissException(
+            cache_key="stock_data_AAPL",
+            auto_log=False
+        )
+        
+        assert exc.error_code == ErrorCode.CACHE_MISS
+        assert exc.details["cache_key"] == "stock_data_AAPL"
+        assert exc.details["operation"] == "get"
+
+    def test_cache_write_exception(self):
+        """Test CacheWriteException."""
+        exc = CacheWriteException(
+            cache_key="stock_data_AAPL",
+            cause=ConnectionError("Redis connection failed"),
+            auto_log=False
+        )
+        
+        assert exc.error_code == ErrorCode.CACHE_WRITE_ERROR
+        assert exc.details["cache_key"] == "stock_data_AAPL"
+        assert exc.details["operation"] == "set"
+        assert exc.cause is not None
+
+    def test_service_unavailable_exception(self):
+        """Test ServiceUnavailableException."""
+        exc = ServiceUnavailableException(
+            service_name="data_service",
+            auto_log=False
+        )
+        
+        assert exc.error_code == ErrorCode.SERVICE_UNAVAILABLE
+        assert exc.details["service_name"] == "data_service"
+        assert exc.severity == ErrorSeverity.HIGH
+
+    def test_circuit_breaker_exception(self):
+        """Test CircuitBreakerException."""
+        exc = CircuitBreakerException(
+            service_name="external_api",
+            failure_count=5,
+            auto_log=False
+        )
+        
+        assert exc.error_code == ErrorCode.CIRCUIT_BREAKER_OPEN
+        assert exc.details["service_name"] == "external_api"
+        assert exc.details["failure_count"] == 5
+        assert exc.severity == ErrorSeverity.HIGH
+
+
+class TestNewUtilityFunctions:
+    """Test new utility functions."""
+
+    def test_create_exception_summary(self):
+        """Test creating exception summary."""
+        exceptions = [
+            VPrismException("Error 1", ErrorCode.VALIDATION_ERROR, auto_log=False),
+            VPrismException("Error 2", ErrorCode.VALIDATION_ERROR, auto_log=False),
+            ProviderException("Provider error", provider="test_provider", auto_log=False),
+        ]
+        
+        summary = create_exception_summary(exceptions)
+        
+        assert summary["total_errors"] == 3
+        assert summary["error_counts"]["VALIDATION_ERROR"] == 2
+        assert summary["error_counts"]["PROVIDER_ERROR"] == 1
+        assert summary["provider_errors"]["test_provider"] == 1
+
+    def test_filter_exceptions_by_severity(self):
+        """Test filtering exceptions by severity."""
+        exceptions = [
+            VPrismException("Low", ErrorCode.VALIDATION_ERROR, severity=ErrorSeverity.LOW, auto_log=False),
+            VPrismException("Medium", ErrorCode.VALIDATION_ERROR, severity=ErrorSeverity.MEDIUM, auto_log=False),
+            VPrismException("High", ErrorCode.VALIDATION_ERROR, severity=ErrorSeverity.HIGH, auto_log=False),
+        ]
+        
+        filtered = filter_exceptions_by_severity(exceptions, ErrorSeverity.MEDIUM)
+        
+        assert len(filtered) == 2
+        assert all(exc.severity in [ErrorSeverity.MEDIUM, ErrorSeverity.HIGH] for exc in filtered)
+
+    def test_group_exceptions_by_error_code(self):
+        """Test grouping exceptions by error code."""
+        exceptions = [
+            VPrismException("Error 1", ErrorCode.VALIDATION_ERROR, auto_log=False),
+            VPrismException("Error 2", ErrorCode.VALIDATION_ERROR, auto_log=False),
+            VPrismException("Error 3", ErrorCode.PROVIDER_ERROR, auto_log=False),
+        ]
+        
+        grouped = group_exceptions_by_error_code(exceptions)
+        
+        assert len(grouped["VALIDATION_ERROR"]) == 2
+        assert len(grouped["PROVIDER_ERROR"]) == 1
+
+    def test_wrap_sync_exception_decorator(self):
+        """Test sync exception wrapper decorator."""
+        @wrap_sync_exception
+        def test_function():
+            raise ValueError("Test error")
+        
+        with pytest.raises(VPrismException) as exc_info:
+            test_function()
+        
+        assert exc_info.value.error_code == ErrorCode.VALIDATION_ERROR
+        assert isinstance(exc_info.value.cause, ValueError)
+
+    @pytest.mark.asyncio
+    async def test_wrap_async_exception_decorator(self):
+        """Test async exception wrapper decorator."""
+        @wrap_async_exception
+        async def test_function():
+            raise ConnectionError("Connection failed")
+        
+        with pytest.raises(VPrismException) as exc_info:
+            await test_function()
+        
+        assert exc_info.value.error_code == ErrorCode.CONNECTION_ERROR
+        assert isinstance(exc_info.value.cause, ConnectionError)
+
+    def test_exception_decorators_preserve_vprism_exceptions(self):
+        """Test that decorators don't wrap VPrismExceptions."""
+        original_exc = VPrismException("Original", ErrorCode.VALIDATION_ERROR, auto_log=False)
+        
+        @wrap_sync_exception
+        def test_function():
+            raise original_exc
+        
+        with pytest.raises(VPrismException) as exc_info:
+            test_function()
+        
+        # Should be the same exception, not wrapped
+        assert exc_info.value is original_exc
