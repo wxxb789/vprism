@@ -23,6 +23,16 @@ from vprism.core.exceptions import (
     NoAvailableProviderException,
     ProviderException,
     RateLimitException,
+    CircuitBreakerOpenException,
+    ServiceUnavailableException,
+    TimeoutException,
+)
+from vprism.core.fault_tolerance import (
+    FaultToleranceManager,
+    CircuitBreakerConfig,
+    RetryConfig,
+    HealthCheckConfig,
+    fault_tolerance_manager,
 )
 from vprism.core.models import DataQuery, DataResponse
 from vprism.core.provider_abstraction import (
@@ -74,6 +84,9 @@ class DataRouter:
         max_concurrent_health_checks: int = 10,
         enable_caching: bool = True,
         score_decay_factor: float = 0.95,
+        fault_tolerance_manager: Optional[FaultToleranceManager] = None,
+        enable_circuit_breaker: bool = True,
+        enable_retry: bool = True,
         **kwargs
     ):
         """
@@ -86,6 +99,9 @@ class DataRouter:
             max_concurrent_health_checks: Maximum concurrent health checks
             enable_caching: Whether to enable caching
             score_decay_factor: Factor for score decay over time
+            fault_tolerance_manager: Fault tolerance manager instance
+            enable_circuit_breaker: Whether to enable circuit breaker protection
+            enable_retry: Whether to enable retry mechanism
             **kwargs: Additional configuration options
         """
         self.registry = registry
@@ -94,6 +110,9 @@ class DataRouter:
         self.max_concurrent_health_checks = max_concurrent_health_checks
         self.enable_caching = enable_caching
         self.score_decay_factor = score_decay_factor
+        self.fault_tolerance_manager = fault_tolerance_manager or fault_tolerance_manager
+        self.enable_circuit_breaker = enable_circuit_breaker
+        self.enable_retry = enable_retry
         
         self._provider_scores: dict[str, float] = {}
         self._provider_performance_history: dict[
@@ -113,6 +132,9 @@ class DataRouter:
         self._success_bonus = 0.1
         self._latency_penalty_factor = 0.00001  # Penalty per ms of latency
         self._max_fallback_attempts = 3
+        
+        # Initialize fault tolerance for each provider
+        self._setup_fault_tolerance()
 
     def register_provider(self, provider: EnhancedDataProvider) -> None:
         """
@@ -122,6 +144,86 @@ class DataRouter:
             provider: Provider to register
         """
         self.registry.register_provider(provider)
+        self._setup_provider_fault_tolerance(provider)
+
+    def _setup_fault_tolerance(self) -> None:
+        """Setup fault tolerance for all registered providers."""
+        for provider in self.registry.get_all_providers().values():
+            self._setup_provider_fault_tolerance(provider)
+
+    def _setup_provider_fault_tolerance(self, provider: EnhancedDataProvider) -> None:
+        """Setup fault tolerance for a specific provider."""
+        if not self.enable_circuit_breaker and not self.enable_retry:
+            return
+            
+        provider_name = provider.name
+        
+        # Setup circuit breaker
+        if self.enable_circuit_breaker:
+            circuit_breaker_config = CircuitBreakerConfig(
+                failure_threshold=5,
+                recovery_timeout=60,
+                success_threshold=3,
+                timeout=30.0,
+                expected_exception_types=(
+                    ProviderException,
+                    RateLimitException,
+                    TimeoutException,
+                    Exception,
+                )
+            )
+            self.fault_tolerance_manager.get_or_create_circuit_breaker(
+                provider_name, circuit_breaker_config
+            )
+        
+        # Setup retry policy
+        if self.enable_retry:
+            retry_config = RetryConfig(
+                max_attempts=3,
+                base_delay=1.0,
+                max_delay=30.0,
+                exponential_base=2.0,
+                jitter=True,
+                retryable_exceptions=(
+                    ProviderException,
+                    RateLimitException,
+                    TimeoutException,
+                )
+            )
+            self.fault_tolerance_manager.get_or_create_retry_policy(
+                provider_name, retry_config
+            )
+        
+        # Setup health checker
+        async def health_check():
+            """Health check function for provider."""
+            try:
+                # Simple health check - try to get provider capability
+                _ = provider.capability
+                return True
+            except Exception as e:
+                logger.warning(f"Health check failed for provider {provider_name}: {e}")
+                raise e
+        
+        health_config = HealthCheckConfig(
+            interval=self.health_check_interval,
+            timeout=10.0,
+            failure_threshold=3,
+            success_threshold=2,
+        )
+        
+        health_checker = self.fault_tolerance_manager.register_health_checker(
+            provider_name, health_check, health_config
+        )
+        
+        # Add listener to update provider health in registry
+        def on_health_status_change(name: str, status):
+            from vprism.core.fault_tolerance import HealthStatus
+            is_healthy = status == HealthStatus.HEALTHY
+            self.registry.update_provider_health(name, is_healthy)
+            logger.info(f"Provider {name} health status changed to {status.value}")
+        
+        health_checker.add_status_change_listener(on_health_status_change)
 
     async def route_query(self, query: DataQuery) -> EnhancedDataProvider:
         """
@@ -353,27 +455,25 @@ class DataRouter:
 
                 attempted_providers.append(provider.name)
 
-                # Execute query with timing
-                start_time = time.time()
-                response = await provider.get_data(query)
-                end_time = time.time()
-
-                # Calculate latency
-                latency_ms = int((end_time - start_time) * 1000)
-
-                # Update provider score for successful request
-                self.update_provider_score(
-                    provider.name, success=True, latency_ms=latency_ms
-                )
+                # Execute query with fault tolerance
+                response = await self._execute_with_fault_tolerance(provider, query)
 
                 logger.debug(
-                    f"Query executed successfully by {provider.name} "
-                    f"in {latency_ms}ms (attempt {attempt + 1})"
+                    f"Query executed successfully by {provider.name} (attempt {attempt + 1})"
                 )
 
                 return response
 
-            except (ProviderException, RateLimitException) as e:
+            except CircuitBreakerOpenException as e:
+                last_exception = e
+                provider_name = e.details.get("circuit_breaker")
+                if provider_name:
+                    logger.warning(
+                        f"Circuit breaker open for provider {provider_name} (attempt {attempt + 1})"
+                    )
+                continue
+
+            except (ProviderException, RateLimitException, TimeoutException) as e:
                 last_exception = e
 
                 # Get provider name from exception or current attempt
@@ -412,6 +512,68 @@ class DataRouter:
             attempted_providers=attempted_providers,
             details={"last_error": str(last_exception) if last_exception else None},
         )
+
+    async def _execute_with_fault_tolerance(
+        self, provider: EnhancedDataProvider, query: DataQuery
+    ) -> DataResponse:
+        """
+        Execute query with fault tolerance protection.
+
+        Args:
+            provider: Data provider to use
+            query: Data query to execute
+
+        Returns:
+            Data response from provider
+
+        Raises:
+            Various exceptions based on failure modes
+        """
+        provider_name = provider.name
+        
+        # Define the actual execution function
+        async def execute_provider_query():
+            start_time = time.time()
+            response = await provider.get_data(query)
+            end_time = time.time()
+            
+            # Calculate latency and update score
+            latency_ms = int((end_time - start_time) * 1000)
+            self.update_provider_score(provider_name, success=True, latency_ms=latency_ms)
+            
+            return response
+
+        # Execute with fault tolerance if enabled
+        if self.enable_circuit_breaker or self.enable_retry:
+            circuit_breaker_config = None
+            retry_config = None
+            
+            if self.enable_circuit_breaker:
+                circuit_breaker_config = CircuitBreakerConfig(
+                    failure_threshold=5,
+                    recovery_timeout=60,
+                    success_threshold=3,
+                    timeout=30.0,
+                )
+            
+            if self.enable_retry:
+                retry_config = RetryConfig(
+                    max_attempts=3,
+                    base_delay=1.0,
+                    max_delay=30.0,
+                    exponential_base=2.0,
+                    jitter=True,
+                )
+            
+            return await self.fault_tolerance_manager.execute_with_fault_tolerance(
+                provider_name,
+                execute_provider_query,
+                circuit_breaker_config=circuit_breaker_config,
+                retry_config=retry_config,
+            )
+        else:
+            # Execute without fault tolerance
+            return await execute_provider_query()
 
     def update_provider_score(
         self, provider_name: str, success: bool, latency_ms: int

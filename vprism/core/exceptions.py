@@ -1273,3 +1273,101 @@ def group_exceptions_by_error_code(exceptions: List[VPrismException]) -> Dict[st
         grouped[code].append(exc)
     
     return grouped
+
+
+class CircuitBreakerOpenException(VPrismException):
+    """Raised when circuit breaker is open and blocking requests."""
+
+    def __init__(
+        self,
+        message: Optional[str] = None,
+        circuit_breaker_name: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if circuit_breaker_name:
+            error_details["circuit_breaker"] = circuit_breaker_name
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.CIRCUIT_BREAKER_OPEN,
+            details=error_details,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
+
+
+class ServiceUnavailableException(VPrismException):
+    """Raised when a service is unavailable."""
+
+    def __init__(
+        self,
+        message: Optional[str] = None,
+        service_name: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if service_name:
+            error_details["service"] = service_name
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.SERVICE_UNAVAILABLE,
+            details=error_details,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
+
+
+class TimeoutException(VPrismException):
+    """Raised when an operation times out."""
+
+    def __init__(
+        self,
+        message: Optional[str] = None,
+        timeout_seconds: Optional[float] = None,
+        operation: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if timeout_seconds:
+            error_details["timeout_seconds"] = timeout_seconds
+        if operation:
+            error_details["operation"] = operation
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.TIMEOUT_ERROR,
+            details=error_details,
+            severity=ErrorSeverity.MEDIUM,
+            **kwargs,
+        )
+
+
+class NoAvailableProviderException(VPrismException):
+    """Raised when no data provider is available to handle a request."""
+
+    def __init__(
+        self,
+        message: Optional[str] = None,
+        query: Optional[str] = None,
+        attempted_providers: Optional[List[str]] = None,
+        details: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if query:
+            error_details["query"] = query
+        if attempted_providers:
+            error_details["attempted_providers"] = attempted_providers
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.NO_PROVIDER_AVAILABLE,
+            details=error_details,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
