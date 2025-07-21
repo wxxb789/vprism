@@ -128,11 +128,9 @@ class TestDataService:
         mock_response = DataResponse(
             data=data,
             metadata=ResponseMetadata(
-                total_records=len(data),
-                query_time_ms=100.0,
-                data_source="test"
+                total_records=len(data), query_time_ms=100.0, data_source="test"
             ),
-            source=ProviderInfo(name="test", endpoint="test")
+            source=ProviderInfo(name="test", endpoint="test"),
         )
         mock_router.route_query.return_value = mock_response
 
@@ -250,11 +248,9 @@ class TestDataService:
         mock_router.route_query.return_value = DataResponse(
             data=sample_data,
             metadata=ResponseMetadata(
-                total_records=len(sample_data),
-                query_time_ms=100.0,
-                data_source="test"
+                total_records=len(sample_data), query_time_ms=100.0, data_source="test"
             ),
-            source=ProviderInfo(name="test", endpoint="test")
+            source=ProviderInfo(name="test", endpoint="test"),
         )
         service.router = mock_router
 
@@ -320,11 +316,9 @@ class TestDataService:
         mock_router.route_query.return_value = DataResponse(
             data=sample_data,
             metadata=ResponseMetadata(
-                total_records=len(sample_data),
-                query_time_ms=100.0,
-                data_source="test"
+                total_records=len(sample_data), query_time_ms=100.0, data_source="test"
             ),
-            source=ProviderInfo(name="test", endpoint="test")
+            source=ProviderInfo(name="test", endpoint="test"),
         )
 
         queries = [

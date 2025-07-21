@@ -1,6 +1,5 @@
 """Yahoo Finance数据提供商实现."""
 
-import logging
 from collections.abc import AsyncIterator
 from datetime import datetime
 from decimal import Decimal
@@ -13,6 +12,7 @@ except ImportError:
     YFINANCE_AVAILABLE = False
 
 from vprism.core.models import DataPoint, DataQuery, DataResponse, MarketType
+from vprism.core.logging import StructuredLogger, PerformanceLogger, bind
 from vprism.infrastructure.providers.base import (
     AuthConfig,
     DataProvider,
@@ -20,7 +20,7 @@ from vprism.infrastructure.providers.base import (
     RateLimitConfig,
 )
 
-logger = logging.getLogger(__name__)
+logger = StructuredLogger().get_logger()
 
 
 class YahooFinanceProvider(DataProvider):

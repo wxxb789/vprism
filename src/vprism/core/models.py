@@ -69,7 +69,7 @@ class DataPoint(BaseModel):
 
 class ConfigDict:
     """Pydantic V2配置."""
-    
+
     arbitrary_types_allowed = True
     json_encoders = {Decimal: str, datetime: lambda v: v.isoformat()}
 

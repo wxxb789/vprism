@@ -1,7 +1,6 @@
 """核心数据服务，整合路由器、缓存和提供商的完整数据访问层."""
 
 import asyncio
-import logging
 from datetime import date, datetime, timedelta
 
 from vprism.core.models import (
@@ -14,10 +13,10 @@ from vprism.core.models import (
     TimeFrame,
 )
 from vprism.core.services.data_router import DataRouter
+from vprism.core.logging import PerformanceLogger, log_with_context
 from vprism.infrastructure.cache.multilevel import MultiLevelCache
 from vprism.infrastructure.repositories.data import DataRepository
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class DataService:
@@ -40,8 +39,20 @@ class DataService:
         self.cache = cache or MultiLevelCache()
         self.repository = repository or DataRepository()
 
-        logger.info("DataService initialized with router, cache, and repository")
+        logger.info(
+            "DataService initialized",
+            extra={
+                "component": "DataService",
+                "action": "initialization",
+                "router_type": type(router).__name__ if router else "default",
+                "cache_type": type(cache).__name__ if cache else "default",
+                "repository_type": type(repository).__name__
+                if repository
+                else "default",
+            },
+        )
 
+    @PerformanceLogger("data_service_get")
     async def get(
         self,
         symbols: str | list[str],
@@ -118,6 +129,7 @@ class DataService:
         """
         return QueryBuilder(self)
 
+    @PerformanceLogger("query_data")
     async def query_data(self, query: DataQuery) -> DataResponse:
         """使用查询对象获取数据.
 
@@ -128,14 +140,29 @@ class DataService:
             DataResponse: 包含数据点的响应对象
         """
         try:
-            logger.info(f"Querying data for {query.symbols} in {query.market}")
+            logger = bind(
+                request_id=str(id(query)),
+                component="DataService",
+                action="query_data",
+                symbols=query.symbols,
+                market=query.market.value,
+                asset_type=query.asset.value,
+                timeframe=query.timeframe.value,
+            )
+
+            logger.info("Starting data query")
 
             # 检查缓存
             cache_key = self._generate_cache_key(query)
+            logger.debug("Checking cache", extra={"cache_key": cache_key})
+
             cached_data = await self.cache.get(cache_key)
 
             if cached_data is not None:
-                logger.info(f"Cache hit for {cache_key}")
+                logger.info(
+                    "Cache hit",
+                    extra={"cache_key": cache_key, "cached_records": len(cached_data)},
+                )
                 return DataResponse(
                     data=cached_data,
                     metadata=ResponseMetadata(
@@ -148,27 +175,53 @@ class DataService:
                     cached=True,
                 )
 
+            logger.info("Cache miss, querying from provider")
+
             # 从路由器获取数据
             response = await self.router.route_query(query)
 
             # 缓存结果
             if response.data:
                 await self.cache.set(cache_key, response.data)
+                logger.info(
+                    "Data cached",
+                    extra={
+                        "cache_key": cache_key,
+                        "cached_records": len(response.data),
+                    },
+                )
 
                 # 存储到数据库
                 await self.repository.save_data_points(response.data)
+                logger.info(
+                    "Data stored to repository",
+                    extra={"stored_records": len(response.data)},
+                )
 
-            logger.info(f"Successfully retrieved {len(response.data)} data points")
+            logger.info(
+                "Query completed successfully",
+                extra={
+                    "retrieved_records": len(response.data),
+                    "data_source": response.source.name
+                    if response.source
+                    else "unknown",
+                },
+            )
             return response
 
         except Exception as e:
-            logger.error(f"Error querying data: {e}")
+            logger.error(
+                "Query failed",
+                extra={"error_type": type(e).__name__, "error_message": str(e)},
+            )
+
             # 尝试从数据库获取历史数据
             try:
                 stored_data = await self.repository.get_data_points(query)
                 if stored_data:
                     logger.info(
-                        f"Retrieved {len(stored_data)} data points from storage"
+                        "Retrieved fallback data from storage",
+                        extra={"stored_records": len(stored_data)},
                     )
                     return DataResponse(
                         data=stored_data,
@@ -177,10 +230,17 @@ class DataService:
                         metadata={"source": "repository"},
                     )
             except Exception as storage_error:
-                logger.error(f"Error retrieving from storage: {storage_error}")
+                logger.error(
+                    "Failed to retrieve fallback data",
+                    extra={
+                        "error_type": type(storage_error).__name__,
+                        "error_message": str(storage_error),
+                    },
+                )
 
             raise
 
+    @PerformanceLogger("get_latest")
     async def get_latest(
         self,
         symbols: list[str],
@@ -197,6 +257,15 @@ class DataService:
         Returns:
             DataResponse: 包含最新数据的响应对象
         """
+        logger = bind(
+            component="DataService",
+            action="get_latest",
+            symbols=symbols,
+            market=market.value,
+            asset_type=asset_type.value,
+        )
+        logger.info("Fetching latest data")
+
         # 获取过去1天的数据
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=1)
@@ -210,8 +279,13 @@ class DataService:
             end_date=end_date,
         )
 
-        return await self.query_data(query)
+        response = await self.query_data(query)
+        logger.info(
+            "Latest data retrieved", extra={"records_count": len(response.data)}
+        )
+        return response
 
+    @PerformanceLogger("get_historical")
     async def get_historical(
         self,
         symbols: list[str],
@@ -232,6 +306,17 @@ class DataService:
         Returns:
             DataResponse: 包含历史数据的响应对象
         """
+        logger = bind(
+            component="DataService",
+            action="get_historical",
+            symbols=symbols,
+            period=period,
+            market=market.value,
+            asset_type=asset_type.value,
+            timeframe=timeframe.value,
+        )
+        logger.info("Fetching historical data")
+
         end_date = datetime.now().date()
 
         period_mapping = {
@@ -254,8 +339,18 @@ class DataService:
             end_date=end_date,
         )
 
-        return await self.query_data(query)
+        response = await self.query_data(query)
+        logger.info(
+            "Historical data retrieved",
+            extra={
+                "records_count": len(response.data),
+                "period": period,
+                "date_range": f"{start_date} to {end_date}",
+            },
+        )
+        return response
 
+    @PerformanceLogger("batch_query")
     async def batch_query(self, queries: list[DataQuery]) -> dict[str, DataResponse]:
         """批量查询多个数据请求.
 
@@ -265,7 +360,10 @@ class DataService:
         Returns:
             Dict[str, DataResponse]: 查询ID到响应的映射
         """
-        logger.info(f"Processing batch query with {len(queries)} queries")
+        logger = bind(
+            component="DataService", action="batch_query", query_count=len(queries)
+        )
+        logger.info("Starting batch query processing")
 
         # 并发执行所有查询
         tasks = [self.query_data(query) for query in queries]
@@ -273,19 +371,47 @@ class DataService:
 
         # 构建响应映射
         results = {}
+        success_count = 0
+        failure_count = 0
         for i, (query, response) in enumerate(zip(queries, responses, strict=False)):
             query_id = f"query_{i}"
             if isinstance(response, Exception):
-                logger.error(f"Query {query_id} failed: {response}")
+                logger.error(
+                    f"Query failed",
+                    extra={
+                        "query_id": query_id,
+                        "symbols": query.symbols,
+                        "error_type": type(response).__name__,
+                        "error_message": str(response),
+                    },
+                )
                 results[query_id] = DataResponse(
                     data=[],
                     query=query,
                     cached=False,
                     metadata={"error": str(response)},
                 )
+                failure_count += 1
             else:
+                logger.info(
+                    "Query completed successfully",
+                    extra={
+                        "query_id": query_id,
+                        "symbols": query.symbols,
+                        "records_count": len(response.data),
+                    },
+                )
                 results[query_id] = response
+                success_count += 1
 
+        logger.info(
+            "Batch query completed",
+            extra={
+                "total_queries": len(queries),
+                "successful_queries": success_count,
+                "failed_queries": failure_count,
+            },
+        )
         return results
 
     def _generate_cache_key(self, query: DataQuery) -> str:

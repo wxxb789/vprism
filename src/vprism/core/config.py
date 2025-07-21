@@ -10,6 +10,7 @@ from dataclasses import dataclass, asdict
 @dataclass
 class CacheConfig:
     """缓存配置"""
+
     enabled: bool = True
     memory_size: int = 1000
     disk_path: str = str(Path.home() / ".vprism" / "cache")
@@ -23,6 +24,7 @@ class CacheConfig:
 @dataclass
 class ProviderConfig:
     """提供商配置"""
+
     timeout: int = 30
     max_retries: int = 3
     rate_limit: bool = True
@@ -33,6 +35,7 @@ class ProviderConfig:
 @dataclass
 class LoggingConfig:
     """日志配置"""
+
     level: str = "INFO"
     file: str = str(Path.home() / ".vprism" / "logs" / "vprism.log")
     max_file_size: str = "10MB"
@@ -43,10 +46,11 @@ class LoggingConfig:
 @dataclass
 class VPrismConfig:
     """vprism主配置"""
+
     cache: CacheConfig = None
     providers: ProviderConfig = None
     logging: LoggingConfig = None
-    
+
     def __post_init__(self):
         if self.cache is None:
             self.cache = CacheConfig()
@@ -61,11 +65,9 @@ class VPrismConfig:
         cache_config = CacheConfig(**config_dict.get("cache", {}))
         provider_config = ProviderConfig(**config_dict.get("providers", {}))
         logging_config = LoggingConfig(**config_dict.get("logging", {}))
-        
+
         return cls(
-            cache=cache_config,
-            providers=provider_config,
-            logging=logging_config
+            cache=cache_config, providers=provider_config, logging=logging_config
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -73,7 +75,7 @@ class VPrismConfig:
         return {
             "cache": asdict(self.cache),
             "providers": asdict(self.providers),
-            "logging": asdict(self.logging)
+            "logging": asdict(self.logging),
         }
 
 
@@ -82,7 +84,7 @@ class ConfigManager:
 
     def __init__(self, config_path: Optional[Path] = None):
         """初始化配置管理器
-        
+
         Args:
             config_path: 配置文件路径，如果为None则使用默认路径
         """
@@ -110,7 +112,7 @@ class ConfigManager:
     def update_config(self, **updates: Any) -> None:
         """更新配置"""
         config_dict = self.config.to_dict()
-        
+
         def deep_update(d: Dict, u: Dict) -> Dict:
             """深度更新字典"""
             for k, v in u.items():
@@ -119,7 +121,7 @@ class ConfigManager:
                 else:
                     d[k] = v
             return d
-        
+
         deep_update(config_dict, updates)
         self.config = VPrismConfig.from_dict(config_dict)
 
@@ -127,8 +129,9 @@ class ConfigManager:
         """保存配置到文件"""
         try:
             self.config_path.parent.mkdir(parents=True, exist_ok=True)
-            
+
             import tomli
+
             with open(self.config_path, "wb") as f:
                 tomli.dump(self.config.to_dict(), f)
         except Exception as e:
@@ -143,7 +146,7 @@ def get_default_config() -> VPrismConfig:
 def load_config_from_env() -> Dict[str, Any]:
     """从环境变量加载配置"""
     config = {}
-    
+
     # 缓存配置
     cache_config = {}
     if os.getenv("VPRISM_CACHE_ENABLED"):
@@ -152,10 +155,10 @@ def load_config_from_env() -> Dict[str, Any]:
         cache_config["memory_size"] = int(os.getenv("VPRISM_CACHE_MEMORY_SIZE"))
     if os.getenv("VPRISM_CACHE_DISK_PATH"):
         cache_config["disk_path"] = os.getenv("VPRISM_CACHE_DISK_PATH")
-    
+
     if cache_config:
         config["cache"] = cache_config
-    
+
     # 提供商配置
     provider_config = {}
     if os.getenv("VPRISM_PROVIDER_TIMEOUT"):
@@ -163,19 +166,21 @@ def load_config_from_env() -> Dict[str, Any]:
     if os.getenv("VPRISM_PROVIDER_MAX_RETRIES"):
         provider_config["max_retries"] = int(os.getenv("VPRISM_PROVIDER_MAX_RETRIES"))
     if os.getenv("VPRISM_PROVIDER_RATE_LIMIT"):
-        provider_config["rate_limit"] = os.getenv("VPRISM_PROVIDER_RATE_LIMIT").lower() == "true"
-    
+        provider_config["rate_limit"] = (
+            os.getenv("VPRISM_PROVIDER_RATE_LIMIT").lower() == "true"
+        )
+
     if provider_config:
         config["providers"] = provider_config
-    
+
     # 日志配置
     logging_config = {}
     if os.getenv("VPRISM_LOGGING_LEVEL"):
         logging_config["level"] = os.getenv("VPRISM_LOGGING_LEVEL")
     if os.getenv("VPRISM_LOGGING_FILE"):
         logging_config["file"] = os.getenv("VPRISM_LOGGING_FILE")
-    
+
     if logging_config:
         config["logging"] = logging_config
-    
+
     return config

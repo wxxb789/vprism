@@ -98,7 +98,7 @@ def get(
         >>> import vprism
         >>> data = vprism.get(
         ...     asset="stock",
-        ...     market="cn", 
+        ...     market="cn",
         ...     symbols=["000001", "000002"],
         ...     timeframe="1d"
         ... )
@@ -144,7 +144,7 @@ async def get_async(
     Examples:
         >>> import asyncio
         >>> import vprism
-        >>> 
+        >>>
         >>> async def main():
         ...     data = await vprism.get_async(
         ...         asset="crypto",
@@ -153,7 +153,7 @@ async def get_async(
         ...         timeframe="1h"
         ...     )
         ...     print(data)
-        >>> 
+        >>>
         >>> asyncio.run(main())
     """
     client = get_client()

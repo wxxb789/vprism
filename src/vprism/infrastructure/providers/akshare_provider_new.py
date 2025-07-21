@@ -1,11 +1,11 @@
 """AkShare数据提供商实现."""
 
-import logging
 from collections.abc import AsyncIterator
 from datetime import datetime
 from decimal import Decimal
 
 from vprism.core.models import DataPoint, DataQuery, DataResponse, MarketType
+from vprism.core.logging import StructuredLogger, PerformanceLogger, bind
 from vprism.infrastructure.providers.base import (
     AuthConfig,
     DataProvider,
@@ -13,7 +13,7 @@ from vprism.infrastructure.providers.base import (
     RateLimitConfig,
 )
 
-logger = logging.getLogger(__name__)
+logger = StructuredLogger().get_logger()
 
 
 class AkShareProvider(DataProvider):
@@ -324,9 +324,7 @@ class AkShareProvider(DataProvider):
             logger.error(f"Error getting Hong Kong stock data: {e}")
             return DataResponse(data=[], metadata={"error": str(e)})
 
-    async def get_real_time_quote(
-        self, symbol: str, market: str = "cn"
-    ) -> dict | None:
+    async def get_real_time_quote(self, symbol: str, market: str = "cn") -> dict | None:
         """获取实时报价."""
         if not self._initialized:
             return None

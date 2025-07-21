@@ -81,36 +81,36 @@ class VPrismClient:
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """初始化客户端
-        
+
         Args:
             config: 可选配置字典
         """
         # 初始化配置管理器
         self.config_manager = ConfigManager()
-        
+
         # 加载环境变量配置
         env_config = load_config_from_env()
         if env_config:
             self.config_manager.update_config(**env_config)
-            
+
         # 加载用户提供的配置
         if config:
             self.config_manager.update_config(**config)
-            
+
         # 初始化核心组件
         self.registry = ProviderRegistry()
         self.router = DataRouter(self.registry)
         self._configured = True
-        
+
         # 应用配置
         self._apply_config()
 
     def configure(self, **config: Any) -> None:
         """配置客户端
-        
+
         Args:
             **config: 配置参数
-            
+
         支持的配置项:
             cache.enabled: 是否启用缓存 (bool)
             cache.memory_size: 内存缓存大小 (int)
@@ -127,15 +127,15 @@ class VPrismClient:
     def _apply_config(self) -> None:
         """应用配置到各个组件"""
         config = self.config_manager.get_config()
-        
+
         # 配置缓存
         cache_config = config.cache
         # TODO: 应用到缓存系统
-        
+
         # 配置提供商
         provider_config = config.providers
         # TODO: 应用到提供商系统
-        
+
         # 配置日志
         logging_config = config.logging
         # TODO: 配置日志系统
@@ -184,7 +184,7 @@ class VPrismClient:
             >>> # 获取中国A股日线数据
             >>> data = vprism.get(
             ...     asset="stock",
-            ...     market="cn", 
+            ...     market="cn",
             ...     symbols=["000001", "000002"],
             ...     timeframe="1d",
             ...     start="2024-01-01",
@@ -233,7 +233,7 @@ class VPrismClient:
         Examples:
             >>> import asyncio
             >>> import vprism
-            >>> 
+            >>>
             >>> async def main():
             ...     data = await vprism.get_async(
             ...         asset="crypto",
@@ -242,7 +242,7 @@ class VPrismClient:
             ...         timeframe="1h"
             ...     )
             ...     print(data)
-            >>> 
+            >>>
             >>> asyncio.run(main())
         """
         query = DataQuery(
@@ -264,6 +264,7 @@ class VPrismClient:
             if loop.is_running():
                 # 在已有事件循环中运行
                 import nest_asyncio
+
                 nest_asyncio.apply()
                 return loop.run_until_complete(coro)
             else:

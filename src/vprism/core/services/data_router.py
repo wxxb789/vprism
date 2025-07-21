@@ -1,15 +1,15 @@
 """智能数据路由器实现"""
 
-import logging
 from datetime import datetime
 from typing import Any
 
 from vprism.core.exceptions import NoCapableProviderError
 from vprism.core.models import DataQuery
+from vprism.core.logging import StructuredLogger, PerformanceLogger, bind
 from vprism.infrastructure.providers.base import DataProvider
 from vprism.infrastructure.providers.registry import ProviderRegistry
 
-logger = logging.getLogger(__name__)
+logger = StructuredLogger().get_logger()
 
 
 class DataRouter:
@@ -38,6 +38,7 @@ class DataRouter:
         for provider_name in providers:
             self.provider_scores[provider_name] = 1.0
 
+    @PerformanceLogger("route_query")
     async def route_query(self, query: DataQuery) -> DataProvider:
         """将查询路由到最佳的数据提供商
 
@@ -50,27 +51,51 @@ class DataRouter:
         Raises:
             NoCapableProviderError: 当没有可行的提供商时
         """
+        logger = bind(
+            component="DataRouter",
+            action="route_query",
+            symbols=query.symbols,
+            market=query.market.value,
+            asset_type=query.asset.value,
+        )
+        logger.info("Starting routing decision")
+
         # 查找所有可行的提供商
         capable_providers = self.registry.find_capable_providers(query)
 
         if not capable_providers:
-            logger.error(f"No capable provider found for query: {query}")
+            logger.error(
+                "No capable provider found", extra={"query_details": str(query)}
+            )
             raise NoCapableProviderError(
                 f"No provider can handle query: asset={query.asset}, "
                 f"market={query.market}, symbols={query.symbols}"
             )
 
+        logger.info(
+            "Found capable providers",
+            extra={
+                "provider_count": len(capable_providers),
+                "provider_names": [p.name for p in capable_providers],
+            },
+        )
+
         # 如果只有一个可行的提供商，直接返回
         if len(capable_providers) == 1:
             provider = capable_providers[0]
-            logger.debug(f"Routing query to single capable provider: {provider.name}")
+            logger.info(
+                "Routing to single provider", extra={"provider_name": provider.name}
+            )
             return provider
 
         # 使用评分系统选择最佳提供商
         best_provider = self._select_best_provider(capable_providers, query)
         logger.info(
-            f"Routing query to best provider: {best_provider.name} "
-            f"(score: {self.provider_scores[best_provider.name]:.2f})"
+            "Selected best provider",
+            extra={
+                "provider_name": best_provider.name,
+                "provider_score": round(self.provider_scores[best_provider.name], 2),
+            },
         )
 
         return best_provider

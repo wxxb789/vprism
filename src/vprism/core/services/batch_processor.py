@@ -6,7 +6,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from vprism.core.models import DataQuery, DataResponse, AssetType, ProviderInfo, ResponseMetadata
+from vprism.core.models import (
+    DataQuery,
+    DataResponse,
+    AssetType,
+    ProviderInfo,
+    ResponseMetadata,
+)
 from vprism.core.services.data_router import DataRouter
 from vprism.core.services.data_service import DataService
 from vprism.infrastructure.providers.registry import ProviderRegistry
@@ -121,8 +127,16 @@ class BatchProcessor:
             else:
                 # 处理成功结果
                 final_results.update(result)
-                success_count += len([r for r in result.values() if not getattr(r.metadata, 'error', None)])
-                failure_count += len([r for r in result.values() if getattr(r.metadata, 'error', None)])
+                success_count += len(
+                    [
+                        r
+                        for r in result.values()
+                        if not getattr(r.metadata, "error", None)
+                    ]
+                )
+                failure_count += len(
+                    [r for r in result.values() if getattr(r.metadata, "error", None)]
+                )
 
         total_time = (datetime.now() - start_time).total_seconds()
 

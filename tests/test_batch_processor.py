@@ -133,7 +133,7 @@ class TestBatchProcessor:
                 return mock_response
             else:
                 raise Exception("Query failed")
-        
+
         mock_data_service.query_data.side_effect = mock_query_data
 
         # 设置mock注册表
