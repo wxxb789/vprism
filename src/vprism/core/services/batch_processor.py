@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from vprism.core.models import DataQuery, DataResponse
+from vprism.core.models import DataQuery, DataResponse, AssetType, ProviderInfo, ResponseMetadata
 from vprism.core.services.data_router import DataRouter
 from vprism.core.services.data_service import DataService
 from vprism.infrastructure.providers.registry import ProviderRegistry
@@ -121,8 +121,8 @@ class BatchProcessor:
             else:
                 # 处理成功结果
                 final_results.update(result)
-                success_count += len([r for r in result.values() if not r.errors])
-                failure_count += len([r for r in result.values() if r.errors])
+                success_count += len([r for r in result.values() if not getattr(r.metadata, 'error', None)])
+                failure_count += len([r for r in result.values() if getattr(r.metadata, 'error', None)])
 
         total_time = (datetime.now() - start_time).total_seconds()
 
@@ -246,7 +246,11 @@ class BatchProcessor:
                             logger.error(f"{query_id}: {error_msg}")
                             return query_id, DataResponse(
                                 data=[],
-                                metadata={"error": error_msg, "timeout": True},
+                                metadata=ResponseMetadata(
+                                    total_records=0,
+                                    query_time_ms=0.0,
+                                    data_source=provider_name,
+                                ),
                                 source=ProviderInfo(
                                     name=provider_name, endpoint=provider_name
                                 ),
@@ -261,7 +265,11 @@ class BatchProcessor:
                             logger.error(f"{query_id}: Query failed - {e}")
                             return query_id, DataResponse(
                                 data=[],
-                                metadata={"error": str(e)},
+                                metadata=ResponseMetadata(
+                                    total_records=0,
+                                    query_time_ms=0.0,
+                                    data_source=provider_name,
+                                ),
                                 source=ProviderInfo(
                                     name=provider_name, endpoint=provider_name
                                 ),
@@ -312,6 +320,7 @@ class BatchProcessor:
         # 创建批量查询
         queries = [
             DataQuery(
+                asset=AssetType.STOCK,
                 symbols=[symbol],
                 market=market,
                 timeframe=timeframe,

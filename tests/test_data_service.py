@@ -125,7 +125,15 @@ class TestDataService:
                 provider="test",
             ),
         ]
-        mock_response = DataResponse(data=data)
+        mock_response = DataResponse(
+            data=data,
+            metadata=ResponseMetadata(
+                total_records=len(data),
+                query_time_ms=100.0,
+                data_source="test"
+            ),
+            source=ProviderInfo(name="test", endpoint="test")
+        )
         mock_router.route_query.return_value = mock_response
 
         result = await service.get(["000001", "000002"], start="2024-01-01")
@@ -239,7 +247,15 @@ class TestDataService:
     ):
         """测试缓存未命中并存储."""
         mock_router = AsyncMock()
-        mock_router.route_query.return_value = DataResponse(data=sample_data)
+        mock_router.route_query.return_value = DataResponse(
+            data=sample_data,
+            metadata=ResponseMetadata(
+                total_records=len(sample_data),
+                query_time_ms=100.0,
+                data_source="test"
+            ),
+            source=ProviderInfo(name="test", endpoint="test")
+        )
         service.router = mock_router
 
         result = await service.get("000001", start="2024-01-01")
@@ -301,7 +317,15 @@ class TestDataService:
     @pytest.mark.asyncio
     async def test_batch_query(self, service, mock_router, sample_data):
         """测试批量查询."""
-        mock_router.route_query.return_value = DataResponse(data=sample_data)
+        mock_router.route_query.return_value = DataResponse(
+            data=sample_data,
+            metadata=ResponseMetadata(
+                total_records=len(sample_data),
+                query_time_ms=100.0,
+                data_source="test"
+            ),
+            source=ProviderInfo(name="test", endpoint="test")
+        )
 
         queries = [
             DataQuery(symbols=["000001"], market=MarketType.CN),

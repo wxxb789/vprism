@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 from decimal import Decimal
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import pytest
 
@@ -227,7 +227,7 @@ class TestIntegration:
         registry = ProviderRegistry()
 
         akshare = AkShareProvider()
-        yfinance = YFinanceProvider()
+        yfinance = YahooFinanceProvider()
 
         registry.register(akshare)
         registry.register(yfinance)
@@ -270,7 +270,7 @@ class TestIntegration:
         registry = ProviderRegistry()
 
         akshare = AkShareProvider()
-        yfinance = YFinanceProvider()
+        yfinance = YahooFinanceProvider()
 
         registry.register(akshare)
         registry.register(yfinance)
@@ -290,7 +290,7 @@ class TestIntegration:
         registry = ProviderRegistry()
 
         akshare = AkShareProvider()
-        yfinance = YFinanceProvider()
+        yfinance = YahooFinanceProvider()
         vprism = VPrismProvider()
 
         registry.register(akshare)

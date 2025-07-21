@@ -82,6 +82,225 @@ uv run uvicorn vprism.web.main:app --reload
 docker-compose up --build
 ```
 
+## Technical Patterns & Compatibility Notes
+
+### Pydantic v2 Migration Guide
+
+#### Key Changes from v1 to v2
+- **Config class**: Replaced with `model_config = ConfigDict(...)`
+- **Validators**: `@validator` → `@field_validator` with different signature
+- **Root validators**: `@root_validator` → `@model_validator`
+- **Field constraints**: Use `Field(..., gt=0)` instead of `conint(gt=0)`
+
+#### Migration Patterns
+```python
+# ✅ Pydantic v2 Style
+from pydantic import BaseModel, Field, ConfigDict
+
+class StockData(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+        validate_assignment=True,
+        str_strip_whitespace=True
+    )
+    
+    symbol: str = Field(..., min_length=1, max_length=10)
+    price: float = Field(..., gt=0)
+    volume: int = Field(..., ge=0)
+
+# ✅ Field validation
+@field_validator('symbol')
+@classmethod
+def validate_symbol(cls, v: str) -> str:
+    return v.upper()
+
+# ✅ Model validation
+@model_validator(mode='after')
+def validate_price_volume(self) -> 'StockData':
+    if self.price <= 0 and self.volume > 0:
+        raise ValueError('Price must be positive when volume > 0')
+    return self
+```
+
+### FastAPI/FastMCP Integration Patterns
+
+#### Request/Response Models
+```python
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
+
+app = FastAPI()
+
+# ✅ Use Pydantic v2 models for request/response
+class DataRequest(BaseModel):
+    symbols: list[str] = Field(..., min_items=1, max_items=100)
+    start_date: str = Field(..., pattern=r'^\d{4}-\d{2}-\d{2}$')
+    end_date: str = Field(..., pattern=r'^\d{4}-\d{2}-\d{2}$')
+
+class DataResponse(BaseModel):
+    data: list[dict]
+    metadata: dict = Field(default_factory=dict)
+    
+@app.post("/api/v1/data", response_model=DataResponse)
+async def get_data(request: DataRequest):
+    try:
+        # Implementation
+        return DataResponse(data=[], metadata={})
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+```
+
+#### Error Handling Integration
+```python
+from vprism.core.exceptions import ProviderError, ValidationError
+from vprism.core.error_handler import ErrorHandler
+
+@app.exception_handler(ProviderError)
+async def provider_error_handler(request, exc):
+    return JSONResponse(
+        status_code=503,
+        content={"error": "Provider unavailable", "details": str(exc)}
+    )
+```
+
+### API Compatibility Patterns
+
+#### Version Compatibility
+```python
+# ✅ Versioned API endpoints
+@app.get("/api/v1/data/{symbol}")
+async def get_stock_data_v1(symbol: str):
+    ...
+
+@app.get("/api/v2/data/{symbol}")
+async def get_stock_data_v2(symbol: str, format: str = "json"):
+    ...
+
+# ✅ Backward compatibility layer
+class CompatibilityAdapter:
+    """Adapts v1 responses to v2 format"""
+    @staticmethod
+    def adapt_v1_to_v2(v1_data: dict) -> dict:
+        return {
+            "symbol": v1_data.get("ticker"),
+            "price": v1_data.get("current_price"),
+            "timestamp": v1_data.get("last_updated")
+        }
+```
+
+#### Data Format Compatibility
+```python
+# ✅ Flexible date parsing
+from datetime import datetime
+from typing import Union
+
+def parse_date(date_input: Union[str, datetime]) -> datetime:
+    """Handle multiple date formats for backward compatibility"""
+    if isinstance(date_input, datetime):
+        return date_input
+    
+    # Try multiple formats
+    formats = ["%Y-%m-%d", "%Y%m%d", "%m/%d/%Y"]
+    for fmt in formats:
+        try:
+            return datetime.strptime(date_input, fmt)
+        except ValueError:
+            continue
+    
+    raise ValueError(f"Invalid date format: {date_input}")
+```
+
+### Testing Best Practices
+
+#### Test Structure
+```python
+# ✅ Test file naming: test_*.py
+# ✅ Test class naming: Test* with descriptive names
+class TestStockDataProvider:
+    """Test suite for stock data provider"""
+    
+    def setup_method(self):
+        """Setup for each test method"""
+        self.provider = StockDataProvider()
+    
+    def test_get_stock_data_success(self):
+        """Test successful stock data retrieval"""
+        result = self.provider.get_data("AAPL")
+        assert result.symbol == "AAPL"
+        assert result.price > 0
+    
+    def test_get_stock_data_invalid_symbol(self):
+        """Test error handling for invalid symbol"""
+        with pytest.raises(ValidationError):
+            self.provider.get_data("INVALID_SYMBOL_12345")
+```
+
+#### Async Testing Patterns
+```python
+import pytest
+import asyncio
+from unittest.mock import AsyncMock, patch
+
+@pytest.mark.asyncio
+async def test_async_data_fetch():
+    """Test async data fetching with proper mocking"""
+    with patch('httpx.AsyncClient.get') as mock_get:
+        mock_get.return_value = AsyncMock(
+            status_code=200,
+            json=lambda: {"data": "test"}
+        )
+        
+        result = await async_fetch_data("AAPL")
+        assert result is not None
+```
+
+#### Mocking External Dependencies
+```python
+from unittest.mock import patch, MagicMock
+import pytest
+
+class TestExternalAPI:
+    @patch('httpx.AsyncClient.get')
+    async def test_rate_limiting(self, mock_get):
+        """Test rate limiting behavior"""
+        mock_get.return_value.status_code = 429
+        mock_get.return_value.headers = {"Retry-After": "60"}
+        
+        with pytest.raises(RateLimitError):
+            await self.client.fetch_data("AAPL")
+```
+
+### Environment Configuration
+
+#### Development vs Production
+```python
+# ✅ Environment-specific configuration
+from pydantic import BaseSettings, Field
+
+class Settings(BaseSettings):
+    environment: str = Field(default="development")
+    
+    # Database
+    duckdb_path: str = Field(default="vprism_dev.duckdb")
+    
+    # Cache
+    cache_ttl: int = Field(default=3600)
+    
+    # Rate limiting
+    rate_limit_per_minute: int = Field(default=60)
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = False
+
+# Load settings based on environment
+settings = Settings()
+if settings.environment == "production":
+    settings.duckdb_path = "vprism_prod.duckdb"
+    settings.cache_ttl = 7200
+    settings.rate_limit_per_minute = 120
+```
+
 ## Environment Variables
 
 ### Core Configuration

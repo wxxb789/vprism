@@ -1,11 +1,11 @@
 """核心数据模型和枚举类型."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict as PydanticConfigDict
 
 
 class AssetType(str, Enum):
@@ -62,10 +62,16 @@ class DataPoint(BaseModel):
     amount: Decimal | None = None
     extra_fields: dict[str, Any] = Field(default_factory=dict)
 
-    class Config:
-        """Pydantic配置."""
+    model_config = PydanticConfigDict(
+        json_encoders={Decimal: str, datetime: lambda v: v.isoformat()}
+    )
 
-        json_encoders = {Decimal: str, datetime: lambda v: v.isoformat()}
+
+class ConfigDict:
+    """Pydantic V2配置."""
+    
+    arbitrary_types_allowed = True
+    json_encoders = {Decimal: str, datetime: lambda v: v.isoformat()}
 
 
 class Asset(BaseModel):
@@ -119,7 +125,7 @@ class DataResponse(BaseModel):
     metadata: ResponseMetadata
     source: ProviderInfo
     cached: bool = False
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class ErrorResponse(BaseModel):
@@ -128,4 +134,4 @@ class ErrorResponse(BaseModel):
     error_code: str
     message: str
     details: dict[str, Any] = Field(default_factory=dict)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

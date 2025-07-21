@@ -90,7 +90,7 @@ class TestVPrismClient:
         import asyncio
         
         # 创建模拟协程
-        async def mock_coro():
+        async def mock_coro(query):
             return {"data": "sync_test"}
         
         mock_provider = AsyncMock()
@@ -138,7 +138,7 @@ class TestGlobalInterface:
         """测试全局get函数"""
         import asyncio
         
-        async def mock_coro():
+        async def mock_coro(query):
             return {"data": "global_test"}
         
         mock_provider = AsyncMock()
@@ -178,7 +178,7 @@ class TestGlobalInterface:
         """测试全局query和execute函数"""
         import asyncio
         
-        async def mock_coro():
+        async def mock_coro(query):
             return {"data": "query_execute_test"}
         
         mock_provider = AsyncMock()

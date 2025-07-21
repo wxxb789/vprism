@@ -3,9 +3,9 @@ Web API 数据模型
 定义 FastAPI 的请求/响应模型
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from vprism.core.models import Asset, DataQuery, DataResponse, MarketType, TimeFrame
 
@@ -17,6 +17,13 @@ class APIResponse(BaseModel):
     message: Optional[str] = Field(None, description="响应消息")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="响应时间戳")
     request_id: Optional[str] = Field(None, description="请求ID，用于追踪")
+    
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+        ser_json_timedelta='iso8601',
+        ser_json_bytes='utf8'
+    )
 
 
 class ErrorResponse(BaseModel):
@@ -27,22 +34,29 @@ class ErrorResponse(BaseModel):
     details: Optional[Dict[str, Any]] = Field(None, description="详细错误信息")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="错误时间戳")
     request_id: Optional[str] = Field(None, description="请求ID，用于追踪")
+    
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+        ser_json_timedelta='iso8601',
+        ser_json_bytes='utf8'
+    )
 
 
 class StockDataRequest(BaseModel):
     """股票数据请求模型"""
     symbol: str = Field(..., description="股票代码，如 AAPL, 000001")
-    market: MarketType = Field(MarketType.US, description="市场类型")
-    timeframe: TimeFrame = Field(TimeFrame.DAY_1, description="时间周期")
+    market: str = Field("us", description="市场类型")
+    timeframe: str = Field("daily", description="时间周期")
     start_date: Optional[str] = Field(None, description="开始日期 (YYYY-MM-DD)")
     end_date: Optional[str] = Field(None, description="结束日期 (YYYY-MM-DD)")
-    limit: Optional[int] = Field(100, ge=1, le=10000, description="返回数据条数限制")
+    limit: int = Field(100, ge=1, le=10000, description="返回数据条数限制")
 
 
 class MarketDataRequest(BaseModel):
     """市场数据请求模型"""
-    market: MarketType = Field(..., description="市场类型")
-    timeframe: TimeFrame = Field(TimeFrame.DAY_1, description="时间周期")
+    market: str = Field(..., description="市场类型")
+    timeframe: str = Field("daily", description="时间周期")
     symbols: Optional[List[str]] = Field(None, description="股票代码列表，为空时获取整个市场")
     start_date: Optional[str] = Field(None, description="开始日期 (YYYY-MM-DD)")
     end_date: Optional[str] = Field(None, description="结束日期 (YYYY-MM-DD)")
@@ -50,7 +64,7 @@ class MarketDataRequest(BaseModel):
 
 class BatchDataRequest(BaseModel):
     """批量数据请求模型"""
-    queries: List[StockDataRequest] = Field(..., min_items=1, max_items=100, description="查询列表")
+    queries: List[StockDataRequest] = Field(..., min_length=1, max_length=100, description="查询列表")
     async_processing: bool = Field(False, description="是否异步处理")
 
 
@@ -61,6 +75,13 @@ class HealthStatus(BaseModel):
     uptime: float = Field(..., description="运行时间(秒)")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="检查时间戳")
     components: Dict[str, str] = Field(..., description="各组件状态")
+    
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+        ser_json_timedelta='iso8601',
+        ser_json_bytes='utf8'
+    )
 
 
 class ProviderStatus(BaseModel):
@@ -70,6 +91,13 @@ class ProviderStatus(BaseModel):
     last_check: datetime = Field(..., description="最后检查时间")
     response_time: Optional[float] = Field(None, description="平均响应时间(ms)")
     success_rate: Optional[float] = Field(None, description="成功率(0-1)")
+    
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+        ser_json_timedelta='iso8601',
+        ser_json_bytes='utf8'
+    )
 
 
 class CacheStats(BaseModel):

@@ -3,10 +3,11 @@
 """
 
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict
 
 from fastapi import APIRouter, Request
+from fastapi.encoders import jsonable_encoder
 
 from vprism.web.models import APIResponse, CacheStats, HealthStatus, ProviderStatus
 
@@ -45,7 +46,7 @@ async def health_check(request: Request) -> APIResponse:
         
         return APIResponse(
             success=True,
-            data=health_status.dict(),
+            data=jsonable_encoder(health_status),
             message="系统健康检查完成"
         )
         
@@ -118,14 +119,14 @@ async def provider_health_check(request: Request) -> APIResponse:
             ProviderStatus(
                 name="akshare",
                 status="healthy",
-                last_check=datetime.utcnow(),
+                last_check=datetime.now(timezone.utc),
                 response_time=150.5,
                 success_rate=0.98
             ),
             ProviderStatus(
                 name="yahoo_finance", 
                 status="healthy",
-                last_check=datetime.utcnow(),
+                last_check=datetime.now(timezone.utc),
                 response_time=200.3,
                 success_rate=0.95
             )
@@ -133,7 +134,7 @@ async def provider_health_check(request: Request) -> APIResponse:
         
         return APIResponse(
             success=True,
-            data=[p.dict() for p in providers],
+            data=[jsonable_encoder(p) for p in providers],
             message="提供商健康检查完成"
         )
         
@@ -166,7 +167,7 @@ async def cache_health_check(request: Request) -> APIResponse:
         
         return APIResponse(
             success=True,
-            data=cache_stats.dict(),
+            data=jsonable_encoder(cache_stats),
             message="缓存系统状态正常"
         )
         

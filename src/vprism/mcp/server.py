@@ -37,6 +37,7 @@ class VPrismMCPServer:
         self.config = config or {}
         self.mcp = FastMCP(
             name="vprism-financial-data",
+            version="0.1.0",
             instructions="vPrism Financial Data Platform MCP Server - Modern financial data access for AI applications. This server provides access to real-time and historical financial data including stock prices, market indices, and company information. Use the tools to retrieve financial data for analysis and decision making."
         )
         self.client = VPrismClient(config=self.config)
@@ -450,13 +451,15 @@ Use the available financial data tools to gather relevant information and provid
         logger.info(f"Starting vPrism MCP server with {transport} transport")
         
         try:
-            await self.client.initialize()
+            if hasattr(self.client, 'initialize'):
+                await self.client.initialize()
             await self.mcp.run(transport=transport)
         except Exception as e:
             logger.error(f"Failed to start MCP server: {e}")
             raise
         finally:
-            await self.client.close()
+            if hasattr(self.client, 'close'):
+                await self.client.close()
     
     def run(self, transport: str = "stdio") -> None:
         """Run the MCP server synchronously."""

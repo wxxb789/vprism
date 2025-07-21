@@ -297,11 +297,13 @@ class DataService:
         Returns:
             str: 缓存键
         """
-        symbols_str = ",".join(sorted(query.symbols))
+        symbols_str = ",".join(sorted(query.symbols)) if query.symbols else ""
+        start_str = query.start.isoformat() if query.start else "None"
+        end_str = query.end.isoformat() if query.end else "None"
         return (
             f"{query.asset.value}:{query.market.value}:"
             f"{symbols_str}:{query.timeframe.value}:"
-            f"{query.start_date}:{query.end_date}"
+            f"{start_str}:{end_str}"
         )
 
     async def health_check(self) -> dict[str, bool]:

@@ -59,7 +59,7 @@ async def get_stock_data(
         
         return APIResponse(
             success=True,
-            data=result.to_dict() if hasattr(result, 'to_dict') else result,
+            data=result.model_dump() if hasattr(result, 'model_dump') else result,
             message=f"成功获取 {symbol} 的数据"
         )
         
@@ -83,8 +83,8 @@ async def get_stock_data_post(
         query = (
             client.query()
             .asset(request_data.symbol)
-            .market(request_data.market.value)
-            .timeframe(request_data.timeframe.value)
+            .market(request_data.market)
+            .timeframe(request_data.timeframe)
             .limit(request_data.limit)
         )
         
@@ -97,7 +97,7 @@ async def get_stock_data_post(
         
         return APIResponse(
             success=True,
-            data=result.to_dict() if hasattr(result, 'to_dict') else result,
+            data=result.model_dump() if hasattr(result, 'model_dump') else result,
             message=f"成功获取 {request_data.symbol} 的数据"
         )
         
@@ -121,8 +121,8 @@ async def get_market_data(
         # 构建基础查询
         query = (
             client.query()
-            .market(request_data.market.value)
-            .timeframe(request_data.timeframe.value)
+            .market(request_data.market)
+            .timeframe(request_data.timeframe)
         )
         
         if request_data.start_date:
@@ -138,7 +138,7 @@ async def get_market_data(
                 result = await client.execute_async(symbol_query)
                 results.append({
                     "symbol": symbol,
-                    "data": result.to_dict() if hasattr(result, 'to_dict') else result
+                    "data": result.model_dump() if hasattr(result, 'model_dump') else result
                 })
             
             return APIResponse(
@@ -151,8 +151,8 @@ async def get_market_data(
             result = await client.execute_async(query.build())
             return APIResponse(
                 success=True,
-                data=result.to_dict() if hasattr(result, 'to_dict') else result,
-                message=f"成功获取 {request_data.market.value} 市场的数据"
+                data=result.model_dump() if hasattr(result, 'model_dump') else result,
+                message=f"成功获取 {request_data.market} 市场的数据"
             )
             
     except Exception as e:
@@ -182,8 +182,8 @@ async def get_batch_data(
             query = (
                 client.query()
                 .asset(query_req.symbol)
-                .market(query_req.market.value)
-                .timeframe(query_req.timeframe.value)
+                .market(query_req.market)
+                .timeframe(query_req.timeframe)
                 .limit(query_req.limit)
             )
             
@@ -211,8 +211,8 @@ async def get_batch_data(
             response_data = []
             for i, result in enumerate(results):
                 response_data.append({
-                    "query": request_data.queries[i].dict(),
-                    "data": result.to_dict() if hasattr(result, 'to_dict') else result
+                    "query": request_data.queries[i].model_dump(),
+                    "data": result.model_dump() if hasattr(result, 'model_dump') else result
                 })
             
             return APIResponse(

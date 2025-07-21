@@ -13,7 +13,7 @@ from typing import Dict, Any, List
 from unittest.mock import AsyncMock, patch
 
 from vprism.mcp.server import VPrismMCPServer, create_mcp_server
-from vprism.core.models import DataResponse, DataPoint
+from vprism.core.models import DataResponse, DataPoint, ResponseMetadata, ProviderInfo
 from vprism.core.exceptions import VPrismError
 
 
@@ -35,10 +35,8 @@ class TestVPrismMCPServer:
     def sample_stock_data(self):
         """Sample stock data for testing."""
         from decimal import Decimal
+        from vprism.core.models import ResponseMetadata, ProviderInfo
         return DataResponse(
-            symbol="AAPL",
-            market="us",
-            timeframe="1d",
             data=[
                 DataPoint(
                     symbol="AAPL",
@@ -58,14 +56,23 @@ class TestVPrismMCPServer:
                     close=Decimal("157.0"),
                     volume=Decimal("1200000")
                 )
-            ]
+            ],
+            metadata=ResponseMetadata(
+                total_records=2,
+                query_time_ms=150.5,
+                data_source="test_provider"
+            ),
+            source=ProviderInfo(
+                name="test_provider",
+                endpoint="https://api.test.com"
+            )
         )
     
     @pytest.mark.asyncio
     async def test_get_stock_data_success(self, server, sample_stock_data):
         """Test successful retrieval of stock data."""
         with patch.object(server.client, 'get_async', return_value=sample_stock_data):
-            result = await server.mcp.tools["get_stock_data"].function(
+            result = await server.mcp.tool["get_stock_data"].function(
                 symbol="AAPL",
                 start_date="2024-01-01",
                 end_date="2024-01-02",
@@ -85,14 +92,20 @@ class TestVPrismMCPServer:
     async def test_get_stock_data_empty(self, server):
         """Test handling of empty data response."""
         empty_response = DataResponse(
-            symbol="AAPL",
-            market="us",
-            timeframe="1d",
-            data=[]
+            data=[],
+            metadata=ResponseMetadata(
+                total_records=0,
+                query_time_ms=50.0,
+                data_source="test_provider"
+            ),
+            source=ProviderInfo(
+                name="test_provider",
+                endpoint="https://api.test.com"
+            )
         )
         
         with patch.object(server.client, 'get_async', return_value=empty_response):
-            result = await server.mcp.tools["get_stock_data"].function(
+            result = await server.mcp.tool["get_stock_data"].function(
                 symbol="AAPL",
                 start_date="2024-01-01",
                 end_date="2024-01-01",
@@ -107,7 +120,7 @@ class TestVPrismMCPServer:
     async def test_get_stock_data_error(self, server):
         """Test handling of vPrism exceptions."""
         with patch.object(server.client, 'get_async', side_effect=VPrismError("Test error")):
-            result = await server.mcp.tools["get_stock_data"].function(
+            result = await server.mcp.tool["get_stock_data"].function(
                 symbol="INVALID",
                 start_date="2024-01-01",
                 end_date="2024-01-01"
@@ -120,7 +133,7 @@ class TestVPrismMCPServer:
     async def test_get_market_overview_success(self, server, sample_stock_data):
         """Test successful retrieval of market overview."""
         with patch.object(server.client, 'get_async', return_value=sample_stock_data):
-            result = await server.mcp.tools["get_market_overview"].function(
+            result = await server.mcp.tool["get_market_overview"].function(
                 market="us",
                 date="2024-01-01"
             )
@@ -133,7 +146,7 @@ class TestVPrismMCPServer:
     @pytest.mark.asyncio
     async def test_search_symbols(self, server):
         """Test symbol search functionality."""
-        result = await server.mcp.tools["search_symbols"].function(
+        result = await server.mcp.tool["search_symbols"].function(
             query="AAPL",
             market="us",
             limit=5
@@ -149,7 +162,7 @@ class TestVPrismMCPServer:
     async def test_get_realtime_price_success(self, server, sample_stock_data):
         """Test successful retrieval of real-time price."""
         with patch.object(server.client, 'get_async', return_value=sample_stock_data):
-            result = await server.mcp.tools["get_realtime_price"].function(
+            result = await server.mcp.tool["get_realtime_price"].function(
                 symbol="AAPL",
                 market="us"
             )
@@ -164,7 +177,7 @@ class TestVPrismMCPServer:
     async def test_get_batch_quotes_success(self, server, sample_stock_data):
         """Test successful batch quote retrieval."""
         with patch.object(server.client, 'get_async', return_value=sample_stock_data):
-            result = await server.mcp.tools["get_batch_quotes"].function(
+            result = await server.mcp.tool["get_batch_quotes"].function(
                 symbols=["AAPL", "MSFT", "GOOGL"],
                 market="us"
             )
@@ -186,7 +199,7 @@ class TestVPrismMCPServer:
             return sample_stock_data
         
         with patch.object(server.client, 'get_async', side_effect=mock_get_async):
-            result = await server.mcp.tools["get_batch_quotes"].function(
+            result = await server.mcp.tool["get_batch_quotes"].function(
                 symbols=["AAPL", "INVALID", "MSFT"],
                 market="us"
             )
@@ -201,7 +214,7 @@ class TestVPrismMCPServer:
     @pytest.mark.asyncio
     async def test_get_available_markets_resource(self, server):
         """Test available markets resource."""
-        result = await server.mcp.resources["data://markets"].read()
+        result = await server.mcp.resource["data://markets"].read()
         
         assert "markets" in result
         assert "us" in result["markets"]
@@ -213,7 +226,7 @@ class TestVPrismMCPServer:
     @pytest.mark.asyncio
     async def test_financial_analysis_prompt(self, server):
         """Test financial analysis prompt generation."""
-        result = await server.mcp.prompts["financial_analysis"].render(
+        result = await server.mcp.prompt["financial_analysis"].render(
             symbol="AAPL",
             timeframe="6m"
         )
@@ -227,8 +240,19 @@ class TestVPrismMCPServer:
     async def test_parameter_validation(self, server):
         """Test parameter validation for tools."""
         # Test invalid date format
-        with patch.object(server.client, 'get_async', return_value=DataResponse(symbol="AAPL", market="us", timeframe="1d", data=[])):
-            result = await server.mcp.tools["get_stock_data"].function(
+        with patch.object(server.client, 'get_async', return_value=DataResponse(
+            data=[],
+            metadata=ResponseMetadata(
+                total_records=0,
+                query_time_ms=25.0,
+                data_source="test_provider"
+            ),
+            source=ProviderInfo(
+                name="test_provider",
+                endpoint="https://api.test.com"
+            )
+        )):
+            result = await server.mcp.tool["get_stock_data"].function(
                 symbol="AAPL",
                 start_date="invalid-date",
                 end_date="2024-01-01"
@@ -262,7 +286,7 @@ class TestVPrismMCPServer:
     async def test_error_handling_unexpected_exception(self, server):
         """Test handling of unexpected exceptions."""
         with patch.object(server.client, 'get_async', side_effect=Exception("Unexpected error")):
-            result = await server.mcp.tools["get_stock_data"].function(
+            result = await server.mcp.tool["get_stock_data"].function(
                 symbol="AAPL",
                 start_date="2024-01-01",
                 end_date="2024-01-01"
@@ -324,19 +348,26 @@ async def test_mcp_server_e2e():
     # Mock the client to avoid external API calls
     with patch.object(server.client, 'get_async') as mock_get:
         mock_response = DataResponse(
-            symbol="TEST",
-            market="us",
-            timeframe="1d",
             data=[
                 DataPoint(
+                    symbol="TEST",
                     timestamp=datetime.now(),
-                    open_price=100.0,
-                    high_price=105.0,
-                    low_price=99.0,
-                    close_price=103.0,
+                    open=100.0,
+                    high=105.0,
+                    low=99.0,
+                    close=103.0,
                     volume=1000
                 )
-            ]
+            ],
+            metadata=ResponseMetadata(
+                total_records=1,
+                query_time_ms=75.0,
+                data_source="test_provider"
+            ),
+            source=ProviderInfo(
+                name="test_provider",
+                endpoint="https://api.test.com"
+            )
         )
         mock_get.return_value = mock_response
         
@@ -356,7 +387,7 @@ async def test_mcp_server_e2e():
         ]
         
         for tool_name, params in tools_to_test:
-            tool = server.mcp.tools[tool_name]
+            tool = server.mcp.tool[tool_name]
             result = await tool.function(**params)
             assert isinstance(result, dict)
             assert "error" not in result or isinstance(result["error"], str)

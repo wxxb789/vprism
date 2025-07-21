@@ -10,6 +10,19 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.encoders import jsonable_encoder
+from datetime import datetime
+import json
+from decimal import Decimal
+
+# Custom JSON encoder for datetime and Decimal
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        elif isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
 
 from vprism.core.client import VPrismClient
 from vprism.core.config import ConfigManager
@@ -94,7 +107,7 @@ def _setup_exception_handlers(app: FastAPI) -> None:
         """处理 vprism 自定义异常"""
         return JSONResponse(
             status_code=400,
-            content=ErrorResponse(
+            content=jsonable_encoder(ErrorResponse(
                 error=exc.__class__.__name__,
                 message=str(exc),
                 details={
@@ -102,7 +115,7 @@ def _setup_exception_handlers(app: FastAPI) -> None:
                     "context": getattr(exc, 'context', {})
                 },
                 request_id=str(uuid.uuid4())
-            ).dict()
+            ))
         )
     
     @app.exception_handler(HTTPException)
@@ -110,12 +123,12 @@ def _setup_exception_handlers(app: FastAPI) -> None:
         """处理 HTTP 异常"""
         return JSONResponse(
             status_code=exc.status_code,
-            content=ErrorResponse(
+            content=jsonable_encoder(ErrorResponse(
                 error="HTTPException",
                 message=exc.detail,
                 details={"status_code": exc.status_code},
                 request_id=str(uuid.uuid4())
-            ).dict()
+            ))
         )
     
     @app.exception_handler(Exception)
@@ -123,12 +136,12 @@ def _setup_exception_handlers(app: FastAPI) -> None:
         """处理未捕获的异常"""
         return JSONResponse(
             status_code=500,
-            content=ErrorResponse(
+            content=jsonable_encoder(ErrorResponse(
                 error="InternalServerError",
                 message="服务器内部错误",
                 details={"type": type(exc).__name__},
                 request_id=str(uuid.uuid4())
-            ).dict()
+            ))
         )
 
 

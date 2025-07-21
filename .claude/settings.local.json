@@ -16,7 +16,8 @@
       "*:*",
       "Bash(uv run:*)",
       "Bash(uv:*)",
-      "Bash(ruff format:*)"
+      "Bash(ruff format:*)",
+      "Bash(pytest:*)"
     ],
     "deny": [],
     "allowedTools": [
