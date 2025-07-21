@@ -27,6 +27,8 @@ dependencies = [
     "tomli>=2.0.0",
     "tomli-w>=1.0.0",
     "nest-asyncio>=1.5.0",
+    # MCP 支持
+    "fastmcp>=2.10.6",
     # 安全
     "cryptography>=41.0.0",
     "python-jose[cryptography]>=3.3.0",
