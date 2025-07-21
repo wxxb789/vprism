@@ -9,7 +9,7 @@ instructions: |
 transport:
   stdio:
     command: python
-    args: ["-m", "vprism.mcp"]
+    args: ["-m", "mcp"]
     env: {}
   http:
     host: 127.0.0.1

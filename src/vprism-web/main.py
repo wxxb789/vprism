@@ -16,9 +16,7 @@ def main():
     reload = os.getenv("VPRISM_RELOAD", "false").lower() == "true"
 
     # 启动服务
-    uvicorn.run(
-        "vprism.web.app:app", host=host, port=port, reload=reload, log_level="info"
-    )
+    uvicorn.run("app:app", host=host, port=port, reload=reload, log_level="info")
 
 
 if __name__ == "__main__":

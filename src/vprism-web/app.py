@@ -31,8 +31,8 @@ from vprism.core.config import ConfigManager
 from vprism.core.exceptions import VPrismError
 from loguru import logger
 from vprism.core.logging import RequestLogger
-from vprism.web.models import ErrorResponse
-from vprism.web.routes import data_router, health_router
+from models import ErrorResponse
+from routes import data_router, health_router
 
 
 @asynccontextmanager

@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
-from vprism.web.models import (
+from web.models import (
     APIResponse,
     BatchDataRequest,
     MarketDataRequest,

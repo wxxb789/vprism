@@ -6,7 +6,7 @@
   "transport": {
     "stdio": {
       "command": "python",
-      "args": ["-m", "vprism.mcp"],
+      "args": ["-m", "mcp"],
       "env": {}
     },
     "http": {

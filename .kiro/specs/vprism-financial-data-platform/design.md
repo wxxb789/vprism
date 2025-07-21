@@ -867,13 +867,13 @@ vprism.configure(
 )
 ```
 
-### 2. 服务模式 (Service Mode)
+### 2. 服务模式 (Service Mode) - RESTRUCTURED
 
 ```python
-# FastAPI 应用结构
+# FastAPI 应用结构 - 扁平化模块架构
 from fastapi import FastAPI, Depends
-from vprism.web import create_app
-from vprism.dependencies import get_data_service
+from src.vprism_web.app import create_app
+from src.vprism_web.services.data_service import DataService
 
 app = create_app()
 
@@ -900,12 +900,12 @@ async def health_check():
     return {"status": "healthy", "timestamp": datetime.utcnow()}
 ```
 
-### 3. MCP 模式 (Model Context Protocol)
+### 3. MCP 模式 (Model Context Protocol) - RESTRUCTURED
 
 ```python
-# FastMCP 服务器实现
+# FastMCP 服务器实现 - 扁平化模块架构
 from fastmcp import FastMCP
-from vprism.mcp import VPrismMCPServer
+from src.vprism_mcp.server import VPrismMCPServer
 
 mcp = FastMCP("vprism-financial-data")
 
@@ -929,10 +929,10 @@ if __name__ == "__main__":
     mcp.run()
 ```
 
-### 4. 容器模式 (Container Mode)
+### 4. 容器模式 (Container Mode) - RESTRUCTURED
 
 ```dockerfile
-# Dockerfile
+# Dockerfile - 扁平化模块架构
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -947,18 +947,21 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen
 
 # 复制应用代码
-COPY . .
+COPY src/vprism src/vprism/
+COPY src/vprism-web src/vprism-web/
+COPY src/vprism-mcp src/vprism-mcp/
+COPY src/vprism-docker src/vprism-docker/
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:8000/api/v1/health || exit 1
 
 # 启动应用
-CMD ["uv", "run", "uvicorn", "vprism.web:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "src.vprism-web.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ```yaml
-# Kubernetes 部署配置
+# Kubernetes 部署配置 - RESTRUCTURED
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -979,6 +982,8 @@ spec:
         ports:
         - containerPort: 8000
         env:
+        - name: PYTHONPATH
+          value: "/app/src"
         - name: REDIS_URL
           value: "redis://redis-service:6379"
         - name: LOG_LEVEL
@@ -992,13 +997,13 @@ spec:
             cpu: "500m"
         livenessProbe:
           httpGet:
-            path: /health
+            path: /api/v1/health
             port: 8000
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /ready
+            path: /api/v1/health
             port: 8000
           initialDelaySeconds: 5
           periodSeconds: 5

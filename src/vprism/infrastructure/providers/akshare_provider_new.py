@@ -13,7 +13,7 @@ from vprism.infrastructure.providers.base import (
     RateLimitConfig,
 )
 
-logger = StructuredLogger().get_logger()
+logger = StructuredLogger().logger
 
 
 class AkShareProvider(DataProvider):

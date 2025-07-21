@@ -9,7 +9,7 @@ from vprism.core.logging import StructuredLogger, PerformanceLogger, bind
 from vprism.infrastructure.providers.base import DataProvider
 from vprism.infrastructure.providers.registry import ProviderRegistry
 
-logger = StructuredLogger().get_logger()
+logger = StructuredLogger().logger
 
 
 class DataRouter:

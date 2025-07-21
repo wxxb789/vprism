@@ -370,23 +370,29 @@ CACHE_INVALIDATION_TTL=300
 - **LOG_LEVEL**: Logging level (DEBUG, INFO, WARNING, ERROR)
 - **PROVIDER_TIMEOUT**: Provider request timeout (default: 30s)
 
-### Development Commands - IMPLEMENTED
+### Development Commands - RESTRUCTURED
 ```bash
 # Install package
-pip install -e .
+uv sync
 
 # Run tests
-pytest tests/ -v
+uv run pytest tests/ -v
 
 # Type checking
-mypy src/vprism --strict
+uv run mypy src/vprism --strict
 
 # Code formatting
-ruff format src/
-ruff check src/
+uv run ruff format src/
+uv run ruff check src/
 
-# Run service
-uvicorn vprism.service:app --reload --host 0.0.0.0 --port 8000
+# Run Web service
+uv run uvicorn src.vprism-web.main:app --reload --host 0.0.0.0 --port 8000
+
+# Run MCP server
+uv run python -m src.vprism-mcp
+
+# Docker development
+docker-compose -f src/vprism-docker/docker-compose.yml up --build
 ```
 
 ## Deployment Modes - IMPLEMENTED
@@ -405,11 +411,12 @@ uvicorn vprism.service:app --reload --host 0.0.0.0 --port 8000
 - **Testing**: 287+ test cases with 95%+ coverage
 - **Documentation**: Complete usage examples and API reference
 
-### Service Mode - COMPLETED ✅
+### Service Mode - COMPLETED ✅ - RESTRUCTURED
 - **Use Case**: REST API server
 - **Framework**: FastAPI 0.111+ with full REST API
-- **Entry Point**: `python main.py web` or `uvicorn src.vprism.web.app:app`
-- **Dependencies**: FastAPI, uvicorn, httpx, DuckDB
+- **Entry Point**: `python main.py web` or `uvicorn src.vprism-web.main:app:app`
+- **Module Path**: `src/vprism-web/`
+- **Dependencies**: FastAPI, uvicorn, httpx, DuckDB + vprism core module
 - **Features**: 
   - Complete RESTful API with OpenAPI 3.0 documentation
   - Swagger UI and ReDoc interfaces
@@ -422,10 +429,11 @@ uvicorn vprism.service:app --reload --host 0.0.0.0 --port 8000
   - `/api/v1/data/batch/*` - Batch processing
   - `/api/v1/health/*` - Health monitoring endpoints
 
-### MCP Mode - COMPLETED ✅
+### MCP Mode - COMPLETED ✅ - RESTRUCTURED
 - **Use Case**: AI agent integration with FastMCP
-- **Entry Point**: `python -m vprism.mcp` or `vprism.mcp:server`
-- **Dependencies**: FastMCP 2.10.6 with complete MCP protocol support
+- **Entry Point**: `python -m vprism-mcp` or `uvicorn src.vprism-mcp.__main__`
+- **Module Path**: `src/vprism-mcp/`
+- **Dependencies**: FastMCP 2.10.6 with complete MCP protocol support + vprism core module
 - **Features**:
   - Complete MCP tool registration for all data operations
   - Real-time data queries via MCP protocol

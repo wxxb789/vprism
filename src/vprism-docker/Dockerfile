@@ -15,7 +15,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 安装 Web 服务依赖
-COPY requirements-web.txt .
+COPY ../vprism-web/requirements-web.txt .
 RUN pip install --no-cache-dir -r requirements-web.txt
 
 # 生产阶段
@@ -32,12 +32,12 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # 复制应用代码
-COPY src/ ./src/
-COPY main.py ./
+COPY ../vprism src/
+COPY ../vprism-web/main.py ./
 COPY README.md ./
 
 # 设置环境变量
-ENV PYTHONPATH=/app/src
+ENV PYTHONPATH=/app
 ENV VPRISM_HOST=0.0.0.0
 ENV VPRISM_PORT=8000
 

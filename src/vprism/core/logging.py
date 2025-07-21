@@ -27,12 +27,13 @@ class StructuredLogger:
 
     def __init__(self, config: Optional[LogConfig] = None):
         self.config = config or LogConfig()
+        self.logger = logger
         self._setup_logger()
 
     def _setup_logger(self) -> None:
         """配置loguru日志器。"""
         # 清除默认处理器
-        logger.remove()
+        self.logger.remove()
 
         if self.config.console_output:
             self._setup_console_handler()
@@ -43,14 +44,14 @@ class StructuredLogger:
     def _setup_console_handler(self) -> None:
         """设置控制台输出处理器。"""
         if self.config.format == "json":
-            logger.add(
+            self.logger.add(
                 sys.stderr,
                 level=self.config.level,
                 format=self._json_formatter,
                 serialize=True,
             )
         else:
-            logger.add(
+            self.logger.add(
                 sys.stderr,
                 level=self.config.level,
                 format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
