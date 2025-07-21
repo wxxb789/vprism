@@ -5,17 +5,16 @@ This module provides comprehensive data validation, cleaning, and quality scorin
 capabilities to ensure high-quality financial data.
 """
 
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-from decimal import Decimal
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass
-from enum import Enum
 import logging
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any
+
+import numpy as np
+import pandas as pd
 
 from vprism.core.models import DataPoint
-from vprism.core.exceptions import VPrismError
 
 
 class QualityLevel(Enum):
@@ -38,7 +37,7 @@ class QualityScore:
     consistency: float  # 0-1 score for data relationships
     overall: float  # 0-1 composite score
     level: QualityLevel  # Overall quality level
-    issues: List[str]  # List of identified issues
+    issues: list[str]  # List of identified issues
 
 
 class DataQualityValidator:
@@ -57,7 +56,7 @@ class DataQualityValidator:
         self.consistency_threshold = consistency_threshold
         self.logger = logging.getLogger(__name__)
 
-    def validate_data_point(self, data_point: DataPoint) -> List[str]:
+    def validate_data_point(self, data_point: DataPoint) -> list[str]:
         """Validate a single data point and return list of issues."""
         issues = []
 
@@ -104,7 +103,7 @@ class DataQualityValidator:
 
         return issues
 
-    def validate_dataframe(self, df: pd.DataFrame) -> List[str]:
+    def validate_dataframe(self, df: pd.DataFrame) -> list[str]:
         """Validate a pandas DataFrame and return list of issues."""
         issues = []
 
@@ -137,7 +136,7 @@ class DataQualityValidator:
 
     def detect_missing_data(
         self, df: pd.DataFrame, expected_frequency: str = "D"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Detect missing data points based on expected frequency."""
         if df.empty or "timestamp" not in df.columns:
             return {"missing_count": 0, "missing_percentage": 0.0, "gaps": []}
@@ -222,7 +221,7 @@ class DataQualityValidator:
 
         return df[outlier_mask]
 
-    def check_consistency(self, df: pd.DataFrame) -> List[str]:
+    def check_consistency(self, df: pd.DataFrame) -> list[str]:
         """Check data consistency across related fields."""
         issues = []
 
@@ -289,7 +288,7 @@ class DataQualityScorer:
         return min(1.0, accuracy)
 
     def calculate_timeliness_score(
-        self, df: pd.DataFrame, current_time: Optional[datetime] = None
+        self, df: pd.DataFrame, current_time: datetime | None = None
     ) -> float:
         """Calculate timeliness score based on data freshness."""
         if df.empty or "timestamp" not in df.columns:
@@ -323,7 +322,7 @@ class DataQualityScorer:
         return min(1.0, consistency)
 
     def calculate_overall_score(
-        self, df: pd.DataFrame, current_time: Optional[datetime] = None
+        self, df: pd.DataFrame, current_time: datetime | None = None
     ) -> QualityScore:
         """Calculate comprehensive data quality score."""
         validator = DataQualityValidator()

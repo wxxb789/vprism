@@ -1,12 +1,14 @@
 """测试库模式接口"""
 
-import pytest
 import asyncio
 import os
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
+import vprism
 from vprism.core.client import VPrismClient
 from vprism.core.models import AssetType, MarketType, TimeFrame
-import vprism
 
 
 class TestVPrismClient:
@@ -85,7 +87,6 @@ class TestVPrismClient:
     @patch("vprism.infrastructure.providers.base.DataProvider.get_data")
     def test_get_sync(self, mock_get_data, mock_route_query):
         """测试同步获取数据"""
-        import asyncio
 
         # 创建模拟协程
         async def mock_coro(query):
@@ -128,7 +129,6 @@ class TestGlobalInterface:
     @patch("vprism.infrastructure.providers.base.DataProvider.get_data")
     def test_global_get(self, mock_get_data, mock_route_query):
         """测试全局get函数"""
-        import asyncio
 
         async def mock_coro(query):
             return {"data": "global_test"}
@@ -162,7 +162,6 @@ class TestGlobalInterface:
     @patch("vprism.infrastructure.providers.base.DataProvider.get_data")
     def test_global_query_and_execute(self, mock_get_data, mock_route_query):
         """测试全局query和execute函数"""
-        import asyncio
 
         async def mock_coro(query):
             return {"data": "query_execute_test"}

@@ -6,14 +6,14 @@ including validation, cleaning, and consistency checking.
 """
 
 import asyncio
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-from decimal import Decimal
 import logging
+from datetime import datetime
 
-from vprism.core.quality import DataQualityValidator, DataQualityScorer, DataCleaner
+import numpy as np
+import pandas as pd
+
 from vprism.core.consistency import DataConsistencyValidator
+from vprism.core.quality import DataCleaner, DataQualityScorer, DataQualityValidator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -113,7 +113,7 @@ def demonstrate_data_quality_validation():
 
     # Check for missing data
     missing_info = validator.detect_missing_data(data, expected_frequency="D")
-    print(f"\nMissing Data Analysis:")
+    print("\nMissing Data Analysis:")
     print(f"  Missing records: {missing_info['missing_count']}")
     print(f"  Missing percentage: {missing_info['missing_percentage']:.2%}")
 
@@ -139,7 +139,7 @@ def demonstrate_data_quality_scoring():
     # Calculate comprehensive score
     score = scorer.calculate_overall_score(data)
 
-    print(f"Data Quality Score for AAPL:")
+    print("Data Quality Score for AAPL:")
     print(f"  Overall Score: {score.overall:.2%}")
     print(f"  Quality Level: {score.level.value}")
     print(f"  Completeness: {score.completeness:.2%}")
@@ -157,7 +157,7 @@ def demonstrate_data_cleaning():
 
     # Create sample data
     data = create_sample_data()
-    print(f"\nBefore cleaning:")
+    print("\nBefore cleaning:")
     print(f"  Records: {len(data)}")
     print(f"  Missing values: {data.isna().sum().sum()}")
 
@@ -168,7 +168,7 @@ def demonstrate_data_cleaning():
     cleaned = cleaner.clean_missing_values(data, method="interpolate")
     cleaned = cleaner.remove_outliers(cleaned)
 
-    print(f"\nAfter cleaning:")
+    print("\nAfter cleaning:")
     print(f"  Records: {len(cleaned)}")
     print(f"  Missing values: {cleaned.isna().sum().sum()}")
     print(f"  Records removed: {len(data) - len(cleaned)}")
@@ -211,7 +211,7 @@ async def demonstrate_consistency_validation():
         with patch.object(validator, "_get_akshare_data", return_value=identical_data):
             report = validator.validate_consistency("000001", start_date, end_date)
 
-    print(f"\nConsistency Validation Results for 000001:")
+    print("\nConsistency Validation Results for 000001:")
     print(f"  Total Records: {report.total_records}")
     print(f"  Matching Records: {report.matching_records}")
     print(f"  Consistency Percentage: {report.consistency_percentage:.1f}%")

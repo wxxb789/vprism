@@ -3,6 +3,9 @@
 import asyncio
 from datetime import date, datetime, timedelta
 
+from loguru import logger
+
+from vprism.core.logging import PerformanceLogger
 from vprism.core.models import (
     AssetType,
     DataQuery,
@@ -13,10 +16,8 @@ from vprism.core.models import (
     TimeFrame,
 )
 from vprism.core.services.data_router import DataRouter
-from vprism.core.logging import PerformanceLogger, log_with_context
 from vprism.infrastructure.cache.multilevel import MultiLevelCache
 from vprism.infrastructure.repositories.data import DataRepository
-from loguru import logger
 
 
 class DataService:
@@ -377,7 +378,7 @@ class DataService:
             query_id = f"query_{i}"
             if isinstance(response, Exception):
                 logger.error(
-                    f"Query failed",
+                    "Query failed",
                     extra={
                         "query_id": query_id,
                         "symbols": query.symbols,

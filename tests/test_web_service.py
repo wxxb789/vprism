@@ -3,15 +3,15 @@ Web 服务测试套件
 测试 FastAPI Web 服务的各个端点和功能
 """
 
-import json
-import pytest
 from datetime import datetime
+from unittest.mock import AsyncMock
+
+import pytest
 from httpx import AsyncClient
 from httpx._transports.asgi import ASGITransport
-from unittest.mock import AsyncMock, patch
 
+from vprism.core.models import DataResponse
 from vprism.web.app import create_app
-from vprism.core.models import DataResponse, Asset
 
 
 class TestWebService:
@@ -111,8 +111,9 @@ class TestWebService:
     async def test_get_stock_data(self, app, mock_client):
         """测试获取股票数据端点"""
         # 设置模拟返回数据
-        from vprism.core.models import ResponseMetadata, ProviderInfo, DataPoint
         from decimal import Decimal
+
+        from vprism.core.models import DataPoint, ProviderInfo, ResponseMetadata
 
         mock_response = DataResponse(
             data=[
@@ -148,8 +149,9 @@ class TestWebService:
     @pytest.mark.asyncio
     async def test_post_stock_data(self, app, mock_client):
         """测试 POST 方式获取股票数据"""
-        from vprism.core.models import ResponseMetadata, ProviderInfo, DataPoint
         from decimal import Decimal
+
+        from vprism.core.models import DataPoint, ProviderInfo, ResponseMetadata
 
         mock_response = DataResponse(
             data=[
@@ -186,9 +188,10 @@ class TestWebService:
     @pytest.mark.asyncio
     async def test_market_data_endpoint(self, app, mock_client):
         """测试市场数据端点"""
-        from vprism.core.models import ResponseMetadata, ProviderInfo, DataPoint
-        from decimal import Decimal
         from datetime import datetime
+        from decimal import Decimal
+
+        from vprism.core.models import DataPoint, ProviderInfo, ResponseMetadata
 
         mock_response = DataResponse(
             data=[
@@ -224,9 +227,10 @@ class TestWebService:
     @pytest.mark.asyncio
     async def test_batch_data_endpoint(self, app, mock_client):
         """测试批量数据端点"""
-        from vprism.core.models import ResponseMetadata, ProviderInfo, DataPoint
-        from decimal import Decimal
         from datetime import datetime
+        from decimal import Decimal
+
+        from vprism.core.models import DataPoint, ProviderInfo, ResponseMetadata
 
         mock_response1 = DataResponse(
             data=[

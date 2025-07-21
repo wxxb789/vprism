@@ -2,18 +2,18 @@
 FastAPI 应用工厂和配置
 """
 
+import json
 import uuid
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from datetime import datetime
+from decimal import Decimal
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.encoders import jsonable_encoder
-from datetime import datetime
-import json
-from decimal import Decimal
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
 
 
 # Custom JSON encoder for datetime and Decimal
@@ -26,13 +26,13 @@ class CustomJSONEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
+from models import ErrorResponse
+from routes import data_router, health_router
+
 from vprism.core.client import VPrismClient
 from vprism.core.config import ConfigManager
 from vprism.core.exceptions import VPrismError
-from loguru import logger
 from vprism.core.logging import RequestLogger
-from models import ErrorResponse
-from routes import data_router, health_router
 
 
 @asynccontextmanager

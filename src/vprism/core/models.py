@@ -1,11 +1,12 @@
 """核心数据模型和枚举类型."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field, ConfigDict as PydanticConfigDict
+from pydantic import BaseModel, Field
+from pydantic import ConfigDict as PydanticConfigDict
 
 
 class AssetType(str, Enum):
@@ -125,7 +126,7 @@ class DataResponse(BaseModel):
     metadata: ResponseMetadata
     source: ProviderInfo
     cached: bool = False
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class ErrorResponse(BaseModel):
@@ -134,4 +135,4 @@ class ErrorResponse(BaseModel):
     error_code: str
     message: str
     details: dict[str, Any] = Field(default_factory=dict)
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))

@@ -1,13 +1,11 @@
 """vprism客户端实现 - 提供简单和复杂的API接口"""
 
 import asyncio
-from typing import Any, Dict, Optional
-from pathlib import Path
-import os
+from typing import Any
 
+from vprism.core.config import ConfigManager, load_config_from_env
 from vprism.core.models import AssetType, DataQuery, MarketType, TimeFrame
 from vprism.core.services.data_router import DataRouter
-from vprism.core.config import ConfigManager, load_config_from_env
 from vprism.infrastructure.providers.registry import ProviderRegistry
 
 
@@ -79,7 +77,7 @@ class QueryBuilder:
 class VPrismClient:
     """vprism主客户端 - 提供同步和异步接口"""
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """初始化客户端
 
         Args:

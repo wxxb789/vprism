@@ -8,10 +8,8 @@ with different transport modes and configurations.
 import argparse
 import asyncio
 import sys
-from typing import Optional
 
 from loguru import logger
-
 from server import create_mcp_server
 
 
@@ -61,10 +59,11 @@ async def main():
     config = {}
     if args.config:
         import json
+
         import yaml
 
         try:
-            with open(args.config, "r") as f:
+            with open(args.config) as f:
                 if args.config.endswith(".yaml") or args.config.endswith(".yml"):
                     config = yaml.safe_load(f)
                 else:

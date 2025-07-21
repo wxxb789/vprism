@@ -3,8 +3,8 @@
 Web 服务基础测试
 """
 
-import asyncio
 from fastapi.testclient import TestClient
+
 from vprism.web.app import create_app
 
 

@@ -2,9 +2,9 @@
 Web 服务启动脚本
 """
 
-import uvicorn
 import os
-from pathlib import Path
+
+import uvicorn
 
 
 def main():

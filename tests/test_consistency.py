@@ -2,15 +2,12 @@
 Tests for data consistency validation between vprism and akshare.
 """
 
-import pytest
-from datetime import datetime, timedelta
-from decimal import Decimal
-import pandas as pd
-import numpy as np
-from unittest.mock import Mock, patch
+from datetime import datetime
+from unittest.mock import patch
 
-from vprism.core.consistency import DataConsistencyValidator, ConsistencyReport
-from vprism.core.models import DataPoint, Asset
+import pandas as pd
+
+from vprism.core.consistency import ConsistencyReport, DataConsistencyValidator
 
 
 class TestDataConsistencyValidator:

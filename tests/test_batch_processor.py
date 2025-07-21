@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from vprism.core.models import (
+    AssetType,
     DataPoint,
     DataQuery,
     DataResponse,
@@ -14,7 +15,6 @@ from vprism.core.models import (
     ProviderInfo,
     ResponseMetadata,
     TimeFrame,
-    AssetType,
 )
 from vprism.core.services import BatchProcessor, BatchRequest, BatchResult
 

@@ -1,6 +1,7 @@
 """vprism库模式使用示例"""
 
 import asyncio
+
 import vprism
 from vprism.core.client import VPrismClient
 
@@ -159,7 +160,7 @@ def batch_usage():
     markets = ["cn", "us", "hk"]
     symbols = [["000001"], ["AAPL"], ["00700"]]
 
-    for market, symbol_list in zip(markets, symbols):
+    for market, symbol_list in zip(markets, symbols, strict=False):
         data = vprism.get(
             asset="stock",
             market=market,

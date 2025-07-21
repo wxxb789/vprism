@@ -5,8 +5,6 @@ Web 服务演示脚本
 """
 
 import requests
-import json
-import time
 
 
 def demo_web_service():

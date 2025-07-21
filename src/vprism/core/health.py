@@ -2,12 +2,11 @@
 
 import asyncio
 import time
-from typing import Dict, Any, List
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from loguru import logger
-from vprism.core.logging import log_with_context
 
 
 @dataclass
@@ -16,7 +15,7 @@ class HealthStatus:
 
     status: str  # "healthy", "degraded", "unhealthy"
     timestamp: datetime
-    checks: Dict[str, Dict[str, Any]]
+    checks: dict[str, dict[str, Any]]
     uptime_seconds: float
     version: str = "0.1.0"
 
@@ -26,7 +25,7 @@ class HealthChecker:
 
     def __init__(self):
         self.start_time = time.time()
-        self.checks: Dict[str, callable] = {}
+        self.checks: dict[str, callable] = {}
         self._register_default_checks()
 
     def _register_default_checks(self) -> None:
@@ -38,7 +37,7 @@ class HealthChecker:
         """注册自定义健康检查。"""
         self.checks[name] = check_func
 
-    async def _check_system_health(self) -> Dict[str, Any]:
+    async def _check_system_health(self) -> dict[str, Any]:
         """基础系统健康检查。"""
         try:
             import psutil
@@ -63,7 +62,7 @@ class HealthChecker:
                 "details": {"note": "psutil not available, basic check passed"},
             }
 
-    async def _check_memory_usage(self) -> Dict[str, Any]:
+    async def _check_memory_usage(self) -> dict[str, Any]:
         """内存使用情况检查。"""
         try:
             return {
@@ -76,7 +75,7 @@ class HealthChecker:
 
     async def check_health(self) -> HealthStatus:
         """执行所有健康检查。"""
-        checks_results: Dict[str, Dict[str, Any]] = {}
+        checks_results: dict[str, dict[str, Any]] = {}
         overall_status = "healthy"
         failed_checks = 0
         total_checks = len(self.checks)
@@ -94,7 +93,7 @@ class HealthChecker:
         try:
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            for name, result in zip(check_names, results):
+            for name, result in zip(check_names, results, strict=False):
                 if isinstance(result, Exception):
                     checks_results[name] = {"status": "unhealthy", "error": str(result)}
                     failed_checks += 1
@@ -114,7 +113,7 @@ class HealthChecker:
                     ):
                         overall_status = "degraded"
         except Exception as e:
-            logger.error(f"Health check execution failed", extra={"error": str(e)})
+            logger.error("Health check execution failed", extra={"error": str(e)})
             overall_status = "unhealthy"
             checks_results["execution"] = {"status": "unhealthy", "error": str(e)}
 
@@ -137,7 +136,7 @@ class HealthChecker:
 
         return health_status
 
-    async def check_providers(self, providers: List[str]) -> Dict[str, Any]:
+    async def check_providers(self, providers: list[str]) -> dict[str, Any]:
         """检查数据提供商状态（简化版）。"""
         provider_status = {}
         for provider in providers:
@@ -205,7 +204,7 @@ class SimpleHealthMiddleware:
 
 
 # 便捷函数
-async def check_system_health() -> Dict[str, Any]:
+async def check_system_health() -> dict[str, Any]:
     """快速系统健康检查。"""
     checker = get_health_checker()
     health = await checker.check_health()

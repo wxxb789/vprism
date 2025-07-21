@@ -4,8 +4,8 @@ from datetime import datetime
 from typing import Any
 
 from vprism.core.exceptions import NoCapableProviderError
+from vprism.core.logging import PerformanceLogger, StructuredLogger, bind
 from vprism.core.models import DataQuery
-from vprism.core.logging import StructuredLogger, PerformanceLogger, bind
 from vprism.infrastructure.providers.base import DataProvider
 from vprism.infrastructure.providers.registry import ProviderRegistry
 

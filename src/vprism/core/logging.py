@@ -3,7 +3,7 @@
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from loguru import logger
 from pydantic import BaseModel
@@ -16,7 +16,7 @@ class LogConfig(BaseModel):
     format: str = "json"  # json or console
     console_output: bool = True
     file_output: bool = False
-    file_path: Optional[str] = None
+    file_path: str | None = None
     rotation: str = "10 MB"
     retention: str = "30 days"
     compression: str = "zip"
@@ -25,7 +25,7 @@ class LogConfig(BaseModel):
 class StructuredLogger:
     """vprism统一日志系统。"""
 
-    def __init__(self, config: Optional[LogConfig] = None):
+    def __init__(self, config: LogConfig | None = None):
         self.config = config or LogConfig()
         self.logger = logger
         self._setup_logger()
@@ -74,7 +74,7 @@ class StructuredLogger:
             compression=self.config.compression,
         )
 
-    def _json_formatter(self, record: Dict[str, Any]) -> str:
+    def _json_formatter(self, record: dict[str, Any]) -> str:
         """JSON格式化器。"""
         log_data = {
             "timestamp": record["time"].isoformat(),
@@ -102,7 +102,7 @@ class StructuredLogger:
 
 
 # 全局日志实例
-_global_logger: Optional[StructuredLogger] = None
+_global_logger: StructuredLogger | None = None
 
 
 def get_logger() -> StructuredLogger:
@@ -177,7 +177,7 @@ class PerformanceLogger:
 class RequestLogger:
     """HTTP请求日志中间件。"""
 
-    def __init__(self, exclude_paths: Optional[list] = None):
+    def __init__(self, exclude_paths: list | None = None):
         self.exclude_paths = exclude_paths or ["/health", "/docs", "/openapi.json"]
 
     async def __call__(self, request, call_next):
@@ -187,7 +187,7 @@ class RequestLogger:
 
         start_time = logger.time()
         logger.info(
-            f"Request started",
+            "Request started",
             extra={
                 "method": request.method,
                 "url": str(request.url),
@@ -201,7 +201,7 @@ class RequestLogger:
             response = await call_next(request)
             duration = (logger.time() - start_time) * 1000
             logger.success(
-                f"Request completed",
+                "Request completed",
                 extra={
                     "method": request.method,
                     "url": str(request.url),
@@ -213,7 +213,7 @@ class RequestLogger:
         except Exception as e:
             duration = (logger.time() - start_time) * 1000
             logger.error(
-                f"Request failed",
+                "Request failed",
                 extra={
                     "method": request.method,
                     "url": str(request.url),

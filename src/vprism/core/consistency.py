@@ -5,16 +5,15 @@ This module provides comprehensive comparison and validation between vprism data
 and akshare data to ensure accuracy and consistency.
 """
 
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-from decimal import Decimal
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any
 
-from vprism.core.models import DataPoint, Asset
-from vprism.core.quality import DataQualityValidator, QualityScore
+import numpy as np
+import pandas as pd
+
+from vprism.core.quality import DataQualityValidator
 from vprism.infrastructure.providers.akshare_provider import AkShareProvider
 from vprism.infrastructure.repositories.data import DataRepository
 
@@ -34,8 +33,8 @@ class ConsistencyReport:
     average_price_difference: float
     max_price_difference: float
     consistency_percentage: float
-    issues: List[str]
-    detailed_comparison: Dict[str, Any]
+    issues: list[str]
+    detailed_comparison: dict[str, Any]
 
 
 class DataConsistencyValidator:
@@ -44,7 +43,7 @@ class DataConsistencyValidator:
     def __init__(
         self,
         tolerance: float = 0.01,  # 1% tolerance for price differences
-        repository: Optional[DataRepository] = None,
+        repository: DataRepository | None = None,
     ):
         self.tolerance = tolerance
         self.repository = repository
@@ -82,7 +81,6 @@ class DataConsistencyValidator:
 
         try:
             # Import here to avoid circular imports
-            from vprism.infrastructure.storage.models import DataRecord
 
             # Get data records using the repository's existing method
             import asyncio
@@ -137,8 +135,8 @@ class DataConsistencyValidator:
             from vprism.core.models import (
                 Asset,
                 AssetType,
-                MarketType,
                 DataQuery,
+                MarketType,
                 TimeFrame,
             )
 
@@ -354,11 +352,11 @@ class DataConsistencyValidator:
 
     def compare_multiple_symbols(
         self,
-        symbols: List[str],
+        symbols: list[str],
         start_date: datetime,
         end_date: datetime,
         timeframe: str = "1d",
-    ) -> Dict[str, ConsistencyReport]:
+    ) -> dict[str, ConsistencyReport]:
         """Compare consistency for multiple symbols."""
         reports = {}
 
@@ -388,7 +386,7 @@ class DataConsistencyValidator:
 
         return reports
 
-    def generate_consistency_report(self, reports: Dict[str, ConsistencyReport]) -> str:
+    def generate_consistency_report(self, reports: dict[str, ConsistencyReport]) -> str:
         """Generate a formatted consistency report."""
         lines = []
         lines.append("=" * 80)
@@ -443,11 +441,11 @@ class DataConsistencyValidator:
 
     def run_automated_validation(
         self,
-        symbols: List[str],
+        symbols: list[str],
         days_back: int = 30,
         timeframe: str = "1d",
         alert_threshold: float = 95.0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Run automated consistency validation with alerting."""
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days_back)

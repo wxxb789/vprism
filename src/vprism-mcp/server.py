@@ -6,16 +6,15 @@ for vPrism, providing financial data access through standardized MCP tools.
 """
 
 import asyncio
-from typing import Any, Dict, List, Optional
 from datetime import datetime, timedelta
+from typing import Any
 
-from fastmcp import FastMCP, Context
+from fastmcp import FastMCP
 from loguru import logger
 
 from vprism.core.client import VPrismClient
-from vprism.core.models import AssetType, MarketType, TimeFrame
-from vprism.core.services.data_service import DataService
 from vprism.core.exceptions import VPrismError
+from vprism.core.models import MarketType, TimeFrame
 
 
 class VPrismMCPServer:
@@ -27,7 +26,7 @@ class VPrismMCPServer:
     and historical financial data.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize vPrism MCP Server.
 
@@ -49,7 +48,7 @@ class VPrismMCPServer:
             end_date: str,
             timeframe: str = "1d",
             market: str = "us",
-        ) -> Dict[str, Any]:
+        ) -> dict[str, Any]:
             """
             Get historical stock data for a specific symbol.
 
@@ -129,8 +128,8 @@ class VPrismMCPServer:
 
         @self.mcp.tool()
         async def get_market_overview(
-            market: str = "us", date: Optional[str] = None
-        ) -> Dict[str, Any]:
+            market: str = "us", date: str | None = None
+        ) -> dict[str, Any]:
             """
             Get market overview data including major indices.
 
@@ -206,7 +205,7 @@ class VPrismMCPServer:
         @self.mcp.tool()
         async def search_symbols(
             query: str, market: str = "us", limit: int = 10
-        ) -> Dict[str, Any]:
+        ) -> dict[str, Any]:
             """
             Search for stock symbols by name or ticker.
 
@@ -290,7 +289,7 @@ class VPrismMCPServer:
                 return {"error": f"Failed to search symbols: {str(e)}", "query": query}
 
         @self.mcp.tool()
-        async def get_realtime_price(symbol: str, market: str = "us") -> Dict[str, Any]:
+        async def get_realtime_price(symbol: str, market: str = "us") -> dict[str, Any]:
             """
             Get real-time price for a specific symbol.
 
@@ -356,8 +355,8 @@ class VPrismMCPServer:
 
         @self.mcp.tool()
         async def get_batch_quotes(
-            symbols: List[str], market: str = "us"
-        ) -> Dict[str, Any]:
+            symbols: list[str], market: str = "us"
+        ) -> dict[str, Any]:
             """
             Get real-time quotes for multiple symbols at once.
 
@@ -434,7 +433,7 @@ class VPrismMCPServer:
                 return {"error": f"Failed to get batch quotes: {str(e)}"}
 
         @self.mcp.resource("data://markets")
-        async def get_available_markets() -> Dict[str, Any]:
+        async def get_available_markets() -> dict[str, Any]:
             """
             Get list of available markets and their characteristics.
 
@@ -514,7 +513,7 @@ Use the available financial data tools to gather relevant information and provid
         asyncio.run(self.start(transport))
 
 
-def create_mcp_server(config: Optional[Dict[str, Any]] = None) -> VPrismMCPServer:
+def create_mcp_server(config: dict[str, Any] | None = None) -> VPrismMCPServer:
     """
     Create and configure a vPrism MCP server.
 

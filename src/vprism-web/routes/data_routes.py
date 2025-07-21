@@ -3,9 +3,6 @@
 提供股票数据、市场数据、批量数据查询接口
 """
 
-from datetime import datetime
-from typing import List, Optional
-
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
 from web.models import (
     APIResponse,
@@ -22,8 +19,8 @@ async def get_stock_data(
     symbol: str,
     market: str = Query("us", description="市场类型 (us, cn, hk)"),
     timeframe: str = Query("daily", description="时间周期 (1m, 5m, 1h, daily, weekly)"),
-    start_date: Optional[str] = Query(None, description="开始日期 YYYY-MM-DD"),
-    end_date: Optional[str] = Query(None, description="结束日期 YYYY-MM-DD"),
+    start_date: str | None = Query(None, description="开始日期 YYYY-MM-DD"),
+    end_date: str | None = Query(None, description="结束日期 YYYY-MM-DD"),
     limit: int = Query(100, ge=1, le=10000, description="返回条数限制"),
     request: Request = None,
 ) -> APIResponse:

@@ -1,9 +1,8 @@
 """健康检查系统测试"""
 
-import json
-import pytest
 from datetime import datetime
-from unittest.mock import patch
+
+import pytest
 
 from vprism.core.health import HealthChecker, HealthStatus, get_health_checker
 

@@ -11,8 +11,8 @@ try:
 except ImportError:
     YFINANCE_AVAILABLE = False
 
+from vprism.core.logging import StructuredLogger
 from vprism.core.models import DataPoint, DataQuery, DataResponse, MarketType
-from vprism.core.logging import StructuredLogger, PerformanceLogger, bind
 from vprism.infrastructure.providers.base import (
     AuthConfig,
     DataProvider,

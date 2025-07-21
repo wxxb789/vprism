@@ -1,0 +1,284 @@
+# vPrism Financial Data Platform - Docker Compose 扩展配置
+
+## 开发环境配置 (docker-compose.dev.yml)
+```yaml
+version: '3.8'
+
+services:
+  vprism-api:
+    volumes:
+      - ../../../src:/app/src:ro
+      - ../../../tests:/app/tests:ro
+    environment:
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+    ports:
+      - "8000:8000"
+    command: ["python", "-m", "uvicorn", "vprism.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  vprism-mcp:
+    volumes:
+      - ../../../src:/app/src:ro
+    environment:
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+    ports:
+      - "8001:8001"
+    command: ["python", "-m", "vprism-mcp", "--transport", "http", "--host", "0.0.0.0", "--port", "8001"]
+
+  data-collector:
+    volumes:
+      - ../../../src:/app/src:ro
+      - ../../../data:/app/data
+    environment:
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+    command: ["python", "-m", "vprism-data", "collect", "--interval", "60"]
+
+  postgres:
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=dev_password
+
+  redis:
+    ports:
+      - "6379:6379"
+```
+
+## 生产环境配置 (docker-compose.prod.yml)
+```yaml
+version: '3.8'
+
+services:
+  vprism-api:
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=WARNING
+      - ENVIRONMENT=production
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  vprism-mcp:
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=WARNING
+      - ENVIRONMENT=production
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    restart: unless-stopped
+
+  postgres:
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  redis:
+    restart: unless-stopped
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+```
+
+## 测试环境配置 (docker-compose.test.yml)
+```yaml
+version: '3.8'
+
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: vprism_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  redis-test:
+    image: redis:7-alpine
+    tmpfs:
+      - /data
+
+  vprism-test:
+    build: 
+      context: ../..
+      dockerfile: src/vprism-docker/Dockerfile
+    depends_on:
+      - postgres-test
+      - redis-test
+    environment:
+      - DATABASE_URL=postgresql://test_user:test_password@postgres-test:5432/vprism_test
+      - REDIS_URL=redis://redis-test:6379/0
+      - PYTEST_ARGS=--cov=vprism --cov-report=xml --cov-report=html
+    command: ["pytest", "tests/"]
+    volumes:
+      - ../../../coverage:/app/coverage
+```
+
+## SSL/TLS 配置 (docker-compose.ssl.yml)
+```yaml
+version: '3.8'
+
+services:
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - SSL_ENABLED=true
+      - SSL_CERT_PATH=/etc/nginx/ssl/cert.pem
+      - SSL_KEY_PATH=/etc/nginx/ssl/key.pem
+    volumes:
+      - ./nginx/nginx.ssl.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/ssl-params.conf:/etc/nginx/ssl-params.conf:ro
+```
+
+## 监控配置 (docker-compose.monitoring.yml)
+```yaml
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.conf:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.conf'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+
+volumes:
+  prometheus_data:
+  grafana_data:
+```
+
+## 日志聚合配置 (docker-compose.logging.yml)
+```yaml
+version: '3.8'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.8.0
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./logging/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.8.0
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+
+volumes:
+  elasticsearch_data:
+```
+
+## 使用示例
+
+### 1. 开发环境启动
+```bash
+# 启动开发环境
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# 查看日志
+docker-compose logs -f vprism-api
+```
+
+### 2. 生产环境部署
+```bash
+# 启动生产环境
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# 启用SSL
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ssl.yml up -d
+```
+
+### 3. 监控环境启动
+```bash
+# 启动监控服务
+docker-compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+
+# 访问监控面板
+# Prometheus: http://localhost:9090
+# Grafana: http://localhost:3000 (admin/admin)
+```
+
+### 4. 扩展部署
+```bash
+# 启动3个API实例
+docker-compose up --scale vprism-api=3 -d
+
+# 测试环境运行
+docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
+```

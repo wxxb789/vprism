@@ -82,8 +82,17 @@ vprism-mcp/
 ### `src/vprism-docker/` - Docker配置模块 - REVAMPED ✅
 ```
 vprism-docker/
-├── Dockerfile           # 多阶段容器构建
-└── docker-compose.yml   # 开发环境配置
+├── Dockerfile                          # 多阶段容器构建
+├── docker-compose.yml                  # 主服务配置
+├── docker-compose.extensions.yml       # 环境扩展配置
+├── DOCKER_DEPLOY.md                    # 完整部署指南
+└── nginx/                              # Nginx配置
+    ├── nginx.conf                      # 基础配置
+    ├── nginx.prod.conf                 # 生产配置
+    ├── nginx.ssl.conf                  # SSL配置
+    └── ssl/                            # SSL证书目录
+        ├── cert.pem
+        └── key.pem
 ```
 
 ## DIRECTORY VIOLATION CHECKLIST
@@ -93,12 +102,16 @@ vprism-docker/
 - `Q:/repos/my/vprism/vprism/src/vprism/` (nested duplication)
 - Any source code outside designated module directories
 - Nested module directories (e.g., `vprism-web/web/`)
+- Docker files in root directory (e.g., `docker-compose.yml`, `Dockerfile`, `docker-deploy.md`)
+- Nginx configuration in root directory
 
 **✅ ALWAYS ENSURE:**
 - All `.py` files in appropriate module directories
 - No duplicate package structures
 - Single source of truth for each file type
 - Flat module structure within each wrapper
+- Docker-related files ONLY in `src/vprism-docker/`
+- Configuration files grouped by concern in appropriate directories
 
 ## 模块职责划分
 

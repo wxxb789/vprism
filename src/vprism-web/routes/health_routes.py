@@ -2,14 +2,15 @@
 健康检查和系统状态路由
 """
 
-from fastapi import APIRouter, Request
-from web.models import APIResponse, ProviderStatus, CacheStats
-from vprism.core.health import get_health_checker
-from vprism.core.logging import log_with_context
-from datetime import datetime, timezone
 import time
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, Request
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
+from web.models import APIResponse, CacheStats, ProviderStatus
+
+from vprism.core.health import get_health_checker
 
 router = APIRouter()
 
@@ -107,14 +108,14 @@ async def provider_health_check(request: Request) -> APIResponse:
             ProviderStatus(
                 name="akshare",
                 status="healthy",
-                last_check=datetime.now(timezone.utc),
+                last_check=datetime.now(UTC),
                 response_time=150.5,
                 success_rate=0.98,
             ),
             ProviderStatus(
                 name="yahoo_finance",
                 status="healthy",
-                last_check=datetime.now(timezone.utc),
+                last_check=datetime.now(UTC),
                 response_time=200.3,
                 success_rate=0.95,
             ),

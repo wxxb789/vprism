@@ -7,9 +7,9 @@ from datetime import datetime
 from typing import Any
 
 from vprism.core.models import (
+    AssetType,
     DataQuery,
     DataResponse,
-    AssetType,
     ProviderInfo,
     ResponseMetadata,
 )

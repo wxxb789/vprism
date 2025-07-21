@@ -1,18 +1,15 @@
 """日志系统测试"""
 
 import json
-import tempfile
-from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 from loguru import logger
 
 from vprism.core.logging import (
-    StructuredLogger,
     LogConfig,
-    configure_logging,
     PerformanceLogger,
+    StructuredLogger,
+    configure_logging,
 )
 
 

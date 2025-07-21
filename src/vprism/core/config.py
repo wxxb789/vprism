@@ -1,10 +1,10 @@
 """配置管理模块 - 处理vprism客户端的配置"""
 
 import os
-from pathlib import Path
-from typing import Any, Dict, Optional
 import tomllib
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -60,7 +60,7 @@ class VPrismConfig:
             self.logging = LoggingConfig()
 
     @classmethod
-    def from_dict(cls, config_dict: Dict[str, Any]) -> "VPrismConfig":
+    def from_dict(cls, config_dict: dict[str, Any]) -> "VPrismConfig":
         """从字典创建配置"""
         cache_config = CacheConfig(**config_dict.get("cache", {}))
         provider_config = ProviderConfig(**config_dict.get("providers", {}))
@@ -70,7 +70,7 @@ class VPrismConfig:
             cache=cache_config, providers=provider_config, logging=logging_config
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "cache": asdict(self.cache),
@@ -82,7 +82,7 @@ class VPrismConfig:
 class ConfigManager:
     """配置管理器"""
 
-    def __init__(self, config_path: Optional[Path] = None):
+    def __init__(self, config_path: Path | None = None):
         """初始化配置管理器
 
         Args:
@@ -113,7 +113,7 @@ class ConfigManager:
         """更新配置"""
         config_dict = self.config.to_dict()
 
-        def deep_update(d: Dict, u: Dict) -> Dict:
+        def deep_update(d: dict, u: dict) -> dict:
             """深度更新字典"""
             for k, v in u.items():
                 if isinstance(v, dict):
@@ -143,7 +143,7 @@ def get_default_config() -> VPrismConfig:
     return VPrismConfig()
 
 
-def load_config_from_env() -> Dict[str, Any]:
+def load_config_from_env() -> dict[str, Any]:
     """从环境变量加载配置"""
     config = {}
 
