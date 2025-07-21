@@ -62,6 +62,15 @@ vprism/
 │   ├── repositories/    # Data persistence layer
 │   ├── router.py        # Data routing service
 │   └── storage/         # Database schema and operations
+├── web/                 # Web API layer - IMPLEMENTED
+│   ├── __init__.py
+│   ├── app.py           # FastAPI application factory
+│   ├── models.py        # Web API request/response models
+│   ├── main.py          # Web service entry point
+│   └── routes/          # API route handlers
+│       ├── __init__.py
+│       ├── data_routes.py    # Financial data endpoints
+│       └── health_routes.py  # Health monitoring endpoints
 └── exceptions/          # Exception definitions
 ```
 

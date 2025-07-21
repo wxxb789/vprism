@@ -36,9 +36,9 @@ vprism 提供统一的、可组合的 API 接口，支持多模态部署。
 
     服务模式 (Service Mode):
     ```python
-    from vprism.service import create_app
+    from vprism.web.app import create_app
     app = create_app()
-    # 然后运行: uvicorn "vprism.service:app" --host 0.0.0.0 --port 8000
+    # 然后运行: uvicorn "vprism.web.app:app" --host 0.0.0.0 --port 8000
     ```
 
     MCP 模式 (MCP Mode):

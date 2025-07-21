@@ -13,7 +13,7 @@
 
 ### Backend Framework - IMPLEMENTED
 - **Language**: Python 3.11+ with full type hints and mypy strict mode
-- **Web Framework**: FastAPI 0.104+ with async/await support (via uvicorn)
+- **Web Framework**: FastAPI 0.111+ with async/await support (via uvicorn) - IMPLEMENTED with full REST API
 - **API Documentation**: Automatic OpenAPI/Swagger generation
 - **Data Validation**: Pydantic 2.5+ for request/response validation
 - **Async Runtime**: Full async/await support with asyncio
@@ -168,10 +168,22 @@ uvicorn vprism.service:app --reload --host 0.0.0.0 --port 8000
 - **Testing**: 287+ test cases with 95%+ coverage
 - **Documentation**: Complete usage examples and API reference
 
-### Service Mode
+### Service Mode - COMPLETED ✅
 - **Use Case**: REST API server
-- **Entry Point**: `uvicorn vprism.service:app`
-- **Dependencies**: FastAPI, uvicorn, DuckDB
+- **Framework**: FastAPI 0.111+ with full REST API
+- **Entry Point**: `python main.py web` or `uvicorn src.vprism.web.app:app`
+- **Dependencies**: FastAPI, uvicorn, httpx, DuckDB
+- **Features**: 
+  - Complete RESTful API with OpenAPI 3.0 documentation
+  - Swagger UI and ReDoc interfaces
+  - Health checks and Kubernetes probes
+  - CORS, Gzip compression, request validation
+  - Standardized response format with error handling
+- **Routes**: 
+  - `/api/v1/data/stock/*` - Stock data endpoints
+  - `/api/v1/data/market/*` - Market data endpoints
+  - `/api/v1/data/batch/*` - Batch processing
+  - `/api/v1/health/*` - Health monitoring endpoints
 
 ### MCP Mode
 - **Use Case**: AI agent integration

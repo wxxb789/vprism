@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  vprism-web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - VPRISM_HOST=0.0.0.0
+      - VPRISM_PORT=8000
+      - VPRISM_RELOAD=false
+    volumes:
+      - ./data:/app/data
+      - ./cache:/app/cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  redis_data:
