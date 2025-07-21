@@ -10,11 +10,13 @@ Create foundational steering documents in `.kiro/steering/` to establish consist
 ## Project Analysis
 
 ### Current Project Structure
+
 - Project files: !`find . -type f -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.jsx" -o -name "*.tsx" -o -name "*.java" -o -name "*.go" -o -name "*.rs" | grep -v node_modules | grep -v .git | grep -v dist | head -30`
 - Configuration files: !`find . -maxdepth 3 -name "package.json" -o -name "requirements.txt" -o -name "pom.xml" -o -name "Cargo.toml" -o -name "go.mod" -o -name "pyproject.toml" -o -name "tsconfig.json"`
 - Documentation: !`find . -maxdepth 3 -name "README*" -o -name "CHANGELOG*" -o -name "LICENSE*" -o -name "*.md" | grep -v node_modules | grep -v .git`
 
 ### Existing Documentation
+
 - Main README: @README.md
 - Package configuration: @package.json
 - Python requirements: @requirements.txt
@@ -26,7 +28,9 @@ Create foundational steering documents in `.kiro/steering/` to establish consist
 Create the three foundational steering documents that provide persistent knowledge about your project:
 
 ### 1. Product Overview (`product.md`)
+
 Generate a comprehensive product overview that includes:
+
 - **Product Overview**: Brief description of what the product is
 - **Core Features**: Bulleted list of main capabilities
 - **Target Use Case**: Specific scenarios the product addresses
@@ -35,7 +39,9 @@ Generate a comprehensive product overview that includes:
 This helps AI understand the context for technical decisions and business requirements.
 
 ### 2. Technology Stack (`tech.md`)
+
 Document the complete technology landscape:
+
 - **Architecture**: High-level system design (monolith, microservices, etc.)
 - **Frontend**: Frameworks, libraries, build tools (if applicable)
 - **Backend**: Language, framework, server technology (if applicable)
@@ -47,7 +53,9 @@ Document the complete technology landscape:
 This guides AI to prefer established technology choices and patterns.
 
 ### 3. Project Structure (`structure.md`)
+
 Outline the codebase organization:
+
 - **Root Directory Organization**: Top-level structure with descriptions
 - **Subdirectory Structures**: Detailed breakdown of key directories
 - **Code Organization Patterns**: How code is structured (MVC, domain-driven, etc.)
