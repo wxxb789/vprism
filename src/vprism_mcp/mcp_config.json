@@ -1,0 +1,34 @@
+{
+  "name": "vprism-financial-data",
+  "version": "0.1.0",
+  "description": "vPrism Financial Data Platform MCP Server",
+  "instructions": "This server provides access to real-time and historical financial data including stock prices, market indices, and company information.",
+  "transport": {
+    "stdio": {
+      "command": "python",
+      "args": ["-m", "mcp"],
+      "env": {}
+    },
+    "http": {
+      "host": "127.0.0.1",
+      "port": 8001,
+      "endpoint": "/mcp"
+    },
+    "sse": {
+      "host": "127.0.0.1",
+      "port": 8001,
+      "endpoint": "/sse"
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  },
+  "features": {
+    "realtime_data": true,
+    "historical_data": true,
+    "batch_queries": true,
+    "market_overview": true,
+    "symbol_search": true
+  }
+}
