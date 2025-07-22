@@ -5,9 +5,9 @@
 **⚠️ STRICT ENFORCEMENT:**
 - **Git root**: `Q:/repos/my/vprism/` (NEVER create subdirectories with source code)
 - **Core module**: `Q:/repos/my/vprism/src/vprism/` (核心逻辑模块)
-- **Web module**: `Q:/repos/my/vprism/src/vprism-web/` (Web服务包装器)
-- **MCP module**: `Q:/repos/my/vprism/src/vprism-mcp/` (MCP服务器包装器)
-- **Docker module**: `Q:/repos/my/vprism/src/vprism-docker/` (Docker配置)
+- **Web module**: `Q:/repos/my/vprism/src/vprism_web/` (Web服务包装器)
+- **MCP module**: `Q:/repos/my/vprism/src/vprism_mcp/` (MCP服务器包装器)
+- **Docker module**: `Q:/repos/my/vprism/src/vprism_docker/` (Docker配置)
 - **Test code**: `Q:/repos/my/vprism/tests/` (测试代码)
 - **NO EXCEPTIONS**: 所有代码必须位于相应模块目录内
 
@@ -17,9 +17,9 @@
 vprism/
 ├── src/
 │   ├── vprism/           # 核心逻辑模块 (核心API、数据模型、业务逻辑)
-│   ├── vprism-web/       # Web服务包装器 (FastAPI接口)
-│   ├── vprism-mcp/       # MCP服务器包装器 (MCP协议接口)
-│   └── vprism-docker/    # Docker配置 (容器化配置)
+│   ├── vprism_web/       # Web服务包装器 (FastAPI接口)
+│   ├── vprism_mcp/       # MCP服务器包装器 (MCP协议接口)
+│   └── vprism_docker/    # Docker配置 (容器化配置)
 ├── tests/                # 综合测试套件
 ├── devjournal/           # 开发日志和笔记
 ├── guide/                # 用户文档和指南
@@ -51,9 +51,9 @@ vprism/
 │   └── storage/         # 数据库模式和操作
 ```
 
-### `src/vprism-web/` - Web服务包装器 - REVAMPED ✅
+### `src/vprism_web/` - Web服务包装器 - REVAMPED ✅
 ```
-vprism-web/
+vprism_web/
 ├── __init__.py          # Web模块初始化
 ├── main.py              # Web服务启动脚本
 ├── app.py               # FastAPI应用工厂
@@ -69,9 +69,9 @@ vprism-web/
     └── health_service.py # 健康检查服务
 ```
 
-### `src/vprism-mcp/` - MCP服务器包装器 - REVAMPED ✅
+### `src/vprism_mcp/` - MCP服务器包装器 - REVAMPED ✅
 ```
-vprism-mcp/
+vprism_mcp/
 ├── __init__.py          # MCP模块初始化
 ├── __main__.py          # CLI入口点
 ├── server.py            # FastMCP服务器实现
@@ -79,9 +79,9 @@ vprism-mcp/
 └── mcp_config.yaml      # MCP配置YAML格式
 ```
 
-### `src/vprism-docker/` - Docker配置模块 - REVAMPED ✅
+### `src/vprism_docker/` - Docker配置模块 - REVAMPED ✅
 ```
-vprism-docker/
+vprism_docker/
 ├── Dockerfile                          # 多阶段容器构建
 ├── docker-compose.yml                  # 主服务配置
 ├── docker-compose.extensions.yml       # 环境扩展配置
@@ -110,7 +110,7 @@ vprism-docker/
 - No duplicate package structures
 - Single source of truth for each file type
 - Flat module structure within each wrapper
-- Docker-related files ONLY in `src/vprism-docker/`
+- Docker-related files ONLY in `src/vprism_docker/`
 - Configuration files grouped by concern in appropriate directories
 
 ## 模块职责划分
@@ -120,17 +120,17 @@ vprism-docker/
 - **依赖**: 仅依赖外部库，不依赖其他模块
 - **使用方式**: 作为库被其他模块导入使用
 
-### Web模块 (vprism-web/)
+### Web模块 (vprism_web/)
 - **职责**: FastAPI接口、HTTP路由、Web服务启动
 - **依赖**: 依赖核心模块 `vprism`
 - **使用方式**: 独立运行Web服务
 
-### MCP模块 (vprism-mcp/)
+### MCP模块 (vprism_mcp/)
 - **职责**: MCP协议接口、AI工具集成
 - **依赖**: 依赖核心模块 `vprism`
 - **使用方式**: 独立运行MCP服务器
 
-### Docker模块 (vprism-docker/)
+### Docker模块 (vprism_docker/)
 - **职责**: 容器化配置、环境部署
 - **依赖**: 依赖所有其他模块的构建产物
 - **使用方式**: 构建和运行容器化服务

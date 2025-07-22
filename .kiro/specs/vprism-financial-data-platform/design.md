@@ -948,9 +948,9 @@ RUN uv sync --frozen
 
 # 复制应用代码
 COPY src/vprism src/vprism/
-COPY src/vprism-web src/vprism-web/
-COPY src/vprism-mcp src/vprism-mcp/
-COPY src/vprism-docker src/vprism-docker/
+COPY src/vprism_web src/vprism-web/
+COPY src/vprism_mcp src/vprism-mcp/
+COPY src/vprism_docker src/vprism_docker/
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

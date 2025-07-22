@@ -17,7 +17,7 @@ from vprism.core.models import DataPoint, DataResponse, ProviderInfo, ResponseMe
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'vprism-mcp'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'vprism_mcp'))
 
 # Import after path setup
 from server import VPrismMCPServer, create_mcp_server

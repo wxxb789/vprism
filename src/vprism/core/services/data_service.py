@@ -18,6 +18,7 @@ from vprism.core.models import (
 from vprism.core.services.data_router import DataRouter
 from vprism.infrastructure.cache.multilevel import MultiLevelCache
 from vprism.infrastructure.repositories.data import DataRepository
+from vprism.infrastructure.storage.database import DatabaseManager
 
 
 class DataService:
@@ -38,7 +39,7 @@ class DataService:
         """
         self.router = router or DataRouter()
         self.cache = cache or MultiLevelCache()
-        self.repository = repository or DataRepository()
+        self.repository = repository or DataRepository(DatabaseManager())
 
         logger.info(
             "DataService initialized",
@@ -226,9 +227,13 @@ class DataService:
                     )
                     return DataResponse(
                         data=stored_data,
-                        query=query,
+                        metadata=ResponseMetadata(
+                            total_records=len(stored_data),
+                            query_time_ms=0.0,
+                            data_source="repository",
+                        ),
+                        source=ProviderInfo(name="repository", endpoint="repository"),
                         cached=False,
-                        metadata={"source": "repository"},
                     )
             except Exception as storage_error:
                 logger.error(
@@ -388,9 +393,13 @@ class DataService:
                 )
                 results[query_id] = DataResponse(
                     data=[],
-                    query=query,
+                    metadata=ResponseMetadata(
+                        total_records=0,
+                        query_time_ms=0.0,
+                        data_source="error",
+                    ),
+                    source=ProviderInfo(name="error", endpoint="error"),
                     cached=False,
-                    metadata={"error": str(response)},
                 )
                 failure_count += 1
             else:

@@ -10,6 +10,7 @@ from vprism.core.models import AssetType, DataPoint, DataQuery, MarketType, Time
 from vprism.infrastructure.providers import (
     AkShareProvider,
     ProviderRegistry,
+    VPrismProvider,
     YahooFinanceProvider,
 )
 
@@ -96,8 +97,7 @@ class TestAkShareProvider:
 
         # 使用mock避免真实API调用
         with patch.object(provider, "_fetch_data") as mock_fetch:
-            mock_response = Mock()
-            mock_response.data = [
+            data_points = [
                 DataPoint(
                     symbol="000001",
                     market=MarketType.CN,
@@ -110,7 +110,7 @@ class TestAkShareProvider:
                     provider="akshare",
                 )
             ]
-            mock_fetch.return_value = mock_response
+            mock_fetch.return_value = data_points
 
             response = await provider.get_data(query)
             assert response.data is not None
@@ -320,8 +320,8 @@ class TestIntegration:
         assert any(p.name == "akshare" for p in cn_providers)
         assert any(p.name == "vprism" for p in cn_providers)
 
-        # yfinance应该能处理美国股票
-        assert any(p.name == "yfinance" for p in us_providers)
+        # yahoo应该能处理美国股票
+        assert any(p.name == "yahoo" for p in us_providers)
 
 
 if __name__ == "__main__":

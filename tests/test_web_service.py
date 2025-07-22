@@ -12,8 +12,7 @@ from httpx._transports.asgi import ASGITransport
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'vprism-web'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'vprism_web'))
 from app import create_app
 
 
@@ -116,18 +115,20 @@ class TestWebService:
         # 设置模拟返回数据
         from decimal import Decimal
 
-        from vprism.core.models import DataPoint, ProviderInfo, ResponseMetadata
+        from vprism.core.models import DataResponse, DataPoint, ProviderInfo, ResponseMetadata
 
         mock_response = DataResponse(
             data=[
                 DataPoint(
                     symbol="AAPL",
+                    market="us",
                     timestamp=datetime(2024, 1, 1),
-                    open=Decimal("100.0"),
-                    high=Decimal("105.0"),
-                    low=Decimal("99.0"),
-                    close=Decimal("102.5"),
+                    open_price=Decimal("100.0"),
+                    high_price=Decimal("105.0"),
+                    low_price=Decimal("99.0"),
+                    close_price=Decimal("102.5"),
                     volume=Decimal("1000000"),
+                    provider="test_provider",
                 )
             ],
             metadata=ResponseMetadata(
@@ -154,14 +155,16 @@ class TestWebService:
         """测试 POST 方式获取股票数据"""
         from decimal import Decimal
 
-        from vprism.core.models import DataPoint, ProviderInfo, ResponseMetadata
+        from vprism.core.models import DataResponse, DataPoint, ProviderInfo, ResponseMetadata
 
         mock_response = DataResponse(
             data=[
                 DataPoint(
                     symbol="AAPL",
+                    market="us",
                     timestamp=datetime(2024, 1, 1),
-                    close=Decimal("102.5"),
+                    close_price=Decimal("102.5"),
+                    provider="test_provider",
                 )
             ],
             metadata=ResponseMetadata(
@@ -194,14 +197,16 @@ class TestWebService:
         from datetime import datetime
         from decimal import Decimal
 
-        from vprism.core.models import DataPoint, ProviderInfo, ResponseMetadata
+        from vprism.core.models import DataResponse, DataPoint, ProviderInfo, ResponseMetadata
 
         mock_response = DataResponse(
             data=[
                 DataPoint(
                     symbol="^GSPC",
+                    market="us",
                     timestamp=datetime(2024, 1, 1),
-                    close=Decimal("3000.0"),
+                    close_price=Decimal("3000.0"),
+                    provider="test_provider",
                 )
             ],
             metadata=ResponseMetadata(
@@ -230,17 +235,16 @@ class TestWebService:
     @pytest.mark.asyncio
     async def test_batch_data_endpoint(self, app, mock_client):
         """测试批量数据端点"""
-        from datetime import datetime
-        from decimal import Decimal
-
-        from vprism.core.models import DataPoint, ProviderInfo, ResponseMetadata
+        from vprism.core.models import DataResponse, DataPoint, ProviderInfo, ResponseMetadata
 
         mock_response1 = DataResponse(
             data=[
                 DataPoint(
                     symbol="AAPL",
+                    market="us",
                     timestamp=datetime(2024, 1, 1),
-                    close=Decimal("150.0"),
+                    close_price=Decimal("150.0"),
+                    provider="test_provider",
                 )
             ],
             metadata=ResponseMetadata(
@@ -252,8 +256,10 @@ class TestWebService:
             data=[
                 DataPoint(
                     symbol="GOOGL",
+                    market="us", 
                     timestamp=datetime(2024, 1, 1),
-                    close=Decimal("2500.0"),
+                    close_price=Decimal("2500.0"),
+                    provider="test_provider",
                 )
             ],
             metadata=ResponseMetadata(

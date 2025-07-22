@@ -9,8 +9,8 @@ vprism支持四种部署模式：Python库模式、Web服务模式、MCP模式�
 | 部署模式 | 适用场景 | 启动命令 | 资源需求 | 扩展性 |
 |----------|----------|----------|----------|--------|
 | [Python库](#python库模式) | 个人开发、数据分析 | `import vprism` | 低 | 单机 |
-| [Web服务](#web服务模式) | API服务、微服务架构 | `python -m vprism-web.main` | 中 | 水平扩展 |
-| [MCP服务](#mcp模式) | AI助手集成、聊天机器人 | `python -m vprism-mcp.server` | 低-中 | 单机/集群 |
+| [Web服务](#web服务模式) | API服务、微服务架构 | `python -m vprism_web.main` | 中 | 水平扩展 |
+| [MCP服务](#mcp模式) | AI助手集成、聊天机器人 | `python -m vprism_mcp.server` | 低-中 | 单机/集群 |
 | [容器化](#容器化部署) | 生产环境、云部署 | `docker run` | 可配置 | Kubernetes集群 |
 
 ## Python库模式
@@ -91,10 +91,10 @@ plt.show()
 #### 开发环境
 ```bash
 # 安装依赖
-pip install -r src/vprism-web/requirements-web.txt
+pip install -r src/vprism_web/requirements-web.txt
 
 # 启动开发服务器
-python -m vprism-web.main web --reload
+python -m vprism_web.main web --reload
 
 # 访问API文档
 open http://localhost:8000/docs
@@ -106,7 +106,7 @@ open http://localhost:8000/docs
 pip install gunicorn uvloop httptools
 
 # 启动生产服务器
-gunicorn vprism-web.main:app \
+gunicorn vprism_web.main:app \
   --host 0..0.0 \
   --port 8000 \
   --workers 4 \
@@ -138,7 +138,7 @@ VPRISM_HEALTH_CHECK_INTERVAL=30
 ```
 
 #### 系统服务 (systemd)
-创建 `/etc/systemd/system/vprism-web.service`:
+创建 `/etc/systemd/system/vprism_web.service`:
 ```ini
 [Unit]
 Description=vprism web service
@@ -150,7 +150,7 @@ User=vprism
 Group=vprism
 WorkingDirectory=/opt/vprism
 Environment=PATH=/opt/vprism/venv/bin
-ExecStart=/opt/vprism/venv/bin/gunicorn vprism-web.main:app --host 0.0.0.0 --port 8000 --workers 4
+ExecStart=/opt/vprism/venv/bin/gunicorn vprism_web.main:app --host 0.0.0.0 --port 8000 --workers 4
 Restart=always
 RestartSec=10
 
@@ -160,9 +160,9 @@ WantedBy=multi-user.target
 
 启动服务:
 ```bash
-sudo systemctl enable vprism-web
-sudo systemctl start vprism-web
-sudo systemctl status vprism-web
+sudo systemctl enable vprism_web
+sudo systemctl start vprism_web
+sudo systemctl status vprism_web
 ```
 
 ### Nginx反向代理配置
@@ -220,7 +220,7 @@ server {
   "mcpServers": {
     "vprism-finance": {
       "command": "/usr/bin/python3",
-      "args": ["-m", "vprism-mcp.server"],
+      "args": ["-m", "vprism_mcp.server"],
       "cwd": "/opt/vprism"
     }
   }
@@ -235,7 +235,7 @@ server {
   "mcpServers": {
     "vprism-finance": {
       "command": "python",
-      "args": ["-m", "vprism-mcp.server", "--transport", "http", "--port", "8080"],
+      "args": ["-m", "vprism_mcp.server", "--transport", "http", "--port", "8080"],
       "cwd": "/opt/vprism",
       "env": {
         "MCP_API_KEY": "your-secure-api-key",
@@ -252,12 +252,12 @@ server {
   "mcpServers": {
     "vprism-us-stocks": {
       "command": "python",
-      "args": ["-m", "vprism-mcp.server", "--config", "config/us_market.json"],
+      "args": ["-m", "vprism_mcp.server", "--config", "config/us_market.json"],
       "cwd": "/opt/vprism"
     },
     "vprism-cn-stocks": {
       "command": "python", 
-      "args": ["-m", "vprism-mcp.server", "--config", "config/cn_market.json"],
+      "args": ["-m", "vprism_mcp.server", "--config", "config/cn_market.json"],
       "cwd": "/opt/vprism"
     }
   }
@@ -271,11 +271,11 @@ server {
 #### 基础镜像
 ```bash
 # 构建镜像
-docker build -t vprism:latest -f src/vprism-docker/Dockerfile .
+docker build -t vprism:latest -f src/vprism_docker/Dockerfile .
 
 # 运行容器
 docker run -d \
-  --name vprism-web \
+  --name vprism_web \
   -p 8000:8000 \
   -e VPRISM_WEB_PORT=8000 \
   -e VPRISM_REDIS_URL=redis://redis:6379/0 \
@@ -287,7 +287,7 @@ docker run -d \
 ```yaml
 version: '3.8'
 services:
-  vprism-web:
+  vprism_web:
     build: .
     ports:
       - "8000:8000"
@@ -315,7 +315,7 @@ volumes:
 ```yaml
 version: '3.8'
 services:
-  vprism-web:
+  vprism_web:
     image: vprism:latest
     ports:
       - "8000:8000"
@@ -343,7 +343,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/ssl:/etc/nginx/ssl
     depends_on:
-      - vprism-web
+      - vprism_web
     restart: unless-stopped
 
 volumes:
@@ -358,21 +358,21 @@ volumes:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: vprism-web
+  name: vprism_web
   labels:
-    app: vprism-web
+    app: vprism_web
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: vprism-web
+      app: vprism_web
   template:
     metadata:
       labels:
-        app: vprism-web
+        app: vprism_web
     spec:
       containers:
-      - name: vprism-web
+      - name: vprism_web
         image: vprism:latest
         ports:
         - containerPort: 8000
@@ -409,10 +409,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: vprism-web-service
+  name: vprism_web-service
 spec:
   selector:
-    app: vprism-web
+    app: vprism_web
   ports:
   - protocol: TCP
     port: 80
@@ -456,7 +456,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: vprism-web-service
+            name: vprism_web-service
             port:
               number: 80
 ```
@@ -470,13 +470,13 @@ helm repo add vprism https://charts.vprism.com
 helm repo update
 
 # 安装
-helm install vprism vprism/vprism-web \
+helm install vprism vprism/vprism_web \
   --set image.tag=latest \
   --set ingress.enabled=true \
   --set ingress.host=finance-api.your-domain.com
 
 # 自定义配置安装
-helm install vprism vprism/vprism-web -f custom-values.yaml
+helm install vprism vprism/vprism_web -f custom-values.yaml
 ```
 
 #### 自定义values.yaml
@@ -531,9 +531,9 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-  - job_name: 'vprism-web'
+  - job_name: 'vprism_web'
     static_configs:
-      - targets: ['vprism-web:8000']
+      - targets: ['vprism_web:8000']
     metrics_path: /metrics
     scrape_interval: 30s
 ```
@@ -571,7 +571,7 @@ output.elasticsearch:
     notifempty
     create 644 vprism vprism
     postrotate
-        systemctl reload vprism-web
+        systemctl reload vprism_web
     endscript
 }
 ```
@@ -665,7 +665,7 @@ WORKDIR /app
 COPY --from=builder /root/.local /root/.local
 COPY src/ ./src/
 ENV PATH=/root/.local/bin:$PATH
-CMD ["python", "-m", "vprism-web.main"]
+CMD ["python", "-m", "vprism_web.main"]
 ```
 
 ## 安全最佳实践

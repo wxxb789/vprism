@@ -15,10 +15,10 @@ git clone <repository-url>
 cd vprism
 
 # 启动完整服务栈
-docker-compose -f src/vprism-docker/docker-compose.yml up -d
+docker-compose -f src/vprism_docker/docker-compose.yml up -d
 
 # 查看服务状态
-docker-compose -f src/vprism-docker/docker-compose.yml ps
+docker-compose -f src/vprism_docker/docker-compose.yml ps
 ```
 
 ### 3. 服务访问
@@ -52,29 +52,29 @@ docker-compose -f src/vprism-docker/docker-compose.yml ps
 ### 开发环境 🔧
 ```bash
 # 开发模式（热重载）
-docker-compose -f src/vprism-docker/docker-compose.yml \
-               -f src/vprism-docker/docker-compose.dev.yml up -d
+docker-compose -f src/vprism_docker/docker-compose.yml \
+               -f src/vprism_docker/docker-compose.dev.yml up -d
 
 # 实时日志
-docker-compose -f src/vprism-docker/docker-compose.yml logs -f
+docker-compose -f src/vprism_docker/docker-compose.yml logs -f
 ```
 
 ### 生产环境 🚀
 ```bash
 # 生产模式（高可用）
-docker-compose -f src/vprism-docker/docker-compose.yml \
-               -f src/vprism-docker/docker-compose.prod.yml up -d
+docker-compose -f src/vprism_docker/docker-compose.yml \
+               -f src/vprism_docker/docker-compose.prod.yml up -d
 
 # 启用SSL/TLS
-docker-compose -f src/vprism-docker/docker-compose.yml \
-               -f src/vprism-docker/docker-compose.prod.yml \
-               -f src/vprism-docker/docker-compose.ssl.yml up -d
+docker-compose -f src/vprism_docker/docker-compose.yml \
+               -f src/vprism_docker/docker-compose.prod.yml \
+               -f src/vprism_docker/docker-compose.ssl.yml up -d
 ```
 
 ### 测试环境 🧪
 ```bash
 # 测试模式（临时数据）
-docker-compose -f src/vprism-docker/docker-compose.test.yml up --build
+docker-compose -f src/vprism_docker/docker-compose.test.yml up --build
 ```
 
 ## 🔧 配置选项
@@ -121,13 +121,13 @@ docker exec vprism-postgres-1 pg_dump -U vprism vprism > backup.sql
 docker exec -i vprism-postgres-1 psql -U vprism vprism < backup.sql
 
 # 清理数据
-docker-compose -f src/vprism-docker/docker-compose.yml down -v
+docker-compose -f src/vprism_docker/docker-compose.yml down -v
 ```
 
 ### 数据目录结构
 ```
 vprism/
-├── src/vprism-docker/
+├── src/vprism_docker/
 │   ├── docker-compose.yml          # 主配置
 │   ├── docker-compose.dev.yml      # 开发配置
 │   ├── docker-compose.prod.yml     # 生产配置
@@ -156,8 +156,8 @@ vprism/
 ### 性能监控
 ```bash
 # 启动监控栈
-docker-compose -f src/vprism-docker/docker-compose.yml \
-               -f src/vprism-docker/docker-compose.monitoring.yml up -d
+docker-compose -f src/vprism_docker/docker-compose.yml \
+               -f src/vprism_docker/docker-compose.monitoring.yml up -d
 
 # 访问监控面板
 # Prometheus: http://localhost:9090
@@ -167,8 +167,8 @@ docker-compose -f src/vprism-docker/docker-compose.yml \
 ### 日志管理
 ```bash
 # 启动日志聚合
-docker-compose -f src/vprism-docker/docker-compose.yml \
-               -f src/vprism-docker/docker-compose.logging.yml up -d
+docker-compose -f src/vprism_docker/docker-compose.yml \
+               -f src/vprism_docker/docker-compose.logging.yml up -d
 
 # 查看日志
 # Kibana: http://localhost:5601
@@ -192,8 +192,8 @@ pg_isready -h localhost -p 5432 -U vprism
 ```bash
 # 生成自签名证书
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout src/vprism-docker/nginx/ssl/key.pem \
-  -out src/vprism-docker/nginx/ssl/cert.pem
+  -keyout src/vprism_docker/nginx/ssl/key.pem \
+  -out src/vprism_docker/nginx/ssl/cert.pem
 
 # 使用Let's Encrypt证书
 certbot certonly --standalone -d yourdomain.com
@@ -211,20 +211,20 @@ export CORS_ORIGINS=https://yourdomain.com
 ### 水平扩展
 ```bash
 # 启动多个API实例
-docker-compose -f src/vprism-docker/docker-compose.yml up --scale vprism-api=3 -d
+docker-compose -f src/vprism_docker/docker-compose.yml up --scale vprism-api=3 -d
 
 # 启动多个MCP实例
-docker-compose -f src/vprism-docker/docker-compose.yml up --scale vprism-mcp=2 -d
+docker-compose -f src/vprism_docker/docker-compose.yml up --scale vprism-mcp=2 -d
 ```
 
 ### 高可用部署
 ```bash
 # Docker Swarm模式
 docker swarm init
-docker stack deploy -c src/vprism-docker/docker-compose.prod.yml vprism
+docker stack deploy -c src/vprism_docker/docker-compose.prod.yml vprism
 
 # Kubernetes部署
-kubectl apply -f src/vprism-docker/k8s/
+kubectl apply -f src/vprism_docker/k8s/
 ```
 
 ## 🛠️ 故障排除
@@ -232,14 +232,14 @@ kubectl apply -f src/vprism-docker/k8s/
 ### 常见问题
 ```bash
 # 重新构建镜像
-docker-compose -f src/vprism-docker/docker-compose.yml build --no-cache
+docker-compose -f src/vprism_docker/docker-compose.yml build --no-cache
 
 # 清理并重启
-docker-compose -f src/vprism-docker/docker-compose.yml down -v
-docker-compose -f src/vprism-docker/docker-compose.yml up -d
+docker-compose -f src/vprism_docker/docker-compose.yml down -v
+docker-compose -f src/vprism_docker/docker-compose.yml up -d
 
 # 进入容器调试
-docker-compose -f src/vprism-docker/docker-compose.yml exec vprism-api bash
+docker-compose -f src/vprism_docker/docker-compose.yml exec vprism-api bash
 
 # 查看资源使用
 docker stats
@@ -248,7 +248,7 @@ docker stats
 ### 性能调优
 ```bash
 # 调整资源限制
-docker-compose -f src/vprism-docker/docker-compose.yml up --scale vprism-api=2 \
+docker-compose -f src/vprism_docker/docker-compose.yml up --scale vprism-api=2 \
                --scale postgres=1 --scale redis=1
 ```
 
@@ -283,16 +283,16 @@ ENV=${1:-production}
 SSL=${2:-false}
 
 if [ "$ENV" = "dev" ]; then
-    docker-compose -f src/vprism-docker/docker-compose.yml \
-                   -f src/vprism-docker/docker-compose.dev.yml up -d
+    docker-compose -f src/vprism_docker/docker-compose.yml \
+                   -f src/vprism_docker/docker-compose.dev.yml up -d
 elif [ "$ENV" = "prod" ]; then
     if [ "$SSL" = "true" ]; then
-        docker-compose -f src/vprism-docker/docker-compose.yml \
-                       -f src/vprism-docker/docker-compose.prod.yml \
-                       -f src/vprism-docker/docker-compose.ssl.yml up -d
+        docker-compose -f src/vprism_docker/docker-compose.yml \
+                       -f src/vprism_docker/docker-compose.prod.yml \
+                       -f src/vprism_docker/docker-compose.ssl.yml up -d
     else
-        docker-compose -f src/vprism-docker/docker-compose.yml \
-                       -f src/vprism-docker/docker-compose.prod.yml up -d
+        docker-compose -f src/vprism_docker/docker-compose.yml \
+                       -f src/vprism_docker/docker-compose.prod.yml up -d
     fi
 fi
 echo "🚀 vPrism部署完成！访问 http://localhost:8000/api/docs"
@@ -303,11 +303,11 @@ echo "🚀 vPrism部署完成！访问 http://localhost:8000/api/docs"
 ### 获取帮助
 ```bash
 # 查看帮助
-docker-compose -f src/vprism-docker/docker-compose.yml --help
+docker-compose -f src/vprism_docker/docker-compose.yml --help
 
 # 查看日志
-docker-compose -f src/vprism-docker/docker-compose.yml logs --tail=100
+docker-compose -f src/vprism_docker/docker-compose.yml logs --tail=100
 
 # 重启服务
-docker-compose -f src/vprism-docker/docker-compose.yml restart vprism-api
+docker-compose -f src/vprism_docker/docker-compose.yml restart vprism-api
 ```

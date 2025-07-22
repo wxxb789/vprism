@@ -38,7 +38,7 @@ COPY src/ ./src/
 COPY setup.py ./
 COPY pyproject.toml ./
 COPY README.md ./
-COPY src/vprism-docker/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY src/vprism_docker/nginx/nginx.conf /etc/nginx/nginx.conf
 
 # 安装应用包
 RUN pip install -e .

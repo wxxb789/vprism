@@ -10,6 +10,7 @@ from .base import (
 )
 from .factory import ProviderFactory, create_default_providers, get_provider
 from .registry import ProviderRegistry
+from .vprism_provider import VPrismProvider
 from .yahoo_provider import YahooFinanceProvider
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "create_default_providers",
     "YahooFinanceProvider",
     "AkShareProvider",
+    "VPrismProvider",
 ]

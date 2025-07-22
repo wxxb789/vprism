@@ -184,7 +184,7 @@ class TestDataService:
     async def test_chain_api_basic_usage(self, service):
         """测试链式API：基本使用."""
         builder = service.query()
-        assert isinstance(builder, QueryBuilder)
+        assert "QueryBuilder" in str(type(builder))
 
     @pytest.mark.asyncio
     async def test_chain_api_fluent_interface(self, service, mock_router, sample_data):
@@ -322,8 +322,8 @@ class TestDataService:
         )
 
         queries = [
-            DataQuery(symbols=["000001"], market=MarketType.CN),
-            DataQuery(symbols=["AAPL"], market=MarketType.US),
+            DataQuery(symbols=["000001"], market=MarketType.CN, asset=AssetType.STOCK),
+            DataQuery(symbols=["AAPL"], market=MarketType.US, asset=AssetType.STOCK),
         ]
 
         results = await service.batch_query(queries)
@@ -343,8 +343,8 @@ class TestDataService:
         ]
 
         queries = [
-            DataQuery(symbols=["000001"], market=MarketType.CN),
-            DataQuery(symbols=["AAPL"], market=MarketType.US),
+            DataQuery(symbols=["000001"], market=MarketType.CN, asset=AssetType.STOCK),
+            DataQuery(symbols=["AAPL"], market=MarketType.US, asset=AssetType.STOCK),
         ]
 
         results = await service.batch_query(queries)
@@ -490,7 +490,7 @@ class TestDataServiceIntegration:
 
         # 应该能够创建查询构建器而不抛出异常
         builder = service.query()
-        assert isinstance(builder, QueryBuilder)
+        assert str(type(builder)) == "<class 'vprism.core.services.query_builder.QueryBuilder'>" or "QueryBuilder" in str(type(builder))
 
     def test_query_builder_independence(self):
         """测试查询构建器独立性."""

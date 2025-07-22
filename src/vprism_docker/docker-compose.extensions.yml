@@ -131,7 +131,7 @@ services:
   vprism-test:
     build: 
       context: ../..
-      dockerfile: src/vprism-docker/Dockerfile
+      dockerfile: src/vprism_docker/Dockerfile
     depends_on:
       - postgres-test
       - redis-test

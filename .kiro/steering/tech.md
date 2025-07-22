@@ -91,7 +91,7 @@ uv run pytest
 uv run uvicorn vprism.web.main:app --reload
 
 # Docker development (推荐方式)
-docker-compose -f src/vprism-docker/docker-compose.yml up --build
+docker-compose -f src/vprism_docker/docker-compose.yml up --build
 ```
 
 ## Technical Patterns & Compatibility Notes
@@ -386,13 +386,13 @@ uv run ruff format src/
 uv run ruff check src/
 
 # Run Web service
-uv run uvicorn src.vprism-web.main:app --reload --host 0.0.0.0 --port 8000
+uv run uvicorn src.vprism_web.main:app --reload --host 0.0.0.0 --port 8000
 
 # Run MCP server
-uv run python -m src.vprism-mcp
+uv run python -m src.vprism_mcp
 
 # Docker development
-docker-compose -f src/vprism-docker/docker-compose.yml up --build
+docker-compose -f src/vprism_docker/docker-compose.yml up --build
 ```
 
 ## Deployment Modes - IMPLEMENTED
@@ -414,8 +414,8 @@ docker-compose -f src/vprism-docker/docker-compose.yml up --build
 ### Service Mode - COMPLETED ✅ - RESTRUCTURED
 - **Use Case**: REST API server
 - **Framework**: FastAPI 0.111+ with full REST API
-- **Entry Point**: `python main.py web` or `uvicorn src.vprism-web.main:app:app`
-- **Module Path**: `src/vprism-web/`
+- **Entry Point**: `python main.py web` or `uvicorn src.vprism_web.main:app:app`
+- **Module Path**: `src/vprism_web/`
 - **Dependencies**: FastAPI, uvicorn, httpx, DuckDB + vprism core module
 - **Features**: 
   - Complete RESTful API with OpenAPI 3.0 documentation
@@ -431,8 +431,8 @@ docker-compose -f src/vprism-docker/docker-compose.yml up --build
 
 ### MCP Mode - COMPLETED ✅ - RESTRUCTURED
 - **Use Case**: AI agent integration with FastMCP
-- **Entry Point**: `python -m vprism-mcp` or `uvicorn src.vprism-mcp.__main__`
-- **Module Path**: `src/vprism-mcp/`
+- **Entry Point**: `python -m vprism_mcp` or `uvicorn src.vprism_mcp.__main__`
+- **Module Path**: `src/vprism_mcp/`
 - **Dependencies**: FastMCP 2.10.6 with complete MCP protocol support + vprism core module
 - **Features**:
   - Complete MCP tool registration for all data operations

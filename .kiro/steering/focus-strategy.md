@@ -30,22 +30,22 @@
 ```
 vprism/
 ├── src/vprism/          # 核心逻辑（不变）
-├── src/vprism-web/      # Web服务（不变）  
-├── src/vprism-mcp/      # MCP服务器（不变）
-├── src/vprism-docker/   # Docker配置（专注）
+├── src/vprism_web/      # Web服务（不变）  
+├── src/vprism_mcp/      # MCP服务器（不变）
+├── src/vprism_docker/   # Docker配置（专注）
 └── tests/              # 测试套件（不变）
 ```
 
 ### 部署策略（极简版）
 ```bash
 # 开发
-uv run uvicorn src.vprism-web.main:app --reload
+uv run uvicorn src.vprism_web.main:app --reload
 
 # Docker开发
-docker-compose -f src/vprism-docker/docker-compose.yml up --build
+docker-compose -f src/vprism_docker/docker-compose.yml up --build
 
 # Docker生产
-docker-compose -f src/vprism-docker/docker-compose.yml -f src/vprism-docker/docker-compose.prod.yml up -d
+docker-compose -f src/vprism_docker/docker-compose.yml -f src/vprism_docker/docker-compose.prod.yml up -d
 ```
 
 ### 成功标准（聚焦核心）
