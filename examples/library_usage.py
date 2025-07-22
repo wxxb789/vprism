@@ -1,9 +1,94 @@
-"""vprism库模式使用示例"""
+"""vprism库模式使用示例（简化版）"""
 
-import asyncio
+from datetime import date, datetime
 
 import vprism
 from vprism.core.client import VPrismClient
+
+
+def format_table(data_list, title):
+    """将数据格式化为表格输出"""
+    if not data_list:
+        print("无数据")
+        return
+
+    # 取前10条记录
+    records = data_list[:10]
+
+    # 获取所有字段名
+    all_keys = set()
+    for record in records:
+        if hasattr(record, "__dict__"):
+            all_keys.update(record.__dict__.keys())
+        elif isinstance(record, dict):
+            all_keys.update(record.keys())
+
+    if not all_keys:
+        print("无有效数据字段")
+        return
+
+    # 转换为列表并保持顺序
+    headers = sorted(all_keys)
+
+    # 准备数据行
+    rows = []
+    for record in records:
+        row = []
+        for header in headers:
+            if hasattr(record, "__dict__"):
+                value = record.__dict__.get(header, "")
+            elif isinstance(record, dict):
+                value = record.get(header, "")
+            else:
+                value = str(record)
+
+            # 格式化datetime对象
+            if isinstance(value, datetime | date):
+                value = value.strftime("%Y-%m-%d %H:%M:%S")
+            elif value is None:
+                value = ""
+            else:
+                value = str(value)
+
+            # 截断长字符串
+            if len(value) > 20:
+                value = value[:17] + "..."
+            row.append(value)
+        rows.append(row)
+
+    # 计算列宽
+    col_widths = []
+    for i, header in enumerate(headers):
+        max_width = max(
+            len(str(header)), max(len(row[i]) for row in rows) if rows else 0
+        )
+        col_widths.append(min(max_width + 2, 25))  # 最大宽度25
+
+    # 打印标题
+    print(f"\n=== {title} ===")
+    print(f"显示前10条记录，共{len(data_list)}条数据")
+
+    # 打印表头
+    header_line = ""
+    for i, header in enumerate(headers):
+        header_line += str(header).ljust(col_widths[i])[: col_widths[i]]
+    print(header_line)
+    print("-" * (sum(col_widths) + len(col_widths) - 1))
+
+    # 打印数据行
+    for row in rows:
+        line = ""
+        for i, cell in enumerate(row):
+            line += cell.ljust(col_widths[i])[: col_widths[i]]
+        print(line)
+
+
+def print_data_sample(data, title):
+    """打印数据样本（表格格式）"""
+    if hasattr(data, "data") and data.data:
+        format_table(data.data, title)
+    else:
+        print("无数据")
 
 
 def basic_usage():
@@ -11,27 +96,31 @@ def basic_usage():
     print("=== 基础用法示例 ===")
 
     # 获取中国A股数据
-    data = vprism.get(
-        asset="stock",
-        market="cn",
-        symbols=["000001", "000002"],
-        timeframe="1d",
-        start="2024-01-01",
-        end="2024-01-31",
-    )
-    print("中国A股数据:", type(data))
+    try:
+        data = vprism.get(
+            asset="stock", market="cn", symbols=["000001"], timeframe="1d", limit=10
+        )
+        print_data_sample(data, "中国A股数据 - 平安银行(000001)")
+    except Exception as e:
+        print(f"获取中国A股数据失败: {e}")
 
     # 获取美股数据
-    data = vprism.get(
-        asset="stock", market="us", symbols=["AAPL", "GOOGL"], timeframe="1d"
-    )
-    print("美股数据:", type(data))
+    try:
+        data = vprism.get(
+            asset="stock", market="us", symbols=["AAPL"], timeframe="1d", limit=10
+        )
+        print_data_sample(data, "美股数据 - 苹果(AAPL)")
+    except Exception as e:
+        print(f"获取美股数据失败: {e}")
 
     # 获取加密货币数据
-    data = vprism.get(
-        asset="crypto", market="global", symbols=["BTC", "ETH"], timeframe="1h"
-    )
-    print("加密货币数据:", type(data))
+    try:
+        data = vprism.get(
+            asset="crypto", market="global", symbols=["BTC"], timeframe="1d", limit=10
+        )
+        print_data_sample(data, "加密货币数据 - 比特币(BTC)")
+    except Exception as e:
+        print(f"获取加密货币数据失败: {e}")
 
 
 def advanced_usage():
@@ -47,68 +136,14 @@ def advanced_usage():
         providers={"timeout": 60, "max_retries": 5, "rate_limit": True},
     )
 
-    # 使用QueryBuilder构建复杂查询
-    query = (
-        client.query()
-        .asset("stock")
-        .market("hk")
-        .symbols(["00700", "00005"])
-        .timeframe("1d")
-        .date_range("2024-01-01", "2024-12-31")
-        .build()
-    )
-
-    # 执行查询
-    data = client.get(
-        asset="stock",
-        market="hk",
-        symbols=["00700", "00005"],
-        timeframe="1d",
-        start="2024-01-01",
-        end="2024-12-31",
-    )
-    print("港股数据查询完成")
-
-
-async def async_usage():
-    """异步用法示例"""
-    print("\n=== 异步用法示例 ===")
-
-    # 使用全局异步接口
-    data = await vprism.get_async(
-        asset="stock",
-        market="us",
-        symbols=["MSFT", "TSLA", "NVDA"],
-        timeframe="1d",
-        start="2024-01-01",
-        end="2024-01-10",
-    )
-    print("异步美股数据:", type(data))
-
-    # 使用客户端实例的异步接口
-    client = VPrismClient()
-    data = await client.get_async(
-        asset="crypto", market="global", symbols=["BTC", "ETH", "SOL"], timeframe="15m"
-    )
-    print("异步加密货币数据:", type(data))
-
-    # 批量异步查询
-    tasks = []
-    symbols_list = [["AAPL"], ["GOOGL"], ["MSFT"]]
-
-    for symbols in symbols_list:
-        task = vprism.get_async(
-            asset="stock",
-            market="us",
-            symbols=symbols,
-            timeframe="1d",
-            start="2024-01-01",
-            end="2024-01-05",
+    # 使用简单API获取数据
+    try:
+        data = client.get(
+            asset="stock", market="us", symbols=["GOOGL"], timeframe="1d", limit=10
         )
-        tasks.append(task)
-
-    results = await asyncio.gather(*tasks)
-    print("批量异步查询完成，结果数量:", len(results))
+        print_data_sample(data, "谷歌股票数据 - GOOGL")
+    except Exception as e:
+        print(f"谷歌股票数据获取失败: {e}")
 
 
 def configuration_usage():
@@ -157,22 +192,25 @@ def batch_usage():
     print("\n=== 批量查询示例 ===")
 
     # 批量查询不同市场
-    markets = ["cn", "us", "hk"]
-    symbols = [["000001"], ["AAPL"], ["00700"]]
+    markets = ["cn", "us", "global"]
+    symbols = [["000001"], ["AAPL"], ["BTC"]]
+    names = ["平安银行(000001)", "苹果(AAPL)", "比特币(BTC)"]
 
-    for market, symbol_list in zip(markets, symbols, strict=False):
-        data = vprism.get(
-            asset="stock",
-            market=market,
-            symbols=symbol_list,
-            timeframe="1d",
-            start="2024-01-01",
-            end="2024-01-05",
-        )
-        print(f"{market}市场数据: {len(data) if hasattr(data, '__len__') else 'N/A'}")
+    for market, symbol_list, name in zip(markets, symbols, names, strict=False):
+        try:
+            data = vprism.get(
+                asset="stock",
+                market=market,
+                symbols=symbol_list,
+                timeframe="1d",
+                limit=10,
+            )
+            print_data_sample(data, f"{market}市场数据 - {name}")
+        except Exception as e:
+            print(f"{market}市场数据获取失败: {e}")
 
 
-async def main():
+def main():
     """主函数"""
     print("vprism库模式使用示例")
     print("=" * 50)
@@ -182,9 +220,6 @@ async def main():
 
     # 高级用法
     advanced_usage()
-
-    # 异步用法
-    await async_usage()
 
     # 配置用法
     configuration_usage()
@@ -200,4 +235,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

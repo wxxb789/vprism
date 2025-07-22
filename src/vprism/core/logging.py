@@ -35,8 +35,14 @@ class StructuredLogger:
         # 清除默认处理器
         self.logger.remove()
 
-        if self.config.console_output:
-            self._setup_console_handler()
+        # 使用简单的控制台格式，避免复杂的JSON格式化问题
+        self.logger.add(
+            sys.stderr,
+            level=self.config.level,
+            format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
+            "<level>{level: <8}</level> | "
+            "<cyan>{name}:{function}:{line}</cyan> - <level>{message}</level>",
+        )
 
         if self.config.file_output and self.config.file_path:
             self._setup_file_handler()
@@ -77,7 +83,7 @@ class StructuredLogger:
     def _json_formatter(self, record: dict[str, Any]) -> str:
         """JSON格式化器。"""
         log_data = {
-            "timestamp": record["time"].isoformat(),
+            "time": record["time"].isoformat(),
             "level": record["level"].name,
             "message": record["message"],
             "module": record["name"],

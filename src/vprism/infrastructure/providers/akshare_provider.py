@@ -185,18 +185,37 @@ class AkShareProvider(DataProvider):
             # 获取日线数据
             try:
                 # 使用akshare的历史行情接口
-                stock_zh_a_hist_df = ak.stock_zh_a_hist(
-                    symbol=symbol,
-                    period="daily",
-                    start_date=query.start.strftime("%Y%m%d") if query.start else "",
-                    end_date=query.end.strftime("%Y%m%d") if query.end else "",
-                    adjust="",
-                )
+                kwargs = {
+                    "symbol": symbol,
+                    "period": "daily",
+                    "adjust": ""
+                }
+                
+                # 只在有具体日期时添加日期参数，避免空字符串导致无数据
+                if query.start:
+                    kwargs["start_date"] = query.start.strftime("%Y%m%d")
+                if query.end:
+                    kwargs["end_date"] = query.end.strftime("%Y%m%d")
+                
+                stock_zh_a_hist_df = ak.stock_zh_a_hist(**kwargs)
 
                 for _, row in stock_zh_a_hist_df.iterrows():
+                    # 解析日期，处理可能的多种格式
+                    date_str = str(row["日期"])
+                    try:
+                        # 处理YYYY-MM-DD格式
+                        if len(date_str) >= 10:
+                            date_part = date_str[:10]  # 只取日期部分
+                            timestamp = datetime.strptime(date_part, "%Y-%m-%d")
+                        else:
+                            timestamp = datetime.fromisoformat(date_str)
+                    except (ValueError, TypeError):
+                        # 回退方案：使用当前日期
+                        timestamp = datetime.now()
+                    
                     data_point = DataPoint(
                         symbol=symbol,
-                        timestamp=datetime.strptime(str(row["日期"]), "%Y-%m-%d"),
+                        timestamp=timestamp,
                         open=Decimal(str(row["开盘"])),
                         high=Decimal(str(row["最高"])),
                         low=Decimal(str(row["最低"])),
@@ -230,9 +249,22 @@ class AkShareProvider(DataProvider):
                 ]
 
             for _, row in stock_us_hist_df.iterrows():
+                # 解析日期，处理可能的多种格式
+                date_str = str(row["date"])
+                try:
+                    # 处理YYYY-MM-DD格式
+                    if len(date_str) >= 10:
+                        date_part = date_str[:10]  # 只取日期部分
+                        timestamp = datetime.strptime(date_part, "%Y-%m-%d")
+                    else:
+                        timestamp = datetime.fromisoformat(date_str)
+                except (ValueError, TypeError):
+                    # 回退方案：使用当前日期
+                    timestamp = datetime.now()
+                
                 data_point = DataPoint(
                     symbol=symbol,
-                    timestamp=datetime.strptime(str(row["date"]), "%Y-%m-%d"),
+                    timestamp=timestamp,
                     open=Decimal(str(row["open"])),
                     high=Decimal(str(row["high"])),
                     low=Decimal(str(row["low"])),
@@ -266,9 +298,22 @@ class AkShareProvider(DataProvider):
                 ]
 
             for _, row in stock_hk_hist_df.iterrows():
+                # 解析日期，处理可能的多种格式
+                date_str = str(row["date"])
+                try:
+                    # 处理YYYY-MM-DD格式
+                    if len(date_str) >= 10:
+                        date_part = date_str[:10]  # 只取日期部分
+                        timestamp = datetime.strptime(date_part, "%Y-%m-%d")
+                    else:
+                        timestamp = datetime.fromisoformat(date_str)
+                except (ValueError, TypeError):
+                    # 回退方案：使用当前日期
+                    timestamp = datetime.now()
+                
                 data_point = DataPoint(
                     symbol=symbol,
-                    timestamp=datetime.strptime(str(row["date"]), "%Y-%m-%d"),
+                    timestamp=timestamp,
                     open=Decimal(str(row["open"])),
                     high=Decimal(str(row["high"])),
                     low=Decimal(str(row["low"])),
@@ -295,9 +340,22 @@ class AkShareProvider(DataProvider):
                     index_zh_a_hist_df = ak.index_zh_a_hist(symbol=symbol)
 
                     for _, row in index_zh_a_hist_df.iterrows():
+                        # 解析日期，处理可能的多种格式
+                        date_str = str(row["日期"])
+                        try:
+                            # 处理YYYY-MM-DD格式
+                            if len(date_str) >= 10:
+                                date_part = date_str[:10]  # 只取日期部分
+                                timestamp = datetime.strptime(date_part, "%Y-%m-%d")
+                            else:
+                                timestamp = datetime.fromisoformat(date_str)
+                        except (ValueError, TypeError):
+                            # 回退方案：使用当前日期
+                            timestamp = datetime.now()
+                        
                         data_point = DataPoint(
                             symbol=symbol,
-                            timestamp=datetime.strptime(str(row["日期"]), "%Y-%m-%d"),
+                            timestamp=timestamp,
                             open=Decimal(str(row["开盘"])),
                             high=Decimal(str(row["最高"])),
                             low=Decimal(str(row["最低"])),
@@ -311,9 +369,22 @@ class AkShareProvider(DataProvider):
                     index_us_stock_df = ak.index_us_stock_sina(symbol=symbol)
 
                     for _, row in index_us_stock_df.iterrows():
+                        # 解析日期，处理可能的多种格式
+                        date_str = str(row["date"])
+                        try:
+                            # 处理YYYY-MM-DD格式
+                            if len(date_str) >= 10:
+                                date_part = date_str[:10]  # 只取日期部分
+                                timestamp = datetime.strptime(date_part, "%Y-%m-%d")
+                            else:
+                                timestamp = datetime.fromisoformat(date_str)
+                        except (ValueError, TypeError):
+                            # 回退方案：使用当前日期
+                            timestamp = datetime.now()
+                        
                         data_point = DataPoint(
                             symbol=symbol,
-                            timestamp=datetime.strptime(str(row["date"]), "%Y-%m-%d"),
+                            timestamp=timestamp,
                             open=Decimal(str(row["open"])),
                             high=Decimal(str(row["high"])),
                             low=Decimal(str(row["low"])),
@@ -344,9 +415,22 @@ class AkShareProvider(DataProvider):
                     etf_df = etf_df[etf_df["净值日期"] <= query.end]
 
                 for _, row in etf_df.iterrows():
+                    # 解析日期，处理可能的多种格式
+                    date_str = str(row["净值日期"])
+                    try:
+                        # 处理YYYY-MM-DD格式
+                        if len(date_str) >= 10:
+                            date_part = date_str[:10]  # 只取日期部分
+                            timestamp = datetime.strptime(date_part, "%Y-%m-%d")
+                        else:
+                            timestamp = datetime.fromisoformat(date_str)
+                    except (ValueError, TypeError):
+                        # 回退方案：使用当前日期
+                        timestamp = datetime.now()
+                    
                     data_point = DataPoint(
                         symbol=symbol,
-                        timestamp=datetime.strptime(str(row["净值日期"]), "%Y-%m-%d"),
+                        timestamp=timestamp,
                         close=Decimal(str(row["单位净值"])),
                         # ETF数据可能没有开高低价格，只使用收盘价
                         open=None,

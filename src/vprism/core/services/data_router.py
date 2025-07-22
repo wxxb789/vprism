@@ -34,9 +34,13 @@ class DataRouter:
 
     def _init_default_scores(self) -> None:
         """初始化所有提供商的默认评分"""
-        providers = getattr(self.registry, "providers", {})
-        for provider_name in providers:
-            self.provider_scores[provider_name] = 1.0
+        providers = self.registry.get_all_providers()
+        for provider in providers:
+            self.provider_scores[provider.name] = 1.0
+            
+    def refresh_scores(self) -> None:
+        """刷新提供商评分（当有新提供商注册时）"""
+        self._init_default_scores()
 
     @PerformanceLogger("route_query")
     async def route_query(self, query: DataQuery) -> DataProvider:
