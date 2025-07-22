@@ -854,6 +854,215 @@ class NetworkException(VPrismException):
 
     def __init__(
         self,
+        message: str | None = None,
+        operation: str | None = None,
+        details: dict[str, Any] | None = None,
+        cause: Exception | None = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if operation:
+            error_details["operation"] = operation
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.NETWORK_ERROR,
+            details=error_details,
+            cause=cause,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
+
+
+class ConnectionException(NetworkException):
+    """Raised when connection operations fail."""
+
+    def __init__(
+        self,
+        host: str | None = None,
+        port: int | None = None,
+        message: str | None = None,
+        details: dict[str, Any] | None = None,
+        cause: Exception | None = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if host:
+            error_details["host"] = host
+        if port:
+            error_details["port"] = port
+
+        if not message:
+            message = f"Connection failed"
+            if host:
+                message += f" to {host}"
+                if port:
+                    message += f":{port}"
+
+        super().__init__(
+            message=message,
+            operation="connect",
+            details=error_details,
+            cause=cause,
+            **kwargs,
+        )
+        # Override error code for connection error
+        self.error_code = ErrorCode.CONNECTION_ERROR
+
+
+class TimeoutException(VPrismException):
+    """Raised when operations timeout."""
+
+    def __init__(
+        self,
+        message: str | None = None,
+        timeout_seconds: float | None = None,
+        operation: str | None = None,
+        details: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if timeout_seconds:
+            error_details["timeout_seconds"] = timeout_seconds
+        if operation:
+            error_details["operation"] = operation
+
+        if not message:
+            message = f"Operation timed out"
+            if timeout_seconds:
+                message += f" after {timeout_seconds}s"
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.TIMEOUT_ERROR,
+            details=error_details,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
+
+
+class ServiceUnavailableException(VPrismException):
+    """Raised when a service is unavailable."""
+
+    def __init__(
+        self,
+        service: str | None = None,
+        message: str | None = None,
+        details: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if service:
+            error_details["service"] = service
+
+        if not message:
+            message = f"Service unavailable"
+            if service:
+                message += f": {service}"
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.SERVICE_UNAVAILABLE,
+            details=error_details,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
+
+
+class NoAvailableProviderException(VPrismException):
+    """Raised when no data provider is available for a query."""
+
+    def __init__(
+        self,
+        message: str | None = None,
+        query: str | None = None,
+        attempted_providers: list[str] | None = None,
+        details: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if query:
+            error_details["query"] = query
+        if attempted_providers:
+            error_details["attempted_providers"] = attempted_providers
+
+        if not message:
+            message = "No available data provider found"
+            if query:
+                message += f" for query: {query}"
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.NO_PROVIDER_AVAILABLE,
+            details=error_details,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
+
+
+class CircuitBreakerOpenException(VPrismException):
+    """Raised when circuit breaker is open and blocking requests."""
+
+    def __init__(
+        self,
+        message: str | None = None,
+        circuit_breaker: str | None = None,
+        details: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if circuit_breaker:
+            error_details["circuit_breaker"] = circuit_breaker
+
+        if not message:
+            message = "Circuit breaker is open"
+            if circuit_breaker:
+                message += f": {circuit_breaker}"
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.CIRCUIT_BREAKER_OPEN,
+            details=error_details,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
+
+
+# Context management functions
+def set_request_context(**context: Any) -> None:
+    """Set request context for error tracking."""
+    current_context = _request_context.get({})
+    current_context.update(context)
+    _request_context.set(current_context)
+
+
+def get_request_context() -> dict[str, Any]:
+    """Get current request context."""
+    return _request_context.get({})
+
+
+def clear_request_context() -> None:
+    """Clear request context."""
+    _request_context.set({})
+
+
+# Error tracking functions
+def get_error_stats() -> dict[str, Any]:
+    """Get global error statistics."""
+    return _error_tracker.get_error_stats()
+
+
+def clear_error_stats() -> None:
+    """Clear global error statistics."""
+    _error_tracker.clear_stats()
+
+
+def record_error(error_code: str, details: dict[str, Any]) -> None:
+    """Record an error occurrence."""
+    _error_tracker.record_error(error_code, details)twork operations fail."""
+
+    def __init__(
+        self,
         message: str,
         url: str | None = None,
         status_code: int | None = None,
@@ -1347,15 +1556,46 @@ class TimeoutException(VPrismException):
         )
 
 
-class NoAvailableProviderException(VPrismException):
-    """Raised when no data provider is available to handle a request."""
+
+
+class 
+ServiceUnavailableException(VPrismException):
+    """Raised when a service is unavailable."""
 
     def __init__(
         self,
-        message: Optional[str] = None,
-        query: Optional[str] = None,
-        attempted_providers: Optional[List[str]] = None,
-        details: Optional[Dict[str, Any]] = None,
+        service: str | None = None,
+        message: str | None = None,
+        details: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if service:
+            error_details["service"] = service
+
+        if not message:
+            message = f"Service unavailable"
+            if service:
+                message += f": {service}"
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.SERVICE_UNAVAILABLE,
+            details=error_details,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
+
+
+class NoAvailableProviderException(VPrismException):
+    """Raised when no data provider is available for a query."""
+
+    def __init__(
+        self,
+        message: str | None = None,
+        query: str | None = None,
+        attempted_providers: list[str] | None = None,
+        details: dict[str, Any] | None = None,
         **kwargs,
     ) -> None:
         error_details = details or {}
@@ -1364,6 +1604,11 @@ class NoAvailableProviderException(VPrismException):
         if attempted_providers:
             error_details["attempted_providers"] = attempted_providers
 
+        if not message:
+            message = "No available data provider found"
+            if query:
+                message += f" for query: {query}"
+
         super().__init__(
             message=message,
             error_code=ErrorCode.NO_PROVIDER_AVAILABLE,
@@ -1371,3 +1616,96 @@ class NoAvailableProviderException(VPrismException):
             severity=ErrorSeverity.HIGH,
             **kwargs,
         )
+
+
+class CircuitBreakerOpenException(VPrismException):
+    """Raised when circuit breaker is open and blocking requests."""
+
+    def __init__(
+        self,
+        message: str | None = None,
+        circuit_breaker: str | None = None,
+        details: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if circuit_breaker:
+            error_details["circuit_breaker"] = circuit_breaker
+
+        if not message:
+            message = "Circuit breaker is open"
+            if circuit_breaker:
+                message += f": {circuit_breaker}"
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.CIRCUIT_BREAKER_OPEN,
+            details=error_details,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
+
+
+# Context management functions
+def set_request_context(**context: Any) -> None:
+
+class CircuitBreakerOpenException(VPrismException):
+    """Raised when circuit breaker is open and blocking requests."""
+
+    def __init__(
+        self,
+        message: str | None = None,
+        circuit_breaker: str | None = None,
+        details: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> None:
+        error_details = details or {}
+        if circuit_breaker:
+            error_details["circuit_breaker"] = circuit_breaker
+
+        if not message:
+            message = "Circuit breaker is open"
+            if circuit_breaker:
+                message += f": {circuit_breaker}"
+
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.CIRCUIT_BREAKER_OPEN,
+            details=error_details,
+            severity=ErrorSeverity.HIGH,
+            **kwargs,
+        )
+
+
+# Context management functions
+def set_request_context(**context: Any) -> None:
+    """Set request context for error tracking."""
+    current_context = _request_context.get({})
+    current_context.update(context)
+    _request_context.set(current_context)
+
+
+def get_request_context() -> dict[str, Any]:
+    """Get current request context."""
+    return _request_context.get({})
+
+
+def clear_request_context() -> None:
+    """Clear request context."""
+    _request_context.set({})
+
+
+# Error tracking functions
+def get_error_stats() -> dict[str, Any]:
+    """Get global error statistics."""
+    return _error_tracker.get_error_stats()
+
+
+def clear_error_stats() -> None:
+    """Clear global error statistics."""
+    _error_tracker.clear_stats()
+
+
+def record_error(error_code: str, details: dict[str, Any]) -> None:
+    """Record an error occurrence."""
+    _error_tracker.record_error(error_code, details)
