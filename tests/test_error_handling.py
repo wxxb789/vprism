@@ -4,7 +4,11 @@ import pytest
 
 from vprism.core.error_codes import ErrorCode
 from vprism.core.error_handler import ErrorContextManager, ErrorHandler, ErrorTracker
-from vprism.core.error_messages import ErrorContext, ErrorMessageTemplate
+from vprism.core.error_messages import (
+    ErrorContext,
+    ErrorMessageTemplate,
+    format_error_response,
+)
 from vprism.core.exceptions import (
     CacheError,
     DataValidationError,
@@ -273,7 +277,7 @@ class TestErrorResponseFormat:
 
         assert "error" in response
         assert response["error"]["code"] == "PROVIDER_ERROR"
-        assert "akshare" in response["error"]["details"]
+        assert "akshare" in str(response["error"]["details"])
         assert "连接失败" in response["error"]["message"]
 
     def test_error_context_to_dict(self):
@@ -301,7 +305,12 @@ class TestErrorHandlingIntegration:
         handler = ErrorHandler()
 
         try:
-            raise ProviderError("提供商不可用", "akshare", "PROVIDER_UNAVAILABLE")
+            raise ProviderError(
+                "提供商不可用",
+                "akshare",
+                "PROVIDER_UNAVAILABLE",
+                {"provider": "akshare", "symbol": "000001"},
+            )
         except Exception as e:
             handled_error = handler.handle_exception(
                 e, "fetch_data", "akshare", symbol="000001"
@@ -310,7 +319,7 @@ class TestErrorHandlingIntegration:
             response = handler.create_error_response(handled_error)
 
             assert response["error"]["code"] == "PROVIDER_UNAVAILABLE"
-            assert "akshare" in response["error"]["message"]
+            assert response["error"]["details"]["provider"] == "akshare"
             assert response["error"]["details"]["symbol"] == "000001"
 
     def test_error_tracking_integration(self):

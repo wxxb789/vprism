@@ -1,6 +1,7 @@
 """测试熔断器实现."""
 
 import asyncio
+import contextlib
 
 import pytest
 
@@ -102,10 +103,8 @@ class TestCircuitBreaker:
 
         # 触发熔断
         for _ in range(2):
-            try:
+            with contextlib.suppress(ProviderError):
                 await breaker.call(failure_func)
-            except ProviderError:
-                pass
 
         # 熔断器应该处于OPEN状态
         assert breaker.state == CircuitState.OPEN
@@ -131,10 +130,8 @@ class TestCircuitBreaker:
 
         # 触发熔断
         for _ in range(2):
-            try:
+            with contextlib.suppress(ProviderError):
                 await breaker.call(failure_func)
-            except ProviderError:
-                pass
 
         assert breaker.state == CircuitState.OPEN
 
@@ -162,10 +159,8 @@ class TestCircuitBreaker:
 
         # 触发熔断
         for _ in range(2):
-            try:
+            with contextlib.suppress(ProviderError):
                 await breaker.call(failure_func)
-            except ProviderError:
-                pass
 
         assert breaker.state == CircuitState.OPEN
 
@@ -188,10 +183,8 @@ class TestCircuitBreaker:
 
         # 触发熔断
         for _ in range(2):
-            try:
+            with contextlib.suppress(ProviderError):
                 await breaker.call(failure_func)
-            except ProviderError:
-                pass
 
         assert breaker.state == CircuitState.OPEN
 
@@ -336,10 +329,8 @@ class TestIntegration:
 
         # 触发akshare熔断
         for _ in range(3):
-            try:
+            with contextlib.suppress(ProviderError):
                 await akshare_breaker.call(akshare_call)
-            except ProviderError:
-                pass
 
         # akshare应该被熔断
         assert akshare_breaker.state == CircuitState.OPEN

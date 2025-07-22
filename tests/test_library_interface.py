@@ -219,7 +219,7 @@ class TestErrorHandling:
         client = VPrismClient()
         # 不应该抛出异常，但可能返回空结果
         with pytest.raises(Exception):
-            result = client.get(asset="stock", market="cn", symbols=["000001"])
+            client.get(asset="stock", market="cn", symbols=["000001"])
 
 
 class TestConfiguration:

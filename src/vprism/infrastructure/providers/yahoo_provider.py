@@ -12,7 +12,14 @@ except ImportError:
     YFINANCE_AVAILABLE = False
 
 from vprism.core.logging import StructuredLogger
-from vprism.core.models import DataPoint, DataQuery, DataResponse, MarketType
+from vprism.core.models import (
+    DataPoint,
+    DataQuery,
+    DataResponse,
+    MarketType,
+    ProviderInfo,
+    ResponseMetadata,
+)
 from vprism.infrastructure.providers.base import (
     AuthConfig,
     AuthType,
@@ -117,7 +124,13 @@ class YahooFinanceProvider(DataProvider):
 
         except Exception as e:
             logger.error(f"Error getting data from Yahoo Finance: {e}")
-            return DataResponse(data=[], metadata={"error": str(e)})
+            return DataResponse(
+                data=[],
+                metadata=ResponseMetadata(
+                    total_records=0, query_time_ms=0.0, data_source="error"
+                ),
+                source=ProviderInfo(name="yahoo", endpoint="error"),
+            )
 
     async def stream_data(self, query: DataQuery) -> AsyncIterator[DataPoint]:
         """流式获取数据."""
@@ -128,7 +141,13 @@ class YahooFinanceProvider(DataProvider):
     async def _get_historical_data(self, query: DataQuery) -> DataResponse:
         """获取历史数据."""
         if not query.symbols:
-            return DataResponse(data=[], metadata={"error": "No symbols provided"})
+            return DataResponse(
+                data=[],
+                metadata=ResponseMetadata(
+                    total_records=0, query_time_ms=0.0, data_source="error"
+                ),
+                source=ProviderInfo(name="yahoo", endpoint="error"),
+            )
 
         symbol = query.symbols[0]
 
@@ -166,7 +185,13 @@ class YahooFinanceProvider(DataProvider):
                 )
 
             if data is None or data.empty:
-                return DataResponse(data=[], metadata={"message": "No data found"})
+                return DataResponse(
+                    data=[],
+                    metadata=ResponseMetadata(
+                        total_records=0, query_time_ms=0.0, data_source="yahoo"
+                    ),
+                    source=ProviderInfo(name="yahoo", endpoint="https://api.com"),
+                )
 
             data_points = []
             for date, row in data.iterrows():
@@ -198,17 +223,23 @@ class YahooFinanceProvider(DataProvider):
 
             return DataResponse(
                 data=data_points,
-                metadata={
-                    "total_records": len(data_points),
-                    "source": "yahoo",
-                    "symbol": symbol,
-                    "timeframe": yf_timeframe,
-                },
+                metadata=ResponseMetadata(
+                    total_records=len(data_points),
+                    query_time_ms=0.0,
+                    data_source="yahoo",
+                ),
+                source=ProviderInfo(name="yahoo", endpoint="https://api.com"),
             )
 
         except Exception as e:
             logger.error(f"Error getting historical data from Yahoo Finance: {e}")
-            return DataResponse(data=[], metadata={"error": str(e)})
+            return DataResponse(
+                data=[],
+                metadata=ResponseMetadata(
+                    total_records=0, query_time_ms=0.0, data_source="error"
+                ),
+                source=ProviderInfo(name="yahoo", endpoint="error"),
+            )
 
     async def get_real_time_quote(self, symbol: str) -> dict | None:
         """获取实时报价."""

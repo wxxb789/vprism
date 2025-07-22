@@ -27,7 +27,7 @@ class TestDataService:
     def mock_router(self):
         """创建mock路由器."""
 
-        registry = AsyncMock()
+        AsyncMock()
         router = AsyncMock(spec=DataRouter)
         return router
 
@@ -273,7 +273,7 @@ class TestDataService:
         result = await service.get("000001", start="2024-01-01")
 
         assert len(result.data) == 1
-        assert result.metadata["source"] == "repository"
+        assert result.metadata.data_source == "repository"
 
     @pytest.mark.asyncio
     async def test_get_latest_data(self, service, mock_router):
@@ -290,8 +290,8 @@ class TestDataService:
 
         call_args = mock_router.route_query.call_args[0][0]
         assert call_args.symbols == ["000001", "000002"]
-        assert call_args.end == datetime.now().date()
-        assert call_args.start == datetime.now().date() - timedelta(days=1)
+        assert call_args.end_date == datetime.now().date()
+        assert call_args.start_date == datetime.now().date() - timedelta(days=1)
 
     @pytest.mark.asyncio
     async def test_get_historical_data(self, service, mock_router):
@@ -338,7 +338,13 @@ class TestDataService:
         """测试批量查询处理错误."""
         # 第一个查询成功，第二个失败
         mock_router.route_query.side_effect = [
-            DataResponse(data=[]),
+            DataResponse(
+                data=[],
+                metadata=ResponseMetadata(
+                    total_records=0, query_time_ms=0.0, data_source="test_provider"
+                ),
+                source=ProviderInfo(name="test_provider", endpoint="test"),
+            ),
             Exception("Query failed"),
         ]
 
@@ -351,7 +357,7 @@ class TestDataService:
 
         assert len(results) == 2
         assert len(results["query_0"].data) == 0
-        assert "error" in results["query_1"].metadata
+        assert results["query_1"].source.name == "error"
 
     @pytest.mark.asyncio
     async def test_health_check(self, service, mock_cache, mock_repository):
@@ -474,6 +480,7 @@ class TestDataServiceIntegration:
         """测试简单API使用模式."""
         # 测试各种参数组合
         from vprism.infrastructure.providers.registry import ProviderRegistry
+
         registry = ProviderRegistry()
         router = DataRouter(registry)
         service = DataService(router=router)
@@ -484,17 +491,23 @@ class TestDataServiceIntegration:
     def test_chain_api_usage_patterns(self):
         """测试链式API使用模式."""
         from vprism.infrastructure.providers.registry import ProviderRegistry
+
         registry = ProviderRegistry()
         router = DataRouter(registry)
         service = DataService(router=router)
 
         # 应该能够创建查询构建器而不抛出异常
         builder = service.query()
-        assert str(type(builder)) == "<class 'vprism.core.services.query_builder.QueryBuilder'>" or "QueryBuilder" in str(type(builder))
+        assert (
+            str(type(builder))
+            == "<class 'vprism.core.services.query_builder.QueryBuilder'>"
+            or "QueryBuilder" in str(type(builder))
+        )
 
     def test_query_builder_independence(self):
         """测试查询构建器独立性."""
         from vprism.infrastructure.providers.registry import ProviderRegistry
+
         registry = ProviderRegistry()
         router = DataRouter(registry)
         service = DataService(router=router)

@@ -17,8 +17,8 @@ vprism 提供统一的、可组合的 API 接口，支持多模态部署。
     import asyncio
     async def main():
         data = await vprism.get_async(
-            asset="crypto", 
-            market="global", 
+            asset="crypto",
+            market="global",
             symbols=["BTC", "ETH"]
         )
     asyncio.run(main())

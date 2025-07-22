@@ -140,7 +140,7 @@ class DataConsistencyValidator:
                 TimeFrame,
             )
 
-            asset = Asset(
+            Asset(
                 symbol=symbol,
                 name=symbol,
                 asset_type=AssetType.STOCK,
@@ -327,7 +327,7 @@ class DataConsistencyValidator:
         avg_price_diff = np.mean(price_differences) if price_differences else 0.0
         max_price_diff = np.max(price_differences) if price_differences else 0.0
 
-        total_possible = total_vprism + total_akshare - total_common
+        total_vprism + total_akshare - total_common
         consistency_percentage = (
             (matching_records / max(total_common * 4, 1)) * 100
             if total_common > 0

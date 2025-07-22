@@ -115,10 +115,10 @@ class DataService:
 
     def query(self) -> "QueryBuilder":
         """链式API：创建查询构建器.
-        
+
         Returns:
             QueryBuilder: 查询构建器实例
-            
+
         Examples:
             >>> service = DataService()
             >>> response = await service.query() \
@@ -141,17 +141,17 @@ class DataService:
         Returns:
             DataResponse: 包含数据点的响应对象
         """
-        try:
-            logger = bind(
-                request_id=str(id(query)),
-                component="DataService",
-                action="query_data",
-                symbols=query.symbols,
-                market=query.market.value,
-                asset_type=query.asset.value,
-                timeframe=query.timeframe.value,
-            )
+        logger = bind(
+            request_id=str(id(query)),
+            component="DataService",
+            action="query_data",
+            symbols=query.symbols,
+            market=query.market.value if query.market else None,
+            asset_type=query.asset.value,
+            timeframe=query.timeframe.value if query.timeframe else None,
+        )
 
+        try:
             logger.info("Starting data query")
 
             # 检查缓存
@@ -276,11 +276,16 @@ class DataService:
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=1)
 
+        start_dt = datetime.combine(start_date, datetime.min.time())
+        end_dt = datetime.combine(end_date, datetime.max.time())
+
         query = DataQuery(
             asset=asset_type,
             market=market,
             symbols=symbols,
             timeframe=TimeFrame.DAY_1,
+            start=start_dt,
+            end=end_dt,
             start_date=start_date,
             end_date=end_date,
         )
@@ -336,11 +341,16 @@ class DataService:
 
         start_date = end_date - period_mapping.get(period, timedelta(days=30))
 
+        start_dt = datetime.combine(start_date, datetime.min.time())
+        end_dt = datetime.combine(end_date, datetime.max.time())
+
         query = DataQuery(
             asset=asset_type,
             market=market,
             symbols=symbols,
             timeframe=timeframe,
+            start=start_dt,
+            end=end_dt,
             start_date=start_date,
             end_date=end_date,
         )
@@ -580,6 +590,30 @@ class QueryBuilder:
         """
         return await self.service.query_data(self.query)
 
-    def __repr__(self) -> str:
-        """字符串表示."""
-        return f"QueryBuilder({self.query})"
+    def period(self, period: str) -> "QueryBuilder":
+        """设置查询周期.
+
+        Args:
+            period: 时间周期（"1d", "1w", "1m", "3m", "1y", "max"）
+
+        Returns:
+            QueryBuilder: 当前实例，用于链式调用
+        """
+        period_mapping = {
+            "1d": timedelta(days=1),
+            "1w": timedelta(weeks=1),
+            "1m": timedelta(days=30),
+            "3m": timedelta(days=90),
+            "1y": timedelta(days=365),
+            "max": timedelta(days=3650),  # 10 years
+        }
+
+        end_date = datetime.now().date()
+        start_date = end_date - period_mapping.get(period, timedelta(days=30))
+
+        # Set both date fields for backward compatibility
+        self.query.start_date = start_date
+        self.query.end_date = end_date
+        self.query.start = datetime.combine(start_date, datetime.min.time())
+        self.query.end = datetime.combine(end_date, datetime.max.time())
+        return self

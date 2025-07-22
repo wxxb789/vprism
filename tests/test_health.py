@@ -65,7 +65,7 @@ class TestHealthChecker:
         assert "akshare" in status
         assert "yahoo_finance" in status
 
-        for provider_name, provider_status in status.items():
+        for _provider_name, provider_status in status.items():
             assert "status" in provider_status
             assert "last_check" in provider_status
 
@@ -126,7 +126,7 @@ class TestHealthEndpoints:
 
         assert isinstance(response_data["status"], str)
         assert isinstance(response_data["timestamp"], str)
-        assert isinstance(response_data["uptime_seconds"], (int, float))
+        assert isinstance(response_data["uptime_seconds"], int | float)
         assert isinstance(response_data["checks"], dict)
 
     @pytest.mark.asyncio

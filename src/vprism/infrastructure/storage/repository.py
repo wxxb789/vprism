@@ -162,8 +162,8 @@ class DuckDBRepository(DataRepository):
         try:
             self.schema.conn.execute(
                 """
-                INSERT OR REPLACE INTO asset_info 
-                (symbol, market, name, asset_type, currency, exchange, sector, 
+                INSERT OR REPLACE INTO asset_info
+                (symbol, market, name, asset_type, currency, exchange, sector,
                  industry, is_active, provider, exchange_timezone, first_traded, metadata)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
@@ -193,10 +193,10 @@ class DuckDBRepository(DataRepository):
         try:
             result = self.schema.conn.execute(
                 """
-                SELECT symbol, market, name, asset_type, currency, exchange, 
-                       sector, industry, is_active, provider, exchange_timezone, 
+                SELECT symbol, market, name, asset_type, currency, exchange,
+                       sector, industry, is_active, provider, exchange_timezone,
                        first_traded, last_updated, metadata
-                FROM asset_info 
+                FROM asset_info
                 WHERE symbol = ? AND market = ?
             """,
                 [symbol, market],
@@ -244,8 +244,8 @@ class DuckDBRepository(DataRepository):
                 if has_time:  # 分钟级数据
                     self.schema.conn.execute(
                         """
-                        INSERT OR REPLACE INTO intraday_ohlcv 
-                        (symbol, market, timeframe, timestamp, open_price, high_price, 
+                        INSERT OR REPLACE INTO intraday_ohlcv
+                        (symbol, market, timeframe, timestamp, open_price, high_price,
                          low_price, close_price, volume, amount, provider)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
@@ -266,8 +266,8 @@ class DuckDBRepository(DataRepository):
                 else:  # 日线数据
                     self.schema.conn.execute(
                         """
-                        INSERT OR REPLACE INTO daily_ohlcv 
-                        (symbol, market, trade_date, open_price, high_price, low_price, 
+                        INSERT OR REPLACE INTO daily_ohlcv
+                        (symbol, market, trade_date, open_price, high_price, low_price,
                          close_price, volume, amount, adjusted_close, provider)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
@@ -315,9 +315,9 @@ class DuckDBRepository(DataRepository):
                     end_date, datetime.max.time().replace(microsecond=0)
                 )
                 query = f"""
-                    SELECT symbol, market, timestamp, open_price, high_price, low_price, 
+                    SELECT symbol, market, timestamp, open_price, high_price, low_price,
                            close_price, volume, amount, provider
-                    FROM {table_name} 
+                    FROM {table_name}
                     WHERE symbol = ? AND market = ? AND {time_column} >= ? AND {time_column} <= ?
                     ORDER BY {time_column} ASC
                 """
@@ -326,9 +326,9 @@ class DuckDBRepository(DataRepository):
                 table_name = "daily_ohlcv"
                 time_column = "trade_date"
                 query = f"""
-                    SELECT symbol, market, trade_date, open_price, high_price, low_price, 
+                    SELECT symbol, market, trade_date, open_price, high_price, low_price,
                            close_price, volume, amount, adjusted_close, provider
-                    FROM {table_name} 
+                    FROM {table_name}
                     WHERE symbol = ? AND market = ? AND {time_column} >= ? AND {time_column} <= ?
                     ORDER BY {time_column} ASC
                 """
@@ -386,8 +386,8 @@ class DuckDBRepository(DataRepository):
         try:
             self.schema.conn.execute(
                 """
-                INSERT OR REPLACE INTO real_time_quotes 
-                (symbol, market, price, change_amount, change_percent, volume, 
+                INSERT OR REPLACE INTO real_time_quotes
+                (symbol, market, price, change_amount, change_percent, volume,
                  bid, ask, bid_size, ask_size, timestamp, provider)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
@@ -418,9 +418,9 @@ class DuckDBRepository(DataRepository):
         try:
             result = self.schema.conn.execute(
                 """
-                SELECT symbol, market, price, change_amount, change_percent, volume, 
+                SELECT symbol, market, price, change_amount, change_percent, volume,
                        bid, ask, bid_size, ask_size, timestamp, provider
-                FROM real_time_quotes 
+                FROM real_time_quotes
                 WHERE symbol = ? AND market = ?
             """,
                 [symbol, market],
@@ -451,9 +451,9 @@ class DuckDBRepository(DataRepository):
         try:
             self.schema.conn.execute(
                 """
-                INSERT OR REPLACE INTO data_quality 
-                (symbol, market, date_range_start, date_range_end, completeness_score, 
-                 accuracy_score, consistency_score, total_records, missing_records, 
+                INSERT OR REPLACE INTO data_quality
+                (symbol, market, date_range_start, date_range_end, completeness_score,
+                 accuracy_score, consistency_score, total_records, missing_records,
                  anomaly_count, provider)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
@@ -483,10 +483,10 @@ class DuckDBRepository(DataRepository):
         try:
             result = self.schema.conn.execute(
                 """
-                SELECT symbol, market, date_range_start, date_range_end, 
-                       completeness_score, accuracy_score, consistency_score, 
+                SELECT symbol, market, date_range_start, date_range_end,
+                       completeness_score, accuracy_score, consistency_score,
                        total_records, missing_records, anomaly_count, provider, checked_at
-                FROM data_quality 
+                FROM data_quality
                 WHERE symbol = ? AND market = ? AND date_range_start = ? AND date_range_end = ?
             """,
                 [symbol, market, start_date, end_date],
@@ -538,10 +538,10 @@ class DuckDBRepository(DataRepository):
             # 如果没有实时报价，从日线数据获取
             result = self.schema.conn.execute(
                 """
-                SELECT close_price 
-                FROM daily_ohlcv 
-                WHERE symbol = ? AND market = ? 
-                ORDER BY trade_date DESC 
+                SELECT close_price
+                FROM daily_ohlcv
+                WHERE symbol = ? AND market = ?
+                ORDER BY trade_date DESC
                 LIMIT 1
             """,
                 [symbol, market],

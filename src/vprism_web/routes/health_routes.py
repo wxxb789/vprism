@@ -101,8 +101,6 @@ async def provider_health_check(request: Request) -> APIResponse:
     检查所有数据提供商的状态
     """
     try:
-        client = request.app.state.vprism_client
-
         # 获取提供商状态（简化实现）
         providers = [
             ProviderStatus(
@@ -141,8 +139,6 @@ async def cache_health_check(request: Request) -> APIResponse:
     检查缓存系统的状态和统计
     """
     try:
-        client = request.app.state.vprism_client
-
         # 获取缓存统计（简化实现）
         cache_stats = CacheStats(
             hits=1000, misses=200, hit_rate=0.833, size=500, memory_usage="50MB"

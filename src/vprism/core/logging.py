@@ -83,15 +83,19 @@ class StructuredLogger:
             "module": record["name"],
             "function": record["function"],
             "line": record["line"],
-            "thread": record["thread"].name,
-            "process": record["process"].name,
+            "thread": record["thread"].name if record.get("thread") else None,
+            "process": record["process"].name if record.get("process") else None,
         }
 
-        # 添加额外字段
-        if record["extra"]:
-            log_data.update(record["extra"])
+        # 添加额外字段 - 处理嵌套的extra结构
+        if record.get("extra"):
+            # 移除可能的嵌套extra
+            extra_data = record["extra"]
+            if isinstance(extra_data, dict) and "extra" in extra_data:
+                extra_data = extra_data["extra"]
+            log_data.update(extra_data)
 
-        return json.dumps(log_data, ensure_ascii=False)
+        return json.dumps(log_data, ensure_ascii=False, default=str)
 
     def configure(self, **kwargs: Any) -> None:
         """动态更新日志配置。"""
@@ -145,10 +149,11 @@ class PerformanceLogger:
     def __call__(self, func):
         async def wrapper(*args, **kwargs):
             import time
-            start_time = time.time()
+
+            start_time = time.perf_counter()
             try:
                 result = await func(*args, **kwargs)
-                duration = (time.time() - start_time) * 1000
+                duration = (time.perf_counter() - start_time) * 1000
                 logger.success(
                     f"{self.operation_name} completed",
                     extra={
@@ -159,7 +164,7 @@ class PerformanceLogger:
                 )
                 return result
             except Exception as e:
-                duration = (time.time() - start_time) * 1000
+                duration = (time.perf_counter() - start_time) * 1000
                 logger.error(
                     f"{self.operation_name} failed",
                     extra={
@@ -187,8 +192,9 @@ class RequestLogger:
                 await app(scope, receive, send)
                 return
 
-            from starlette.requests import Request
             import time
+
+            from starlette.requests import Request
 
             request = Request(scope, receive)
             path = request.url.path
@@ -203,7 +209,9 @@ class RequestLogger:
                 extra={
                     "method": request.method,
                     "url": str(request.url),
-                    "client": f"{request.client.host}:{request.client.port}" if request.client else None,
+                    "client": f"{request.client.host}:{request.client.port}"
+                    if request.client
+                    else None,
                     "user_agent": request.headers.get("user-agent", "unknown"),
                 },
             )

@@ -85,17 +85,15 @@ class DataQualityValidator:
             data_point.high is not None
             and data_point.open is not None
             and data_point.close is not None
-        ):
-            if data_point.high < max(data_point.open, data_point.close):
-                issues.append("High price must be >= max(open, close)")
+        ) and data_point.high < max(data_point.open, data_point.close):
+            issues.append("High price must be >= max(open, close)")
 
         if (
             data_point.low is not None
             and data_point.open is not None
             and data_point.close is not None
-        ):
-            if data_point.low > min(data_point.open, data_point.close):
-                issues.append("Low price must be <= min(open, close)")
+        ) and data_point.low > min(data_point.open, data_point.close):
+            issues.append("Low price must be <= min(open, close)")
 
         # Volume validation
         if data_point.volume is not None and data_point.volume < 0:
@@ -165,7 +163,7 @@ class DataQualityValidator:
         return {
             "missing_count": missing_count,
             "missing_percentage": missing_percentage,
-            "gaps": sorted(list(missing_dates)),
+            "gaps": sorted(missing_dates),
         }
 
     def detect_outliers(

@@ -115,7 +115,7 @@ class BatchProcessor:
             result = group_results[i]
             if isinstance(result, Exception):
                 # 处理异常
-                for j, query in enumerate(queries):
+                for j, _query in enumerate(queries):
                     query_id = f"{provider_name}_{j}"
                     errors[query_id] = str(result)
                     final_results[query_id] = DataResponse(

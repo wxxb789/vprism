@@ -52,8 +52,8 @@ class TestDatabaseSchema:
 
         # 验证索引创建 - 检查表结构
         indexes = schema.conn.execute("""
-            SELECT table_name, index_name 
-            FROM duckdb_indexes() 
+            SELECT table_name, index_name
+            FROM duckdb_indexes()
             WHERE table_name IN ('asset_info', 'daily_ohlcv', 'intraday_ohlcv')
         """).fetchall()
 
@@ -88,9 +88,9 @@ class TestDatabaseSchema:
 
         # 插入测试数据
         schema.conn.execute("""
-            INSERT INTO asset_info 
+            INSERT INTO asset_info
             (symbol, market, name, asset_type, currency, exchange, provider)
-            VALUES 
+            VALUES
             ('TEST001', 'cn', '测试股票', 'stock', 'CNY', 'SZSE', 'tushare')
         """)
 
@@ -114,9 +114,9 @@ class TestDatabaseSchema:
         test_date = date(2024, 1, 1)
         schema.conn.execute(
             """
-            INSERT INTO daily_ohlcv 
+            INSERT INTO daily_ohlcv
             (symbol, market, trade_date, open_price, high_price, low_price, close_price, volume, provider)
-            VALUES 
+            VALUES
             ('TEST001', 'cn', ?, 10.50, 10.80, 10.30, 10.60, 1000000, 'tushare')
         """,
             [test_date],
@@ -124,8 +124,8 @@ class TestDatabaseSchema:
 
         # 查询测试
         result = schema.conn.execute(
-            """SELECT symbol, close_price, volume, trade_date 
-               FROM daily_ohlcv 
+            """SELECT symbol, close_price, volume, trade_date
+               FROM daily_ohlcv
                WHERE symbol = 'TEST001' AND trade_date = ?""",
             [test_date],
         ).fetchone()
@@ -146,9 +146,9 @@ class TestDatabaseSchema:
         test_timestamp = datetime(2024, 1, 1, 9, 30, 0)
         schema.conn.execute(
             """
-            INSERT INTO intraday_ohlcv 
+            INSERT INTO intraday_ohlcv
             (symbol, market, timeframe, timestamp, open_price, high_price, low_price, close_price, volume, provider)
-            VALUES 
+            VALUES
             ('TEST001', 'cn', '1m', ?, 10.50, 10.52, 10.49, 10.51, 10000, 'tushare')
         """,
             [test_timestamp],
@@ -156,8 +156,8 @@ class TestDatabaseSchema:
 
         # 查询测试
         result = schema.conn.execute(
-            """SELECT symbol, close_price, volume, timeframe 
-               FROM intraday_ohlcv 
+            """SELECT symbol, close_price, volume, timeframe
+               FROM intraday_ohlcv
                WHERE symbol = 'TEST001' AND timeframe = '1m'"""
         ).fetchone()
 
@@ -177,9 +177,9 @@ class TestDatabaseSchema:
         test_timestamp = datetime.now()
         schema.conn.execute(
             """
-            INSERT INTO real_time_quotes 
+            INSERT INTO real_time_quotes
             (symbol, market, price, change_amount, change_percent, volume, timestamp, provider)
-            VALUES 
+            VALUES
             ('TEST001', 'cn', 10.55, 0.05, 0.47, 500000, ?, 'tushare')
         """,
             [test_timestamp],
@@ -214,7 +214,7 @@ class TestDatabaseSchema:
                 VALUES ('TEST001', 'cn', '测试股票2', 'stock', 'CNY', 'SZSE', 'tushare')
             """)
             # 如果执行到这里，说明主键约束没有生效，这是不应该的
-            assert False, "Primary key constraint should have failed"
+            raise AssertionError("Primary key constraint should have failed")
         except Exception:
             # 这是预期的行为，主键约束生效
             pass
@@ -235,9 +235,9 @@ class TestDatabaseSchema:
         test_date = date(2024, 1, 1)
         schema.conn.execute(
             """
-            INSERT INTO daily_ohlcv 
+            INSERT INTO daily_ohlcv
             (symbol, market, trade_date, open_price, high_price, low_price, close_price, volume, provider)
-            VALUES 
+            VALUES
             ('TEST001', 'cn', ?, 10.50, 10.80, 10.30, 10.60, 1000000, 'tushare')
         """,
             [test_date],
@@ -306,17 +306,17 @@ class TestDatabaseSchema:
 
         # 插入测试数据质量记录
         schema.conn.execute("""
-            INSERT INTO data_quality 
-            (symbol, market, date_range_start, date_range_end, completeness_score, 
+            INSERT INTO data_quality
+            (symbol, market, date_range_start, date_range_end, completeness_score,
              accuracy_score, consistency_score, total_records, provider)
-            VALUES 
+            VALUES
             ('TEST001', 'cn', '2024-01-01', '2024-01-31', 98.5, 99.2, 97.8, 22, 'tushare')
         """)
 
         # 查询测试
         result = schema.conn.execute(
-            """SELECT symbol, completeness_score, total_records 
-               FROM data_quality 
+            """SELECT symbol, completeness_score, total_records
+               FROM data_quality
                WHERE symbol = 'TEST001'"""
         ).fetchone()
 
@@ -333,9 +333,9 @@ class TestDatabaseSchema:
 
         # 插入测试提供商状态
         schema.conn.execute("""
-            INSERT INTO provider_status 
+            INSERT INTO provider_status
             (provider_name, status, last_success, uptime_percent, avg_response_time_ms)
-            VALUES 
+            VALUES
             ('tushare', 'healthy', CURRENT_TIMESTAMP, 99.5, 150)
         """)
 

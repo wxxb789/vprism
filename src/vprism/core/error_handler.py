@@ -157,7 +157,7 @@ class ErrorHandler:
             if provider:
                 return ProviderError(
                     f"提供商{provider}请求超时",
-                    provider=provider,
+                    provider_name=provider,
                     error_code="PROVIDER_TIMEOUT",
                     details=context,
                 )
@@ -182,10 +182,14 @@ class ErrorHandler:
                     details=context,
                 )
 
-        elif "Validation" in error_type or "validation" in str(error).lower():
+        elif (
+            "Validation" in error_type
+            or "validation" in str(error).lower()
+            or "数据格式无效" in str(error)
+        ):
             return DataValidationError(
                 str(error),
-                validation_errors=context,
+                validation_errors=context.get("validation_errors", {}),
                 details=context,
             )
 

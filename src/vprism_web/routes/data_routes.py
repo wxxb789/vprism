@@ -235,8 +235,6 @@ async def list_symbols(
     获取指定市场的股票代码列表
     """
     try:
-        client = request.app.state.vprism_client
-
         # 这里应该调用客户端的资产发现功能
         # 暂时返回示例数据
         symbols = {

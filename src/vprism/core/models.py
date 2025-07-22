@@ -1,6 +1,6 @@
 """核心数据模型和枚举类型."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Any
@@ -95,9 +95,11 @@ class DataQuery(BaseModel):
     asset: AssetType
     market: MarketType | None = None
     provider: str | None = None
-    timeframe: TimeFrame | None = None
+    timeframe: TimeFrame = TimeFrame.DAY_1  # 默认日线
     start: datetime | None = None
     end: datetime | None = None
+    start_date: date | None = None
+    end_date: date | None = None
     symbols: list[str] | None = None
 
 

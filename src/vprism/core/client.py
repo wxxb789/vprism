@@ -124,18 +124,15 @@ class VPrismClient:
 
     def _apply_config(self) -> None:
         """应用配置到各个组件"""
-        config = self.config_manager.get_config()
+        self.config_manager.get_config()
 
         # 配置缓存
-        cache_config = config.cache
         # TODO: 应用到缓存系统
 
         # 配置提供商
-        provider_config = config.providers
         # TODO: 应用到提供商系统
 
         # 配置日志
-        logging_config = config.logging
         # TODO: 配置日志系统
 
     def query(self) -> QueryBuilder:

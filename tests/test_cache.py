@@ -57,7 +57,7 @@ class TestCacheKey:
             (TimeFrame.MINUTE_1, 60),
             (TimeFrame.DAY_1, 3600),
             (TimeFrame.WEEK_1, 86400),
-            (None, 300),  # 默认值
+            (TimeFrame.DAY_1, 3600),  # 使用有效值代替None
         ]
 
         for timeframe, expected_ttl in test_cases:

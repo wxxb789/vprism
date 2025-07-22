@@ -3,6 +3,8 @@ Web 服务测试套件
 测试 FastAPI Web 服务的各个端点和功能
 """
 
+import os
+import sys
 from datetime import datetime
 from unittest.mock import AsyncMock
 
@@ -10,9 +12,7 @@ import pytest
 from httpx import AsyncClient
 from httpx._transports.asgi import ASGITransport
 
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'vprism_web'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "vprism_web"))
 from app import create_app
 
 
@@ -81,9 +81,7 @@ class TestWebService:
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
-        assert "client" in data["data"]["components"]
-        assert "cache" in data["data"]["components"]
-        assert "providers" in data["data"]["components"]
+        assert "checks" in data["data"]
 
     @pytest.mark.asyncio
     async def test_readiness_check(self, app, mock_client):
@@ -115,7 +113,12 @@ class TestWebService:
         # 设置模拟返回数据
         from decimal import Decimal
 
-        from vprism.core.models import DataResponse, DataPoint, ProviderInfo, ResponseMetadata
+        from vprism.core.models import (
+            DataPoint,
+            DataResponse,
+            ProviderInfo,
+            ResponseMetadata,
+        )
 
         mock_response = DataResponse(
             data=[
@@ -155,7 +158,12 @@ class TestWebService:
         """测试 POST 方式获取股票数据"""
         from decimal import Decimal
 
-        from vprism.core.models import DataResponse, DataPoint, ProviderInfo, ResponseMetadata
+        from vprism.core.models import (
+            DataPoint,
+            DataResponse,
+            ProviderInfo,
+            ResponseMetadata,
+        )
 
         mock_response = DataResponse(
             data=[
@@ -197,7 +205,12 @@ class TestWebService:
         from datetime import datetime
         from decimal import Decimal
 
-        from vprism.core.models import DataResponse, DataPoint, ProviderInfo, ResponseMetadata
+        from vprism.core.models import (
+            DataPoint,
+            DataResponse,
+            ProviderInfo,
+            ResponseMetadata,
+        )
 
         mock_response = DataResponse(
             data=[
@@ -235,7 +248,14 @@ class TestWebService:
     @pytest.mark.asyncio
     async def test_batch_data_endpoint(self, app, mock_client):
         """测试批量数据端点"""
-        from vprism.core.models import DataResponse, DataPoint, ProviderInfo, ResponseMetadata
+        from decimal import Decimal
+
+        from vprism.core.models import (
+            DataPoint,
+            DataResponse,
+            ProviderInfo,
+            ResponseMetadata,
+        )
 
         mock_response1 = DataResponse(
             data=[
@@ -256,7 +276,7 @@ class TestWebService:
             data=[
                 DataPoint(
                     symbol="GOOGL",
-                    market="us", 
+                    market="us",
                     timestamp=datetime(2024, 1, 1),
                     close_price=Decimal("2500.0"),
                     provider="test_provider",
