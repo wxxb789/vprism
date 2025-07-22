@@ -187,8 +187,8 @@
       - 完整的错误处理
     - ✅ **创建健康检查端点**
       - `/api/v1/health` - 基础健康检查
-      - `/api/v1/health/ready` - Kubernetes就绪检查
-      - `/api/v1/health/live` - Kubernetes存活检查
+      - `/api/v1/health/ready` - Docker健康检查就绪状态
+      - `/api/v1/health/live` - Docker健康检查存活状态
       - `/api/v1/health/providers` - 提供商状态检查
       - `/api/v1/health/cache` - 缓存状态检查
     - ✅ **编写 API 端点的集成测试**

@@ -144,10 +144,11 @@ class PerformanceLogger:
 
     def __call__(self, func):
         async def wrapper(*args, **kwargs):
-            start_time = logger.time()
+            import time
+            start_time = time.time()
             try:
                 result = await func(*args, **kwargs)
-                duration = (logger.time() - start_time) * 1000
+                duration = (time.time() - start_time) * 1000
                 logger.success(
                     f"{self.operation_name} completed",
                     extra={
@@ -158,7 +159,7 @@ class PerformanceLogger:
                 )
                 return result
             except Exception as e:
-                duration = (logger.time() - start_time) * 1000
+                duration = (time.time() - start_time) * 1000
                 logger.error(
                     f"{self.operation_name} failed",
                     extra={
@@ -180,49 +181,50 @@ class RequestLogger:
     def __init__(self, exclude_paths: list | None = None):
         self.exclude_paths = exclude_paths or ["/health", "/docs", "/openapi.json"]
 
-    async def __call__(self, request, call_next):
-        if any(path in str(request.url) for path in self.exclude_paths):
-            response = await call_next(request)
-            return response
+    def __call__(self, app):
+        async def middleware(scope, receive, send):
+            if scope["type"] != "http":
+                await app(scope, receive, send)
+                return
 
-        start_time = logger.time()
-        logger.info(
-            "Request started",
-            extra={
-                "method": request.method,
-                "url": str(request.url),
-                "client": getattr(request, "client", None)
-                and f"{request.client.host}:{request.client.port}",
-                "user_agent": request.headers.get("user-agent", "unknown"),
-            },
-        )
+            from starlette.requests import Request
+            import time
 
-        try:
-            response = await call_next(request)
-            duration = (logger.time() - start_time) * 1000
-            logger.success(
-                "Request completed",
+            request = Request(scope, receive)
+            path = request.url.path
+
+            if any(exclude in path for exclude in self.exclude_paths):
+                await app(scope, receive, send)
+                return
+
+            start_time = time.time()
+            logger.info(
+                "Request started",
                 extra={
                     "method": request.method,
                     "url": str(request.url),
-                    "status_code": response.status_code,
-                    "duration_ms": round(duration, 2),
+                    "client": f"{request.client.host}:{request.client.port}" if request.client else None,
+                    "user_agent": request.headers.get("user-agent", "unknown"),
                 },
             )
-            return response
-        except Exception as e:
-            duration = (logger.time() - start_time) * 1000
-            logger.error(
-                "Request failed",
-                extra={
-                    "method": request.method,
-                    "url": str(request.url),
-                    "duration_ms": round(duration, 2),
-                    "error_type": type(e).__name__,
-                    "error_message": str(e),
-                },
-            )
-            raise
+
+            async def send_wrapper(message):
+                if message["type"] == "http.response.start":
+                    duration = (time.time() - start_time) * 1000
+                    logger.success(
+                        "Request completed",
+                        extra={
+                            "method": request.method,
+                            "url": str(request.url),
+                            "status_code": message["status"],
+                            "duration_ms": round(duration, 2),
+                        },
+                    )
+                await send(message)
+
+            await app(scope, receive, send_wrapper)
+
+        return middleware
 
 
 # 初始化默认日志配置

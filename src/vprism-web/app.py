@@ -84,8 +84,63 @@ def create_app() -> FastAPI:
 def _setup_middleware(app: FastAPI) -> None:
     """配置中间件"""
 
-    # 添加请求日志中间件
-    app.add_middleware(RequestLogger)
+    # 添加请求日志中间件 - 使用Starlette中间件格式
+    from starlette.middleware import Middleware
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.requests import Request
+    from starlette.responses import Response
+    import time
+    
+    class HTTPRequestLogger(BaseHTTPMiddleware):
+        def __init__(self, app, exclude_paths=None):
+            super().__init__(app)
+            self.exclude_paths = exclude_paths or ["/health", "/docs", "/openapi.json"]
+        
+        async def dispatch(self, request: Request, call_next):
+            path = request.url.path
+            if any(exclude in path for exclude in self.exclude_paths):
+                return await call_next(request)
+
+            start_time = time.time()
+            from vprism.core.logging import logger
+            logger.info(
+                "Request started",
+                extra={
+                    "method": request.method,
+                    "url": str(request.url),
+                    "client": f"{request.client.host}:{request.client.port}" if request.client else None,
+                    "user_agent": request.headers.get("user-agent", "unknown"),
+                },
+            )
+
+            try:
+                response = await call_next(request)
+                duration = (time.time() - start_time) * 1000
+                logger.success(
+                    "Request completed",
+                    extra={
+                        "method": request.method,
+                        "url": str(request.url),
+                        "status_code": response.status_code,
+                        "duration_ms": round(duration, 2),
+                    },
+                )
+                return response
+            except Exception as e:
+                duration = (time.time() - start_time) * 1000
+                logger.error(
+                    "Request failed",
+                    extra={
+                        "method": request.method,
+                        "url": str(request.url),
+                        "duration_ms": round(duration, 2),
+                        "error_type": type(e).__name__,
+                        "error_message": str(e),
+                    },
+                )
+                raise
+
+    app.add_middleware(HTTPRequestLogger)
 
     # CORS 中间件
     app.add_middleware(

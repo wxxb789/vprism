@@ -841,7 +841,7 @@ class TestDataFactory:
 | 库模式 | 个人开发者、数据科学家 | 轻量级、易集成 | Python Package |
 | 服务模式 | 企业、团队 | 高并发、可扩展 | FastAPI + Docker |
 | MCP 模式 | AI 助手、自动化 | 标准化接口 | FastMCP Server |
-| 容器模式 | 生产环境 | 高可用、监控 | Kubernetes |
+| 容器模式 | 生产环境 | 高可用、监控 | Docker + Docker Compose |
 
 ### 1. 库模式 (Library Mode)
 
@@ -961,52 +961,47 @@ CMD ["uv", "run", "uvicorn", "src.vprism-web.main:app", "--host", "0.0.0.0", "--
 ```
 
 ```yaml
-# Kubernetes 部署配置 - RESTRUCTURED
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: vprism-api
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: vprism-api
-  template:
-    metadata:
-      labels:
-        app: vprism-api
-    spec:
-      containers:
-      - name: vprism-api
-        image: vprism:latest
-        ports:
-        - containerPort: 8000
-        env:
-        - name: PYTHONPATH
-          value: "/app/src"
-        - name: REDIS_URL
-          value: "redis://redis-service:6379"
-        - name: LOG_LEVEL
-          value: "INFO"
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /api/v1/health
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /api/v1/health
-            port: 8000
-          initialDelaySeconds: 5
-          periodSeconds: 5
+# Docker Compose 配置 - RESTRUCTURED
+version: '3.8'
+
+services:
+  vprism-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app/src
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=INFO
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - vprism-api
 ```
 
 ## 技术栈详细说明

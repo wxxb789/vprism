@@ -4,7 +4,7 @@
 """
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
-from web.models import (
+from models import (
     APIResponse,
     BatchDataRequest,
     MarketDataRequest,

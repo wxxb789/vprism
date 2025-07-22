@@ -26,13 +26,24 @@ logger = StructuredLogger().logger
 class YahooFinanceProvider(DataProvider):
     """Yahoo Finance数据提供商实现."""
 
-    def __init__(self, auth_config: AuthConfig, rate_limit: RateLimitConfig):
+    def __init__(self, auth_config: AuthConfig = None, rate_limit: RateLimitConfig = None):
         """初始化Yahoo Finance提供商.
 
         Args:
             auth_config: 认证配置
             rate_limit: 速率限制配置
         """
+        auth_config = auth_config or AuthConfig(
+            auth_type=AuthType.NONE,
+            credentials={},
+            required_fields=[]
+        )
+        rate_limit = rate_limit or RateLimitConfig(
+            requests_per_minute=1000,
+            requests_per_hour=5000,
+            requests_per_day=20000,
+            concurrent_requests=5
+        )
         super().__init__("yahoo", auth_config, rate_limit)
 
     def _discover_capability(self) -> ProviderCapability:

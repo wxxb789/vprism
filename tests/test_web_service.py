@@ -10,8 +10,11 @@ import pytest
 from httpx import AsyncClient
 from httpx._transports.asgi import ASGITransport
 
-from vprism.core.models import DataResponse
-from vprism.web.app import create_app
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'vprism-web'))
+from app import create_app
 
 
 class TestWebService:

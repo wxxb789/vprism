@@ -162,7 +162,7 @@ class VPrismMCPServer:
                             symbol=symbol,
                             start_date=target_date,
                             end_date=target_date,
-                            timeframe=TimeFrame.DAILY,
+                            timeframe=TimeFrame.DAY_1,
                             market=market_type,
                         )
 
@@ -313,7 +313,7 @@ class VPrismMCPServer:
                     symbol=symbol.upper(),
                     start_date=start_date,
                     end_date=end_date,
-                    timeframe=TimeFrame.DAILY,
+                    timeframe=TimeFrame.DAY_1,
                     market=market_type,
                 )
 
@@ -381,7 +381,7 @@ class VPrismMCPServer:
                             symbol=symbol.upper(),
                             start_date=start_date,
                             end_date=end_date,
-                            timeframe=TimeFrame.DAILY,
+                            timeframe=TimeFrame.DAY_1,
                             market=market_type,
                         )
 

@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Request
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
-from web.models import APIResponse, CacheStats, ProviderStatus
+from models import APIResponse, CacheStats, ProviderStatus
 
 from vprism.core.health import get_health_checker
 

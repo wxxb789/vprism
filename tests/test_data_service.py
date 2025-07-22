@@ -160,8 +160,8 @@ class TestDataService:
         assert call_args.market == MarketType.CN
         assert call_args.asset == AssetType.STOCK
         assert call_args.timeframe == TimeFrame.DAY_1
-        assert call_args.end == datetime.now().date()
-        assert call_args.start == datetime.now().date() - timedelta(days=30)
+        assert call_args.end.date() == datetime.now().date()
+        assert call_args.start.date() == datetime.now().date() - timedelta(days=30)
 
     @pytest.mark.asyncio
     async def test_simple_api_different_markets(self, service, mock_router):
@@ -473,14 +473,20 @@ class TestDataServiceIntegration:
     def test_simple_api_usage_patterns(self):
         """测试简单API使用模式."""
         # 测试各种参数组合
-        service = DataService()
+        from vprism.infrastructure.providers.registry import ProviderRegistry
+        registry = ProviderRegistry()
+        router = DataRouter(registry)
+        service = DataService(router=router)
 
         # 应该能够创建查询而不抛出异常
         assert service is not None
 
     def test_chain_api_usage_patterns(self):
         """测试链式API使用模式."""
-        service = DataService()
+        from vprism.infrastructure.providers.registry import ProviderRegistry
+        registry = ProviderRegistry()
+        router = DataRouter(registry)
+        service = DataService(router=router)
 
         # 应该能够创建查询构建器而不抛出异常
         builder = service.query()
@@ -488,7 +494,10 @@ class TestDataServiceIntegration:
 
     def test_query_builder_independence(self):
         """测试查询构建器独立性."""
-        service = DataService()
+        from vprism.infrastructure.providers.registry import ProviderRegistry
+        registry = ProviderRegistry()
+        router = DataRouter(registry)
+        service = DataService(router=router)
 
         builder1 = service.query().symbols(["000001"])
         builder2 = service.query().symbols(["000002"])

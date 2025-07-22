@@ -73,7 +73,7 @@
 ### Required Tools
 - **Python**: 3.11, 3.12, or 3.13
 - **Package Manager**: uv (recommended) or pip
-- **Container Runtime**: Docker & Docker Compose
+- **Container Runtime**: **Docker & Docker Compose** (专注容器化，无需K8s)
 - **Git**: For version control
 
 ### Setup Commands
@@ -90,8 +90,8 @@ uv run pytest
 # Start development environment
 uv run uvicorn vprism.web.main:app --reload
 
-# Docker development
-docker-compose up --build
+# Docker development (推荐方式)
+docker-compose -f src/vprism-docker/docker-compose.yml up --build
 ```
 
 ## Technical Patterns & Compatibility Notes
@@ -420,7 +420,7 @@ docker-compose -f src/vprism-docker/docker-compose.yml up --build
 - **Features**: 
   - Complete RESTful API with OpenAPI 3.0 documentation
   - Swagger UI and ReDoc interfaces
-  - Health checks and Kubernetes probes
+  - Health checks and Docker health checks
   - CORS, Gzip compression, request validation
   - Standardized response format with error handling
 - **Routes**: 

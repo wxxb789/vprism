@@ -59,10 +59,10 @@ class TestErrorHandler:
 
     def test_create_error_response_with_vprism_error(self, error_handler):
         """测试创建VPrismError的错误响应."""
-        error = VPrismError("测试错误", "TEST_ERROR", {"test": "data"})
+        error = VPrismError("测试错误", ErrorCode.GENERAL_ERROR, {"test": "data"})
         response = error_handler.create_error_response(error)
 
-        assert response["error"]["code"] == "TEST_ERROR"
+        assert response["error"]["code"] == ErrorCode.GENERAL_ERROR.value
         assert response["error"]["message"] == "测试错误"
         assert response["error"]["details"]["test"] == "data"
 

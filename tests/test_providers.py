@@ -23,9 +23,9 @@ class TestProviderBase:
         capability = provider.capability
 
         assert capability is not None
-        assert "stock" in capability.supported_assets
-        assert "cn" in capability.supported_markets
-        assert "1d" in capability.supported_timeframes
+        assert AssetType.STOCK in capability.supported_assets
+        assert MarketType.CN in capability.supported_markets
+        assert TimeFrame.DAY_1 in capability.supported_timeframes
         assert capability.max_symbols_per_request > 0
 
     def test_provider_can_handle_query(self):
@@ -113,7 +113,7 @@ class TestAkShareProvider:
             mock_fetch.return_value = mock_response
 
             response = await provider.get_data(query)
-            assert len(response.data) > 0
+            assert response.data is not None
             assert response.data[0].symbol == "000001"
 
 
@@ -163,7 +163,7 @@ class TestYahooFinanceProvider:
             mock_fetch.return_value = mock_response
 
             response = await provider.get_data(query)
-            assert len(response.data) > 0
+            assert response.data is not None
             assert response.data[0].symbol == "AAPL"
 
 

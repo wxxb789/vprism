@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 
 from loguru import logger
 
-from vprism.core.logging import PerformanceLogger
+from vprism.core.logging import PerformanceLogger, bind
 from vprism.core.models import (
     AssetType,
     DataQuery,

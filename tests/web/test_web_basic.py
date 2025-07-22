@@ -5,7 +5,11 @@ Web 服务基础测试
 
 from fastapi.testclient import TestClient
 
-from vprism.web.app import create_app
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'vprism-web'))
+from app import create_app
 
 
 def test_basic_app():

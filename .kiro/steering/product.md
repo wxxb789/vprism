@@ -52,8 +52,8 @@ vprism is a next-generation financial data infrastructure platform that provides
 ### For DevOps/Platform Teams
 - **Multi-Modal Deployment**: Library for integration, service for microservices, MCP for AI agents (IMPLEMENTED)
 - **Observability Ready**: Structured logging with loguru, Prometheus metrics (IMPLEMENTED)
-- **Container-First**: Docker and Kubernetes ready with health checks (IMPLEMENTED)
-- **Horizontal Scalability**: Stateless design supports horizontal scaling (IMPLEMENTED)
+- **Container-First**: Docker ready with health checks and monitoring (IMPLEMENTED)
+- **Simple Deployment**: Docker Compose for easy local development and production (IMPLEMENTED)
 
 ### Differentiators - IMPLEMENTED
 - **Modern Python Stack**: Built with Python 3.11+ using latest async patterns

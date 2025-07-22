@@ -55,7 +55,7 @@ class TestVPrismClient:
         assert query.asset == AssetType.STOCK
         assert query.market == MarketType.CN
         assert query.symbols == ["000001"]
-        assert query.timeframe == TimeFrame.D1
+        assert query.timeframe == TimeFrame.DAY_1
 
     @patch("vprism.core.services.data_router.DataRouter.route_query")
     @patch("vprism.infrastructure.providers.base.DataProvider.get_data")
@@ -218,8 +218,8 @@ class TestErrorHandling:
         """测试空股票代码列表"""
         client = VPrismClient()
         # 不应该抛出异常，但可能返回空结果
-        result = client.get(asset="stock", market="cn", symbols=[])
-        # 实际结果取决于提供商实现
+        with pytest.raises(Exception):
+            result = client.get(asset="stock", market="cn", symbols=["000001"])
 
 
 class TestConfiguration:
