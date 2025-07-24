@@ -1,309 +1,93 @@
----
-description: Generate implementation tasks for a specification
-allowed-tools: Bash, Read, Write, Edit, Update, MultiEdit
----
+# Spec Tasks Command
 
-# Implementation Tasks
+Generate implementation task list based on approved design.
 
-Generate detailed implementation tasks for feature: **$ARGUMENTS**
-
-## Approval Gate: Requirements & Design Check
-
-**CRITICAL**: Tasks can only be generated after both requirements and design are approved.
-
-### Approval Status Check
-
-- Spec metadata: @.kiro/specs/$ARGUMENTS/spec.json
-
-**STOP HERE** if spec.json shows:
-
-```json
-"approvals": {
-  "requirements": {
-    "approved": false  // Must be true
-  },
-  "design": {
-    "approved": false  // Must be true
-  }
-}
+## Usage
+```
+/spec-tasks [feature-name]
 ```
 
-**Required Actions for Full Approval**:
+## Instructions
+You are working on the tasks phase of the spec workflow.
 
-### If Requirements Not Approved:
+**WORKFLOW**: This is the FINAL step before command generation.
+**SEQUENCE**: Create Tasks → Get Approval → THEN run script
+**DO NOT** run any scripts until tasks are approved.
 
-1. **Review requirements.md** - Read through the generated requirements thoroughly
-2. **Edit if needed** - Make any necessary changes directly in the requirements.md file
-3. **Manual approval required** - Update spec.json to set `"requirements": {"approved": true}`
+1. **Prerequisites**
+   - Ensure design.md exists and is approved
+   - Load both requirements.md and design.md for context
+   - Understand the complete feature scope
 
-### If Design Not Approved:
+2. **Generate Task List** (prioritize code reuse)
+   - Break design into atomic, executable coding tasks
+   - **Prioritize extending/adapting existing code** over building from scratch
+   - Use checkbox format with numbered hierarchy
+   - Each task should reference specific requirements AND existing code to leverage
+   - Focus ONLY on coding tasks (no deployment, user testing, etc.)
 
-1. **Review design.md** - Read through the generated design thoroughly
-2. **Edit if needed** - Make any necessary changes directly in the design.md file
-3. **Manual approval required** - Update spec.json to set `"design": {"approved": true}`
-4. **Reasoning**: Human review ensures technical design accuracy before task breakdown
+3. **Task Guidelines**
+   - Tasks should be concrete and actionable
+   - **Reference existing code to reuse**: Include specific files/components to extend or adapt
+   - Include specific file names and components
+   - Build incrementally (each task builds on previous)
+   - Reference requirements using _Requirements: X.Y_ format
+   - Use test-driven development approach leveraging existing test patterns
 
-**Example full approval in spec.json**:
+4. **Task Format**
+   ```markdown
+   - [ ] 1. Task description
+     - Sub-bullet with details
+     - Specific files to create/modify
+     - _Leverage: existing-component.ts, utils/helpers.js_
+     - _Requirements: 1.1, 2.3_
+   ```
 
-```json
-{
-  "approvals": {
-    "requirements": {
-      "generated": true,
-      "approved": true // ← Human reviewed and approved
-    },
-    "design": {
-      "generated": true,
-      "approved": true // ← Human reviewed and approved
-    }
-  },
-  "phase": "design-approved"
-}
-```
+5. **Excluded Tasks**
+   - User acceptance testing
+   - Deployment to production
+   - Performance metrics gathering
+   - User training or documentation
+   - Business process changes
 
-**Only proceed to task generation after both requirements and design are explicitly approved by human review.**
+6. **Approval Process**
+   - Present the complete task list
+   - Ask: "Do the tasks look good?"
+   - Make revisions based on feedback
+   - Continue until explicit approval
 
-## Context Analysis
+7. **Generate Task Commands** (ONLY after tasks approval)
+   - **WAIT**: Do not run script until user explicitly approves tasks
+   - **THEN EXECUTE**: `./.claude/scripts/generate-commands-launcher.sh {feature-name}`
+   - **PURPOSE**: Creates individual task commands in `.claude/commands/{feature-name}/`
+   - **RESULT**: Each task gets its own command: `/{feature-name}-task-{task-id}`
+   - **EXAMPLE**: Creates `/{feature-name}-task-1`, `/{feature-name}-task-2.1`, etc.
+   - **IMPORTANT**: Do NOT edit the scripts - just run them as-is
+   - **PLATFORM**: Automatically detects OS and runs appropriate script (Windows/macOS/Linux)
+   - **RESTART REQUIRED**: Inform user to restart Claude Code for new commands to be visible
 
-### Complete Spec Context (APPROVED)
-
-- Requirements: @.kiro/specs/$ARGUMENTS/requirements.md
-- Design: @.kiro/specs/$ARGUMENTS/design.md
-- Current tasks: @.kiro/specs/$ARGUMENTS/tasks.md
-- Spec metadata: @.kiro/specs/$ARGUMENTS/spec.json
-
-### Steering Context
-
-- Architecture patterns: @.kiro/steering/structure.md
-- Development practices: @.kiro/steering/tech.md
-- Product constraints: @.kiro/steering/product.md
-
-## Task: Generate Implementation Plan
-
-**Prerequisites Verified**: Both requirements and design are approved and ready for task breakdown.
-
-Create comprehensive implementation plan in the language specified in spec.json:
-
-### 1. Tasks Document Structure
-
-Create tasks.md in the language specified in spec.json (check `@.kiro/specs/$ARGUMENTS/spec.json` for "language" field):
-
+## Task Structure
 ```markdown
 # Implementation Plan
 
-- [ ] 1. Project Setup and Core Structure
+- [ ] 1. Setup project structure
+  - Create directory structure following existing patterns
+  - Define core interfaces extending existing base classes
+  - _Leverage: src/types/base.ts, src/models/BaseModel.ts_
+  - _Requirements: 1.1_
 
-  - Create frontend (React/Vue/Next.js) and backend (FastAPI/Express) directory structure
-  - Define TypeScript types and core data model interfaces
-  - Set up development environment files (package.json, requirements.txt, docker-compose.yml)
-  - _Requirements: 1.1, 1.2_
-
-- [ ] 2. Database and Model Layer Implementation
-- [ ] 2.1 Database Schema Design and Implementation
-
-  - Define schemas using [ORM/Database] (Prisma/SQLAlchemy/Mongoose)
-  - Create and run migration files
-  - Implement database connection utilities
+- [ ] 2. Implement data models
+- [ ] 2.1 Create base model classes
+  - Extend existing validation utilities
+  - Write unit tests using existing test helpers
+  - _Leverage: src/utils/validation.ts, tests/helpers/testUtils.ts_
   - _Requirements: 2.1, 2.2_
-
-- [ ] 2.2 Data Validation and Business Logic
-
-  - Implement model validation functions
-  - Implement and test business rules
-  - Standardize error handling across models
-  - _Requirements: 2.3_
-
-- [ ] 3. API and Backend Services Implementation
-- [ ] 3.1 Authentication and Authorization System
-
-  - Implement JWT/session authentication with [Auth Library]
-  - Create user registration and login endpoints
-  - Implement access control middleware and route protection
-  - _Requirements: 3.1, 3.2_
-
-- [ ] 3.2 Core API Endpoints Implementation
-
-  - Implement CRUD operations for main entities
-  - Add input validation and sanitization
-  - Create API documentation with OpenAPI/Swagger
-  - _Requirements: 3.3, 3.4_
-
-- [ ] 4. Frontend Component Implementation
-- [ ] 4.1 Basic UI Component Creation
-
-  - Select and configure component library ([Chakra UI/Material-UI/Tailwind])
-  - Implement common components (Button, Input, Modal, Table)
-  - Set up responsive design system and theme
-  - _Requirements: 4.1, 4.2_
-
-- [ ] 4.2 Feature-Specific Components
-
-  - Implement main feature components based on requirements
-  - Add form handling with validation ([Formik/React Hook Form])
-  - Implement state management ([Redux/Zustand/Context])
-  - _Requirements: 4.3, 4.4_
-
-- [ ] 5. Integration and Testing
-- [ ] 5.1 Test Suite Implementation
-
-  - Create unit tests for backend services (Jest/pytest)
-  - Implement API integration tests
-  - Set up frontend component tests ([Testing Library])
-  - _Requirements: All requirements test coverage_
-
-- [ ] 5.2 End-to-End Testing and Deployment
-  - Implement E2E tests ([Playwright/Cypress])
-  - Set up CI/CD pipeline configuration
-  - Configure production deployment and monitoring
-  - _Requirements: 5.1, 5.2_
 ```
 
-**Key Format Rules**:
-
-- Hierarchical numbering: Major phases (1, 2, 3) and sub-tasks (1.1, 1.2)
-- Each task contains 2-4 concrete, actionable items
-- Specify technologies in brackets: [React], [FastAPI], [Prisma]
-- End with requirement mapping: _Requirements: X.X, Y.Y_
-- Tasks should be completable in 2-4 hours each
-- Include testing tasks for each major component
-
-### 2. Task Quality Guidelines
-
-- **Hierarchical Structure**: Group related tasks into phases
-- **Discrete Tasks**: Each task should be completable in 2-4 hours
-- **Clear Acceptance Criteria**: Define what "done" means
-- **Requirements Mapping**: Link tasks to specific requirements
-- **Dependency Management**: Order tasks by dependencies
-- **Testable Outcomes**: Each task should have verifiable results
-
-### 3. Task Categories
-
-Include tasks for:
-
-- **Data Models**: Database schema and model creation
-- **API Endpoints**: Backend service implementation
-- **UI Components**: Frontend component development
-- **Integration**: Service integration and workflow
-- **Testing**: Unit, integration, and E2E tests
-- **Documentation**: Code documentation and user guides
-
-### 4. Requirements Mapping
-
-For each task, reference the specific requirements from requirements.md:
-
-- Map to user stories (1, 2, etc.)
-- Include acceptance criteria references
-- Ensure full requirements coverage
-
-### 5. Progress Tracking
-
-Include progress tracking section:
-
-```markdown
-## Progress Tracking
-
-- Created: [timestamp]
-- Status: Ready for implementation
-- Total tasks: [count]
-- Completed: 0
-- Remaining: [count]
-```
-
-### 6. Document Generation Only
-
-Generate the tasks document content ONLY. Do not include any review or approval instructions in the actual document file.
-
-### 7. Update Metadata
-
-Update spec.json with:
-
-```json
-{
-  "phase": "tasks-generated",
-  "progress": {
-    "requirements": 100,
-    "design": 100,
-    "tasks": 100
-  },
-  "approvals": {
-    "requirements": {
-      "generated": true,
-      "approved": true
-    },
-    "design": {
-      "generated": true,
-      "approved": true
-    },
-    "tasks": {
-      "generated": true,
-      "approved": false
-    }
-  },
-  "updated_at": "current_timestamp"
-}
-```
-
-### 8. Metadata Update
-
-Update the tracking metadata to reflect task generation completion.
-
----
-
-## REVIEW AND APPROVAL PROCESS (Not included in document)
-
-The following is for Claude Code conversation only - NOT for the generated document:
-
-### Human Review Required
-
-After generating tasks.md, inform the user:
-
-**NEXT STEP**: Human review required before starting implementation.
-
-### Review Checklist:
-
-- [ ] Tasks are properly sized (2-4 hours each)
-- [ ] All requirements are covered by tasks
-- [ ] Task dependencies are correct
-- [ ] Technology choices match the design
-- [ ] Testing tasks are included
-
-### To Approve:
-
-After reviewing, update `.kiro/specs/$ARGUMENTS/spec.json`:
-
-```json
-{
-  "approvals": {
-    "requirements": {
-      "generated": true,
-      "approved": true
-    },
-    "design": {
-      "generated": true,
-      "approved": true
-    },
-    "tasks": {
-      "generated": true,
-      "approved": true
-    }
-  },
-  "phase": "ready-for-implementation",
-  "ready_for_implementation": true
-}
-```
-
-**Only after approval can you start implementation.**
-
-## Instructions
-
-1. **Check spec.json for language** - Use the language specified in the metadata
-2. **Analyze requirements and design** to understand full scope
-3. **Create hierarchical task structure** with clear phases
-4. **Define discrete, actionable tasks** with acceptance criteria
-5. **Map all tasks to requirements** to ensure coverage
-6. **Order tasks by dependencies** for logical implementation flow
-7. **Include testing and documentation** tasks
-8. **Update tracking metadata** upon completion
-
-Generate tasks that provide clear roadmap for implementation.
-ultrathink
+## Next Phase
+After approval and command generation:
+1. **RESTART Claude Code** for new commands to be visible
+2. Then you can:
+   - Use `/spec-execute` to implement tasks
+   - Use individual task commands: `/{feature-name}-task-1`, `/{feature-name}-task-2`, etc.
+   - Check progress with `/spec-status {feature-name}`

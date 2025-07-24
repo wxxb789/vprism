@@ -1,229 +1,79 @@
----
-description: Create technical design for a specification
-allowed-tools: Bash, Read, Write, Edit, MultiEdit, Update, WebSearch, WebFetch
----
+# Spec Design Command
 
-# Technical Design
+Generate design document based on approved requirements.
 
-Create comprehensive technical design for feature: **$ARGUMENTS**
-
-## Approval Gate: Requirements Check
-
-**CRITICAL**: Design can only be generated after requirements are approved.
-
-### Approval Status Check
-- Spec metadata: @.kiro/specs/$ARGUMENTS/spec.json
-
-**STOP HERE** if spec.json shows:
-```json
-"approvals": {
-  "requirements": {
-    "approved": false
-  }
-}
+## Usage
 ```
-
-**Required Actions for Requirements Approval**:
-1. **Review requirements.md** - Read through the generated requirements thoroughly
-2. **Edit if needed** - Make any necessary changes directly in the requirements.md file
-3. **Manual approval required** - Update spec.json manually to set `"requirements": {"approved": true}`
-4. **Reasoning**: Human review ensures requirements accuracy before design phase
-
-**Example approval in spec.json**:
-```json
-{
-  "approvals": {
-    "requirements": {
-      "generated": true,
-      "approved": true  // ← Set this to true after human review
-    }
-  },
-  "phase": "requirements-approved"
-}
+/spec-design [feature-name]
 ```
-
-**Only proceed to design generation after requirements are explicitly approved by human review.**
-
-## Context Analysis
-
-### Steering Context
-- Current architecture: @.kiro/steering/structure.md
-- Technology stack: @.kiro/steering/tech.md
-- Product constraints: @.kiro/steering/product.md
-
-### Requirements Context (APPROVED)
-- Feature requirements: @.kiro/specs/$ARGUMENTS/requirements.md
-- Current design: @.kiro/specs/$ARGUMENTS/design.md
-- Spec metadata: @.kiro/specs/$ARGUMENTS/spec.json
-
-## Task: Create Technical Design
-
-**Prerequisites Verified**: Requirements are approved and ready for design phase.
-
-Generate comprehensive design document in the language specified in spec.json:
-
-### 1. Design Document Structure
-Create design.md in the language specified in spec.json (check `@.kiro/specs/$ARGUMENTS/spec.json` for "language" field):
-
-```markdown
-# Technical Design
-
-## Overview
-[Technical overview of the implementation approach]
-
-## Architecture
-[Architecture diagram using mermaid]
-
-```mermaid
-graph TB
-    A[Frontend Layer] --> B[API Gateway]
-    B --> C[Business Logic]
-    C --> D[Data Layer]
-    D --> E[Database]
-```
-
-## Technology Stack
-- **Frontend**: [React/Vue/Next.js] + [TypeScript]
-- **Backend**: [FastAPI/Express/Django] + [Language]
-- **Database**: [PostgreSQL/MySQL/MongoDB]
-- **Authentication**: [JWT/OAuth/Auth0]
-- **Testing**: [Jest/pytest] + [Testing Library/Playwright]
-- **Deployment**: [Docker/Vercel/AWS]
-
-## Components and Interfaces
-[Detailed component design with clear interfaces]
-
-### API Endpoints
-```
-GET /api/[resource]
-POST /api/[resource]
-PUT /api/[resource]/:id
-DELETE /api/[resource]/:id
-```
-
-### Data Flow
-[Description of how data flows through the system]
-
-## Data Models
-[Data structures and database schemas]
-
-```typescript
-interface [ModelName] {
-  id: string;
-  // Add relevant fields
-}
-```
-
-## Error Handling
-[Comprehensive error handling strategy]
-
-## Security Considerations
-[Authentication, authorization, data validation]
-
-## Performance & Scalability
-[Caching, optimization, scaling strategy]
-
-## Testing Strategy
-[Unit, integration, and E2E testing approach]
-```
-
-### 2. Design Quality Guidelines
-- **Architecture Alignment**: Follow existing architectural patterns
-- **Technology Consistency**: Use established technology stack
-- **Interface Design**: Define clear component interfaces
-- **Data Modeling**: Design appropriate data structures
-- **Error Handling**: Plan comprehensive error scenarios
-- **Testing Strategy**: Include unit, integration, and E2E testing
-
-### 3. Integration Considerations
-Based on steering and requirements:
-- How components integrate with existing architecture
-- Database schema changes required
-- API endpoint design
-- Performance considerations
-- Security requirements
-
-### 4. Mermaid Diagrams
-Include relevant diagrams:
-- System architecture
-- Component interactions
-- Data flow diagrams
-- Sequence diagrams for key workflows
-
-### 5. Update Metadata
-Update spec.json with:
-```json
-{
-  "phase": "design-generated",
-  "progress": {
-    "requirements": 100,
-    "design": 100,
-    "tasks": 0
-  },
-  "approvals": {
-    "requirements": {
-      "generated": true,
-      "approved": true
-    },
-    "design": {
-      "generated": true,
-      "approved": false
-    }
-  },
-  "updated_at": "current_timestamp"
-}
-```
-
-### 6. Document Generation Only
-Generate the design document content ONLY. Do not include any review or approval instructions in the actual document file.
-
----
-
-## REVIEW AND APPROVAL PROCESS (Not included in document)
-
-The following is for Claude Code conversation only - NOT for the generated document:
-
-### Human Review Required
-After generating design.md, inform the user:
-
-**NEXT STEP**: Human review required before proceeding to tasks phase.
-
-### Review Checklist:
-- [ ] Technical design is comprehensive and clear
-- [ ] Architecture aligns with existing system
-- [ ] Technology choices are appropriate
-- [ ] Components and interfaces are well-defined
-- [ ] Security and performance considerations are addressed
-
-### To Approve:
-After reviewing, update `.kiro/specs/$ARGUMENTS/spec.json`:
-```json
-{
-  "approvals": {
-    "requirements": {
-      "generated": true,
-      "approved": true
-    },
-    "design": {
-      "generated": true,
-      "approved": true
-    }
-  },
-  "phase": "design-approved"
-}
-```
-
-**Only after approval can you proceed to `/spec-tasks $ARGUMENTS`**
 
 ## Instructions
+You are working on the design phase of the spec workflow.
 
-1. **Check spec.json for language** - Use the language specified in the metadata
-2. **Analyze requirements thoroughly** to understand scope
-3. **Follow existing architecture patterns** from steering
-4. **Create detailed component design** with clear interfaces
-5. **Include comprehensive diagrams** using mermaid
-6. **Plan error handling and testing** strategies
-7. **Update tracking metadata** upon completion
+1. **Prerequisites**
+   - Ensure requirements.md exists and is approved
+   - Load the requirements document for context
+   - Research existing codebase patterns and architecture
 
-Generate design that provides clear blueprint for implementation phase.
-ultrathink
+2. **Generate Design Document**
+   - Create comprehensive design following the template
+   - Include all required sections:
+     - Overview
+     - Architecture
+     - Components and Interfaces
+     - Data Models
+     - Error Handling
+     - Testing Strategy
+
+3. **Codebase Research Phase** (MANDATORY)
+   - **Map existing patterns**: Identify data models, API patterns, component structures that match your needs
+   - **Catalog reusable utilities**: Find validation functions, helpers, middleware, hooks that can be leveraged
+   - **Document architectural decisions**: Note existing tech stack, state management, routing patterns to follow
+   - **Identify integration points**: Map how new feature connects to existing auth, database, APIs
+   - **Find similar implementations**: Look for features with similar requirements already implemented
+   - **Note gaps**: Document what needs to be built vs. what can be reused or extended
+
+4. **Design Content** (leverage codebase research)
+   - **Reuse Architecture**: Build on existing patterns rather than creating new ones
+   - **Extend Components**: Design to leverage and extend existing utilities, services, components
+   - Use Mermaid diagrams for visual representations
+   - Define clear interfaces that integrate with existing systems
+   - Specify data models that follow established patterns
+   - Plan error handling consistent with current approach
+   - Outline testing approach using existing test utilities
+
+5. **Approval Process**
+   - Present the complete design document
+   - **Highlight code reuse**: Clearly show what existing code will be leveraged
+   - Ask: "Does the design look good? If so, we can move on to the implementation plan."
+   - Incorporate feedback and revisions
+   - Continue until explicit approval
+
+## Design Structure
+```markdown
+# Design Document
+
+## Overview
+[High-level description]
+
+## Code Reuse Analysis
+[What existing code will be leveraged, extended, or integrated]
+
+## Architecture
+[System architecture building on existing patterns]
+
+## Components and Interfaces
+[Detailed component specifications with reuse opportunities]
+
+## Data Models
+[Data structures following established patterns]
+
+## Error Handling
+[Error scenarios consistent with current approach]
+
+## Testing Strategy
+[Testing approach using existing utilities and patterns]
+```
+
+## Next Phase
+After approval, proceed to `/spec-tasks`.
