@@ -49,13 +49,16 @@ class TestDataRouter:
     """测试数据路由器功能."""
 
     @pytest.fixture
-    def mock_registry(self):
+    def mock_registry(self, sample_providers):
         """创建模拟的提供商注册表."""
         registry = Mock()
         registry.find_capable_providers = Mock()
         registry.mark_unhealthy = Mock()
         registry.mark_healthy = Mock()
-        registry.providers = {}  # 添加providers属性
+        registry.providers = {p.name: p for p in sample_providers}  # 添加providers属性
+        registry.get_all_providers = Mock(
+            return_value=sample_providers
+        )  # 添加get_all_providers方法
         return registry
 
     @pytest.fixture
