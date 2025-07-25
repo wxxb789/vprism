@@ -37,7 +37,7 @@ class DataRouter:
         providers = self.registry.get_all_providers()
         for provider in providers:
             self.provider_scores[provider.name] = 1.0
-            
+
     def refresh_scores(self) -> None:
         """刷新提供商评分（当有新提供商注册时）"""
         self._init_default_scores()

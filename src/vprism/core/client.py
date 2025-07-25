@@ -125,14 +125,14 @@ class VPrismClient:
     def _apply_config(self) -> None:
         """应用配置到各个组件"""
         from vprism.infrastructure.providers.factory import create_default_providers
-        
+
         # 注册默认提供商（如果注册表为空）
         if len(self.registry) == 0:
             providers = create_default_providers()
             for name, provider in providers.items():
                 # 默认启用所有提供商
                 self.registry.register(provider)
-                
+
             # 刷新数据路由器的评分
             self.router.refresh_scores()
 

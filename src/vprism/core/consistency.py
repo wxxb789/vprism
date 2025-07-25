@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 from vprism.core.quality import DataQualityValidator
-from vprism.infrastructure.providers.akshare_provider import AkShareProvider
+from vprism.infrastructure.providers.akshare import AkShare
 from vprism.infrastructure.repositories.data import DataRepository
 
 
@@ -47,7 +47,7 @@ class DataConsistencyValidator:
     ):
         self.tolerance = tolerance
         self.repository = repository
-        self.akshare_provider = AkShareProvider()
+        self.akshare_provider = AkShare()
         self.validator = DataQualityValidator()
         self.logger = logging.getLogger(__name__)
 

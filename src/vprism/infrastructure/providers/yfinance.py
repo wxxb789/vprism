@@ -1,26 +1,24 @@
 """Yahoo Finance数据提供商实现."""
 
+import asyncio
 from collections.abc import AsyncIterator
 from datetime import datetime
 from decimal import Decimal
 
-try:
-    import yfinance as yf
+import yfinance as yf
 
-    YFINANCE_AVAILABLE = True
-except ImportError:
-    YFINANCE_AVAILABLE = False
-
+from vprism.core.exceptions import ProviderError
 from vprism.core.logging import StructuredLogger
 from vprism.core.models import (
     DataPoint,
     DataQuery,
     DataResponse,
     MarketType,
-    ProviderInfo,
     ResponseMetadata,
+    TimeFrame,
 )
-from vprism.infrastructure.providers.base import (
+
+from .base import (
     AuthConfig,
     AuthType,
     DataProvider,
@@ -28,16 +26,15 @@ from vprism.infrastructure.providers.base import (
     RateLimitConfig,
 )
 
+
 logger = StructuredLogger().logger
 
 
-class YahooFinanceProvider(DataProvider):
+class YFinance(DataProvider):
     """Yahoo Finance数据提供商实现."""
 
-    def __init__(
-        self, auth_config: AuthConfig = None, rate_limit: RateLimitConfig = None
-    ):
-        """初始化Yahoo Finance提供商.
+    def __init__(self, auth_config=None, rate_limit=None):
+        """初始化YFinance提供商.
 
         Args:
             auth_config: 认证配置
@@ -52,12 +49,21 @@ class YahooFinanceProvider(DataProvider):
             requests_per_day=20000,
             concurrent_requests=5,
         )
-        super().__init__("yahoo", auth_config, rate_limit)
+
+        super().__init__("yfinance", auth_config, rate_limit)
 
     def _discover_capability(self) -> ProviderCapability:
-        """发现Yahoo Finance能力."""
+        """发现YFinance能力."""
         return ProviderCapability(
-            supported_assets={"stock", "index", "etf", "crypto", "forex"},
+            supported_assets={
+                "stock",
+                "index",
+                "etf",
+                "crypto",
+                "forex",
+                "futures",
+                "options",
+            },
             supported_markets={"us", "global"},
             supported_timeframes={
                 "1min",
@@ -90,10 +96,6 @@ class YahooFinanceProvider(DataProvider):
 
         Yahoo Finance不需要身份验证，只需要检查依赖是否可用。
         """
-        if not YFINANCE_AVAILABLE:
-            logger.error("yfinance package is not available")
-            return False
-
         try:
             # 测试连接
             ticker = yf.Ticker("AAPL")
@@ -118,6 +120,9 @@ class YahooFinanceProvider(DataProvider):
         if not self._is_authenticated:
             raise RuntimeError("Yahoo Finance provider not initialized")
 
+        if not self.can_handle_query(query):
+            raise ProviderError(f"YFinance cannot handle query: {query}", "yfinance")
+
         try:
             # 根据查询类型获取数据
             return await self._get_historical_data(query)
@@ -129,14 +134,29 @@ class YahooFinanceProvider(DataProvider):
                 metadata=ResponseMetadata(
                     total_records=0, query_time_ms=0.0, data_source="error"
                 ),
-                source=ProviderInfo(name="yahoo", endpoint="error"),
+                source={"name": "yfinance", "endpoint": "error"},
             )
 
     async def stream_data(self, query: DataQuery) -> AsyncIterator[DataPoint]:
         """流式获取数据."""
-        response = await self.get_data(query)
-        for data_point in response.data:
+        data_response = await self.get_data(query)
+        for data_point in data_response.data:
             yield data_point
+
+    def _get_market_type(self, symbol: str) -> MarketType:
+        """根据股票代码确定市场类型."""
+        if symbol.endswith(".HK"):
+            return MarketType.HK
+        elif symbol.endswith(".SS") or symbol.endswith(".SZ"):
+            return MarketType.CN
+        elif symbol.endswith(".T") or symbol.endswith(".TO"):
+            return MarketType.JP
+        elif symbol.endswith(".L"):
+            return MarketType.UK
+        elif symbol.endswith(".AX"):
+            return MarketType.AU
+        else:
+            return MarketType.US
 
     async def _get_historical_data(self, query: DataQuery) -> DataResponse:
         """获取历史数据."""
@@ -146,10 +166,10 @@ class YahooFinanceProvider(DataProvider):
                 metadata=ResponseMetadata(
                     total_records=0, query_time_ms=0.0, data_source="error"
                 ),
-                source=ProviderInfo(name="yahoo", endpoint="error"),
+                source={"name": "yfinance", "endpoint": "error"},
             )
 
-        symbol = query.symbols[0]
+        symbol = query.symbols[0]  # 暂时只处理第一个符号
 
         # 转换时间框架
         timeframe_map = {
@@ -173,40 +193,25 @@ class YahooFinanceProvider(DataProvider):
         try:
             ticker = yf.Ticker(symbol)
 
-            if yf_timeframe == "1d":
-                # 日线数据
-                data = ticker.history(
-                    start=query.start_date, end=query.end_date, interval=yf_timeframe
-                )
-            else:
-                # 分钟级数据
-                data = ticker.history(
-                    start=query.start_date, end=query.end_date, interval=yf_timeframe
-                )
+            data = ticker.history(
+                start=query.start_date, end=query.end_date, interval=yf_timeframe
+            )
 
             if data is None or data.empty:
                 return DataResponse(
                     data=[],
                     metadata=ResponseMetadata(
-                        total_records=0, query_time_ms=0.0, data_source="yahoo"
+                        total_records=0, query_time_ms=0.0, data_source="yfinance"
                     ),
-                    source=ProviderInfo(name="yahoo", endpoint="https://api.com"),
+                    source={
+                        "name": "yfinance",
+                        "endpoint": "https://finance.yahoo.com/",
+                    },
                 )
 
             data_points = []
             for date, row in data.iterrows():
-                # 确定市场类型
-                market = MarketType.US
-                if symbol.endswith(".HK"):
-                    market = MarketType.HK
-                elif symbol.endswith(".SS") or symbol.endswith(".SZ"):
-                    market = MarketType.CN
-                elif symbol.endswith(".T") or symbol.endswith(".TO"):
-                    market = MarketType.JP
-                elif symbol.endswith(".L"):
-                    market = MarketType.UK
-                elif symbol.endswith(".AX"):
-                    market = MarketType.AU
+                market = self._get_market_type(symbol)
 
                 data_point = DataPoint(
                     symbol=symbol,
@@ -217,7 +222,7 @@ class YahooFinanceProvider(DataProvider):
                     low_price=Decimal(str(row["Low"])),
                     close_price=Decimal(str(row["Close"])),
                     volume=Decimal(str(int(row["Volume"]))),
-                    provider="yahoo",
+                    provider="yfinance",
                 )
                 data_points.append(data_point)
 
@@ -226,9 +231,9 @@ class YahooFinanceProvider(DataProvider):
                 metadata=ResponseMetadata(
                     total_records=len(data_points),
                     query_time_ms=0.0,
-                    data_source="yahoo",
+                    data_source="yfinance",
                 ),
-                source=ProviderInfo(name="yahoo", endpoint="https://api.com"),
+                source={"name": "yfinance", "endpoint": "https://finance.yahoo.com/"},
             )
 
         except Exception as e:
@@ -238,7 +243,7 @@ class YahooFinanceProvider(DataProvider):
                 metadata=ResponseMetadata(
                     total_records=0, query_time_ms=0.0, data_source="error"
                 ),
-                source=ProviderInfo(name="yahoo", endpoint="error"),
+                source={"name": "yfinance", "endpoint": "error"},
             )
 
     async def get_real_time_quote(self, symbol: str) -> dict | None:
@@ -251,18 +256,7 @@ class YahooFinanceProvider(DataProvider):
             info = ticker.info
 
             if info:
-                # 确定市场类型
-                market = MarketType.US
-                if symbol.endswith(".HK"):
-                    market = MarketType.HK
-                elif symbol.endswith(".SS") or symbol.endswith(".SZ"):
-                    market = MarketType.CN
-                elif symbol.endswith(".T") or symbol.endswith(".TO"):
-                    market = MarketType.JP
-                elif symbol.endswith(".L"):
-                    market = MarketType.UK
-                elif symbol.endswith(".AX"):
-                    market = MarketType.AU
+                market = self._get_market_type(symbol)
 
                 return {
                     "symbol": symbol,

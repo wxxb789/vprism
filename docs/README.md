@@ -27,6 +27,7 @@
 ### 参考
 - [配置选项](reference/configuration.md)
 - [错误代码](reference/error-codes.md)
+- [编码规范](reference/coding-standards.md)
 - [示例代码](examples/)
 
 ## 🚀 快速示例

@@ -4,9 +4,9 @@ from typing import Any
 
 from vprism.core.models import MarketType
 
-from .akshare_provider import AkShareProvider
+from .akshare import AkShare
 from .base import AuthConfig, AuthType, RateLimitConfig
-from .yahoo_provider import YahooFinanceProvider
+from .yfinance import YFinance
 
 
 class ProviderFactory:
@@ -17,14 +17,14 @@ class ProviderFactory:
     @classmethod
     def create_yahoo_provider(
         cls, rate_limit: RateLimitConfig | None = None
-    ) -> YahooFinanceProvider:
+    ) -> YFinance:
         """创建Yahoo Finance数据提供商.
 
         Args:
             rate_limit: 速率限制配置，如果为None则使用默认值
 
         Returns:
-            YahooFinanceProvider实例
+            YFinance实例
         """
         auth_config = AuthConfig(auth_type=AuthType.NONE, credentials={})
 
@@ -38,19 +38,19 @@ class ProviderFactory:
             initial_delay=0.5,
         )
 
-        return YahooFinanceProvider(auth_config, rate_limit)
+        return YFinance(auth_config, rate_limit)
 
     @classmethod
     def create_akshare_provider(
         cls, rate_limit: RateLimitConfig | None = None
-    ) -> AkShareProvider:
+    ) -> AkShare:
         """创建AkShare数据提供商.
 
         Args:
             rate_limit: 速率限制配置，如果为None则使用默认值
 
         Returns:
-            AkShareProvider实例
+            AkShare实例
         """
         auth_config = AuthConfig(auth_type=AuthType.NONE, credentials={})
 
@@ -64,7 +64,7 @@ class ProviderFactory:
             initial_delay=1.0,
         )
 
-        return AkShareProvider(auth_config, rate_limit)
+        return AkShare(auth_config, rate_limit)
 
     @classmethod
     def create_provider_by_market(

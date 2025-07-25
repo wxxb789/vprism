@@ -1,6 +1,6 @@
 """数据提供商适配器框架."""
 
-from .akshare_provider import AkShareProvider
+from .akshare import AkShare
 from .base import (
     AuthConfig,
     AuthType,
@@ -9,9 +9,10 @@ from .base import (
     RateLimitConfig,
 )
 from .factory import ProviderFactory, create_default_providers, get_provider
+from .alpha_vantage import AlphaVantage
 from .registry import ProviderRegistry
-from .vprism_provider import VPrismProvider
-from .yahoo_provider import YahooFinanceProvider
+from .vprism import VPrism
+from .yfinance import YFinance
 
 __all__ = [
     "DataProvider",
@@ -23,7 +24,8 @@ __all__ = [
     "ProviderFactory",
     "get_provider",
     "create_default_providers",
-    "YahooFinanceProvider",
-    "AkShareProvider",
-    "VPrismProvider",
+    "YFinance",
+    "AkShare",
+    "VPrism",
+    "AlphaVantage",
 ]

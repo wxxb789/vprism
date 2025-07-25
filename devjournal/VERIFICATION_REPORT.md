@@ -49,8 +49,8 @@
 - ✅ 能力发现和查询匹配系统
 
 #### 任务8：主要数据提供商适配器 ✅
-- ✅ `src/vprism/infrastructure/providers/akshare_provider.py` akshare适配器
-- ✅ `src/vprism/infrastructure/providers/yahoo_provider.py` Yahoo Finance适配器
+- ✅ `src/vprism/infrastructure/providers/akshare.py` akshare适配器
+- ✅ `src/vprism/infrastructure/providers/yfinance.py` Yahoo Finance适配器
 - ✅ 实现了完整的提供商接口
 
 #### 任务9：统一API接口 ✅

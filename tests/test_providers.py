@@ -8,10 +8,10 @@ import pytest
 
 from vprism.core.models import AssetType, DataPoint, DataQuery, MarketType, TimeFrame
 from vprism.infrastructure.providers import (
-    AkShareProvider,
+    AkShare,
     ProviderRegistry,
-    VPrismProvider,
-    YahooFinanceProvider,
+    VPrism,
+    YFinance,
 )
 
 
@@ -20,7 +20,7 @@ class TestProviderBase:
 
     def test_provider_capability_discovery(self):
         """测试提供商能力发现."""
-        provider = AkShareProvider()
+        provider = AkShare()
         capability = provider.capability
 
         assert capability is not None
@@ -31,7 +31,7 @@ class TestProviderBase:
 
     def test_provider_can_handle_query(self):
         """测试提供商查询处理能力."""
-        provider = AkShareProvider()
+        provider = AkShare()
 
         # 有效查询
         query = DataQuery(
@@ -60,19 +60,19 @@ class TestProviderBase:
     @pytest.mark.asyncio
     async def test_provider_authenticate(self):
         """测试提供商认证."""
-        provider = AkShareProvider()
+        provider = AkShare()
         result = await provider.authenticate()
 
         assert result is True
         assert provider.is_authenticated is True
 
 
-class TestAkShareProvider:
+class TestAkShare:
     """测试AkShare提供商."""
 
     def test_akshare_capability(self):
         """测试AkShare能力."""
-        provider = AkShareProvider()
+        provider = AkShare()
         capability = provider.capability
 
         assert "stock" in capability.supported_assets
@@ -84,7 +84,7 @@ class TestAkShareProvider:
     @pytest.mark.asyncio
     async def test_akshare_get_data(self):
         """测试AkShare获取数据."""
-        provider = AkShareProvider()
+        provider = AkShare()
 
         query = DataQuery(
             asset=AssetType.STOCK,
@@ -110,19 +110,21 @@ class TestAkShareProvider:
                     provider="akshare",
                 )
             ]
-            mock_fetch.return_value = data_points
+            mock_response = Mock()
+            mock_response.data = data_points
+            mock_fetch.return_value = mock_response
 
             response = await provider.get_data(query)
             assert response.data is not None
             assert response.data[0].symbol == "000001"
 
 
-class TestYahooFinanceProvider:
-    """测试YahooFinance提供商."""
+class TestYFinance:
+    """测试YFinance提供商."""
 
-    def test_yahoo_finance_capability(self):
-        """测试YahooFinance能力."""
-        provider = YahooFinanceProvider()
+    def test_yfinance_capability(self):
+        """测试YFinance能力."""
+        provider = YFinance()
         capability = provider.capability
 
         assert "stock" in capability.supported_assets
@@ -131,9 +133,9 @@ class TestYahooFinanceProvider:
         assert capability.supports_real_time is True
 
     @pytest.mark.asyncio
-    async def test_yahoo_finance_get_data(self):
-        """测试YahooFinance获取数据."""
-        provider = YahooFinanceProvider()
+    async def test_yfinance_get_data(self):
+        """测试YFinance获取数据."""
+        provider = YFinance()
 
         query = DataQuery(
             asset=AssetType.STOCK,
@@ -157,7 +159,7 @@ class TestYahooFinanceProvider:
                     low_price=Decimal("149.0"),
                     close_price=Decimal("152.0"),
                     volume=Decimal("5000000"),
-                    provider="yahoo",
+                    provider="yfinance",
                 )
             ]
             mock_fetch.return_value = mock_response
@@ -175,8 +177,8 @@ class TestIntegration:
         """测试多个提供商查询."""
         registry = ProviderRegistry()
 
-        akshare = AkShareProvider()
-        yahoo = YahooFinanceProvider()
+        akshare = AkShare()
+        yahoo = YFinance()
 
         registry.register(akshare)
         registry.register(yahoo)
@@ -206,13 +208,13 @@ class TestIntegration:
 
         # akshare应该能处理中国股票
         assert any(p.name == "akshare" for p in cn_providers)
-        # yahoo应该能处理美国股票
-        assert any(p.name == "yahoo" for p in us_providers)
+        # yfinance应该能处理美国股票
+        assert any(p.name == "yfinance" for p in us_providers)
 
     def test_registry_register_unregister(self):
         """测试注册和注销."""
         registry = ProviderRegistry()
-        provider = AkShareProvider()
+        provider = AkShare()
 
         registry.register(provider)
         assert len(registry) == 1
@@ -226,8 +228,8 @@ class TestIntegration:
         """测试查找有能力的提供商."""
         registry = ProviderRegistry()
 
-        akshare = AkShareProvider()
-        yfinance = YahooFinanceProvider()
+        akshare = AkShare()
+        yfinance = YFinance()
 
         registry.register(akshare)
         registry.register(yfinance)
@@ -242,7 +244,7 @@ class TestIntegration:
     def test_registry_health_management(self):
         """测试健康状态管理."""
         registry = ProviderRegistry()
-        provider = AkShareProvider()
+        provider = AkShare()
 
         registry.register(provider)
 
@@ -257,7 +259,7 @@ class TestIntegration:
     def test_registry_provider_list(self):
         """测试获取提供商列表."""
         registry = ProviderRegistry()
-        provider = AkShareProvider()
+        provider = AkShare()
 
         registry.register(provider)
 
@@ -269,8 +271,8 @@ class TestIntegration:
         """测试健康状态摘要."""
         registry = ProviderRegistry()
 
-        akshare = AkShareProvider()
-        yfinance = YahooFinanceProvider()
+        akshare = AkShare()
+        yfinance = YFinance()
 
         registry.register(akshare)
         registry.register(yfinance)
@@ -289,9 +291,9 @@ class TestIntegration:
         """测试多个提供商查询."""
         registry = ProviderRegistry()
 
-        akshare = AkShareProvider()
-        yfinance = YahooFinanceProvider()
-        vprism = VPrismProvider()
+        akshare = AkShare()
+        yfinance = YFinance()
+        vprism = VPrism()
 
         registry.register(akshare)
         registry.register(yfinance)
@@ -320,8 +322,8 @@ class TestIntegration:
         assert any(p.name == "akshare" for p in cn_providers)
         assert any(p.name == "vprism" for p in cn_providers)
 
-        # yahoo应该能处理美国股票
-        assert any(p.name == "yahoo" for p in us_providers)
+        # yfinance应该能处理美国股票
+        assert any(p.name == "yfinance" for p in us_providers)
 
 
 if __name__ == "__main__":

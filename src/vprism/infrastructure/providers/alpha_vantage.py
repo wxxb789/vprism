@@ -25,7 +25,7 @@ from .base import (
 )
 
 
-class AlphaVantageProvider(DataProvider):
+class AlphaVantage(DataProvider):
     """Alpha Vantage数据提供商实现."""
 
     BASE_URL = "https://www.alphavantage.co/query"

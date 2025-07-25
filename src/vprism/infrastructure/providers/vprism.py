@@ -27,7 +27,7 @@ from .base import (
 )
 
 
-class VPrismProvider(DataProvider):
+class VPrism(DataProvider):
     """vprism自定义数据提供商 - 基于akshare的数据一致性验证."""
 
     def __init__(self):
