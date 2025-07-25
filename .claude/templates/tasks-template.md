@@ -3,6 +3,9 @@
 ## Task Overview
 [Brief description of the implementation approach]
 
+## Steering Document Compliance
+[How tasks follow structure.md conventions and tech.md patterns]
+
 ## Tasks
 
 - [ ] 1. Set up project structure and core interfaces
@@ -13,7 +16,7 @@
 
 - [ ] 2. Implement data models and validation
 - [ ] 2.1 Create base model classes
-  - Define TypeScript interfaces
+  - Define data structures/schemas
   - Implement validation methods
   - Write unit tests for models
   - _Requirements: 2.1, 2.2_
@@ -39,13 +42,13 @@
 
 - [ ] 4. Create API endpoints
 - [ ] 4.1 Set up routing and middleware
-  - Configure Express/Fastify routes
+  - Configure application routes
   - Add authentication middleware
   - Set up error handling middleware
   - _Requirements: 4.1_
 
 - [ ] 4.2 Implement CRUD endpoints
-  - Create REST API endpoints
+  - Create API endpoints
   - Add request validation
   - Write API integration tests
   - _Requirements: 4.2, 4.3_

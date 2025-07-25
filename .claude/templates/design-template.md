@@ -4,6 +4,14 @@
 
 [High-level description of the feature and its place in the overall system]
 
+## Steering Document Alignment
+
+### Technical Standards (tech.md)
+[How the design follows documented technical patterns and standards]
+
+### Project Structure (structure.md)
+[How the implementation will follow project organization conventions]
+
 ## Architecture
 
 [Describe the overall architecture and design patterns used]
@@ -29,20 +37,18 @@ graph TD
 ## Data Models
 
 ### Model 1
-```typescript
-interface Model1 {
-  id: string;
-  name: string;
-  // Additional properties
-}
+```
+[Define the structure of Model1 in your language]
+- id: [unique identifier type]
+- name: [string/text type]
+- [Additional properties as needed]
 ```
 
 ### Model 2
-```typescript
-interface Model2 {
-  id: string;
-  // Additional properties
-}
+```
+[Define the structure of Model2 in your language]
+- id: [unique identifier type]
+- [Additional properties as needed]
 ```
 
 ## Error Handling

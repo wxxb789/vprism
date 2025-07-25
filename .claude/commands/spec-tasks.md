@@ -11,16 +11,18 @@ Generate implementation task list based on approved design.
 You are working on the tasks phase of the spec workflow.
 
 **WORKFLOW**: This is the FINAL step before command generation.
-**SEQUENCE**: Create Tasks → Get Approval → THEN run script
-**DO NOT** run any scripts until tasks are approved.
+**SEQUENCE**: Create Tasks → Get Approval → Ask User → Generate Commands
+**DO NOT** run task command generation until tasks are approved.
 
 1. **Prerequisites**
    - Ensure design.md exists and is approved
    - Load both requirements.md and design.md for context
+   - **Load structure.md**: Check for project structure conventions
    - Understand the complete feature scope
 
-2. **Generate Task List** (prioritize code reuse)
+2. **Generate Task List** (prioritize code reuse and follow conventions)
    - Break design into atomic, executable coding tasks
+   - **Follow structure.md**: Ensure tasks respect project file organization
    - **Prioritize extending/adapting existing code** over building from scratch
    - Use checkbox format with numbered hierarchy
    - Each task should reference specific requirements AND existing code to leverage
@@ -57,13 +59,14 @@ You are working on the tasks phase of the spec workflow.
    - Continue until explicit approval
 
 7. **Generate Task Commands** (ONLY after tasks approval)
-   - **WAIT**: Do not run script until user explicitly approves tasks
-   - **THEN EXECUTE**: `./.claude/scripts/generate-commands-launcher.sh {feature-name}`
+   - **WAIT**: Do not run command generation until user explicitly approves tasks
+   - **ASK USER**: "Would you like me to generate individual task commands for easier execution? (yes/no)"
+   - **IF YES**: Execute `npx @pimzino/claude-code-spec-workflow@latest generate-task-commands {feature-name}`
+   - **IF NO**: Continue with traditional `/spec-execute` approach
    - **PURPOSE**: Creates individual task commands in `.claude/commands/{feature-name}/`
    - **RESULT**: Each task gets its own command: `/{feature-name}-task-{task-id}`
    - **EXAMPLE**: Creates `/{feature-name}-task-1`, `/{feature-name}-task-2.1`, etc.
-   - **IMPORTANT**: Do NOT edit the scripts - just run them as-is
-   - **PLATFORM**: Automatically detects OS and runs appropriate script (Windows/macOS/Linux)
+   - **CROSS-PLATFORM**: Works automatically on Windows, macOS, and Linux
    - **RESTART REQUIRED**: Inform user to restart Claude Code for new commands to be visible
 
 ## Task Structure
