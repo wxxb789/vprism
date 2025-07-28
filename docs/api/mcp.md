@@ -2,7 +2,9 @@
 
 ## 概述
 
-vprism MCP (Model Context Protocol) 服务提供了一个标准化的接口，使AI模型能够直接访问金融数据。该服务基于FastMCP实现，支持多种传输模式。
+vprism MCP (Model Context Protocol) 服务提供了一个标准化的接口，使AI模型能够直接访问金融数据。该服务基于 [**fastmcp**](https://github.com/jlowin/fastmcp) 实现，支持多种传输模式。
+
+**⚠️ 重要说明**: 本项目**必须使用** fastmcp (版本 ≥2.10.6)，禁止使用官方 python-mcp 包。
 
 ## 什么是MCP
 
@@ -14,10 +16,10 @@ MCP (Model Context Protocol) 是一个开放协议，用于标准化应用程序
 
 ```bash
 # 从源码运行
-python -m vprism-mcp.server
+python -m mcp.server
 
 # 指定配置
-python -m vprism-mcp.server --config mcp_config.json
+python -m mcp.server --config mcp_config.json
 ```
 
 ### 配置文件示例
@@ -219,7 +221,7 @@ interface AnalyzeTrendInput {
   "mcpServers": {
     "vprism-finance": {
       "command": "python",
-      "args": ["-m", "vprism-mcp.server"],
+      "args": ["-m", "mcp.server"],
       "cwd": "/path/to/vprism"
     }
   }
@@ -232,7 +234,7 @@ interface AnalyzeTrendInput {
   "mcpServers": {
     "vprism-finance": {
       "command": "python", 
-      "args": ["-m", "vprism-mcp.server", "--transport", "http", "--port", "8080"],
+      "args": ["-m", "mcp.server", "--transport", "http", "--port", "8080"],
       "cwd": "/path/to/vprism"
     }
   }
@@ -245,7 +247,7 @@ interface AnalyzeTrendInput {
   "mcpServers": {
     "vprism-finance": {
       "command": "python",
-      "args": ["-m", "vprism-mcp.server", "--config", "/path/to/mcp_config.json"],
+      "args": ["-m", "mcp.server", "--config", "/path/to/mcp_config.json"],
       "cwd": "/path/to/vprism"
     }
   }
@@ -301,7 +303,7 @@ Claude: 基于特斯拉股票的技术分析：
 
 启动命令:
 ```bash
-python -m vprism-mcp.server --transport stdio
+python -m mcp.server --transport stdio
 ```
 
 ### HTTP模式
@@ -309,7 +311,7 @@ python -m vprism-mcp.server --transport stdio
 
 启动命令:
 ```bash
-python -m vprism-mcp.server --transport http --host 0.0.0.0 --port 8080
+python -m mcp.server --transport http --host 0.0.0.0 --port 8080
 ```
 
 ### SSE模式  
@@ -317,7 +319,7 @@ python -m vprism-mcp.server --transport http --host 0.0.0.0 --port 8080
 
 启动命令:
 ```bash
-python -m vprism-mcp.server --transport sse --host 0.0.0.0 --port 8080
+python -m mcp.server --transport sse --host 0.0.0.0 --port 8080
 ```
 
 ## 安全和认证
@@ -347,7 +349,7 @@ export MCP_LOG_LEVEL=INFO
 
 ### 启用详细日志
 ```bash
-python -m vprism-mcp.server --log-level DEBUG
+python -m mcp.server --log-level DEBUG
 ```
 
 ### 测试连接

@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from vprism.core.consistency import ConsistencyReport, DataConsistencyValidator
+from core.validation import ConsistencyReport, DataConsistencyValidator
 
 
 class TestDataConsistencyValidator:

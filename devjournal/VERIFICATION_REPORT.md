@@ -86,7 +86,7 @@
 - ✅ 健康检查端点
 
 #### 任务15：MCP模式部署 ✅
-- ✅ `src/vprism-mcp/server.py` MCP服务器
+- ✅ `src/mcp/server.py` MCP服务器
 - ✅ FastMCP集成
 - ✅ MCP工具接口实现
 

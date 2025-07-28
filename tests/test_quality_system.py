@@ -8,14 +8,9 @@ from decimal import Decimal
 import numpy as np
 import pandas as pd
 
-from vprism.core.models import DataPoint
-from vprism.core.quality import (
-    DataCleaner,
-    DataQualityScorer,
-    DataQualityValidator,
-    QualityLevel,
-    QualityScore,
-)
+from core.models import DataPoint
+from core.validation import DataQualityScorer, DataQualityValidator
+from core.validation.quality import DataCleaner, QualityLevel, QualityScore
 
 
 class TestDataQualityValidator:

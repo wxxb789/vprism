@@ -6,13 +6,13 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from vprism.core.models import AssetType, DataPoint, DataQuery, MarketType, TimeFrame
-from vprism.infrastructure.providers import (
+from core.data.providers import (
     AkShare,
     ProviderRegistry,
-    VPrism,
+    # VPrism,  # vprism provider no longer exists
     YFinance,
 )
+from core.models import AssetType, DataPoint, DataQuery, MarketType, TimeFrame
 
 
 class TestProviderBase:
@@ -293,11 +293,11 @@ class TestIntegration:
 
         akshare = AkShare()
         yfinance = YFinance()
-        vprism = VPrism()
+        # vprism = VPrism()  # vprism provider no longer exists
 
         registry.register(akshare)
         registry.register(yfinance)
-        registry.register(vprism)
+        # registry.register(vprism)  # vprism provider no longer exists
 
         # 中国股票查询
         cn_query = DataQuery(
@@ -318,9 +318,9 @@ class TestIntegration:
         cn_providers = registry.find_capable_providers(cn_query)
         us_providers = registry.find_capable_providers(us_query)
 
-        # akshare和vprism应该能处理中国股票
+        # akshare应该能处理中国股票 (vprism provider no longer exists)
         assert any(p.name == "akshare" for p in cn_providers)
-        assert any(p.name == "vprism" for p in cn_providers)
+        # vprism provider no longer exists
 
         # yfinance应该能处理美国股票
         assert any(p.name == "yfinance" for p in us_providers)

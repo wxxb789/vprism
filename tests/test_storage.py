@@ -2,11 +2,11 @@
 
 import os
 import tempfile
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from vprism.infrastructure.storage import (
+from core.data.storage import (
     CacheRecord,
     DatabaseManager,
     DataRecord,
@@ -49,7 +49,7 @@ class TestDatabaseManager:
             symbol="AAPL",
             asset_type="stock",
             market="us",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             open=100.0,
             high=105.0,
             low=99.0,
@@ -76,7 +76,7 @@ class TestDatabaseManager:
                 symbol=f"STOCK{i}",
                 asset_type="stock",
                 market="us",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
                 open=100.0 + i,
                 high=105.0 + i,
                 low=99.0 + i,
@@ -101,7 +101,7 @@ class TestDatabaseManager:
                 symbol="AAPL",
                 asset_type="stock",
                 market="us",
-                timestamp=datetime.utcnow() - timedelta(days=1),
+                timestamp=datetime.now(UTC) - timedelta(days=1),
                 close=100.0,
                 provider="test_provider",
             ),
@@ -109,7 +109,7 @@ class TestDatabaseManager:
                 symbol="GOOGL",
                 asset_type="stock",
                 market="us",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
                 close=2000.0,
                 provider="test_provider",
             ),
@@ -129,7 +129,7 @@ class TestDatabaseManager:
 
         # 测试时间范围查询
         recent_records = db_manager.query_data_records(
-            start_date=datetime.utcnow() - timedelta(hours=12)
+            start_date=datetime.now(UTC) - timedelta(hours=12)
         )
         assert len(recent_records) >= 1
 
@@ -163,7 +163,7 @@ class TestDatabaseManager:
             query_hash="query-hash-456",
             data_source="test_provider",
             hit_count=10,
-            expires_at=datetime.utcnow() + timedelta(hours=1),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
 
         inserted_id = db_manager.upsert_cache_record(cache_record)
@@ -200,7 +200,7 @@ class TestDatabaseManager:
             symbol="TEST",
             asset_type="stock",
             market="us",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             close=100.0,
             provider="test_provider",
         )
@@ -218,7 +218,7 @@ class TestDatabaseManager:
         cache_record = CacheRecord(
             cache_key="expired-key",
             query_hash="expired-hash",
-            expires_at=datetime.utcnow() - timedelta(hours=1),
+            expires_at=datetime.now(UTC) - timedelta(hours=1),
         )
         db_manager.upsert_cache_record(cache_record)
 
@@ -233,7 +233,7 @@ class TestDatabaseManager:
                 symbol="TXN_TEST",
                 asset_type="stock",
                 market="us",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
                 close=100.0,
                 provider="test_provider",
             )
@@ -264,7 +264,7 @@ class TestDatabaseManager:
                 symbol=f"LIMIT_TEST_{i}",
                 asset_type="stock",
                 market="us",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
                 close=100.0 + i,
                 provider="test_provider",
             )
@@ -288,7 +288,7 @@ class TestDatabaseManager:
             symbol="CTX_TEST",
             asset_type="stock",
             market="us",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             close=100.0,
             provider="test_provider",
         )
@@ -308,7 +308,7 @@ class TestDatabaseManager:
             symbol="META_TEST",
             asset_type="stock",
             market="us",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             close=100.0,
             provider="test_provider",
             metadata=metadata,

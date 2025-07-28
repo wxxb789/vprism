@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 import pytest
 
-from vprism.infrastructure.storage.database_schema import DatabaseSchema
+from core.data.storage.schema import DatabaseSchema
 
 
 class TestDatabaseSchema:
@@ -115,9 +115,9 @@ class TestDatabaseSchema:
         schema.conn.execute(
             """
             INSERT INTO daily_ohlcv
-            (symbol, market, trade_date, open_price, high_price, low_price, close_price, volume, provider)
+            (id, symbol, market, trade_date, open_price, high_price, low_price, close_price, volume, provider)
             VALUES
-            ('TEST001', 'cn', ?, 10.50, 10.80, 10.30, 10.60, 1000000, 'tushare')
+            ('daily-001', 'TEST001', 'cn', ?, 10.50, 10.80, 10.30, 10.60, 1000000, 'tushare')
         """,
             [test_date],
         )
@@ -147,9 +147,9 @@ class TestDatabaseSchema:
         schema.conn.execute(
             """
             INSERT INTO intraday_ohlcv
-            (symbol, market, timeframe, timestamp, open_price, high_price, low_price, close_price, volume, provider)
+            (id, symbol, market, timeframe, timestamp, open_price, high_price, low_price, close_price, volume, provider)
             VALUES
-            ('TEST001', 'cn', '1m', ?, 10.50, 10.52, 10.49, 10.51, 10000, 'tushare')
+            ('intraday-001', 'TEST001', 'cn', '1m', ?, 10.50, 10.52, 10.49, 10.51, 10000, 'tushare')
         """,
             [test_timestamp],
         )
@@ -178,9 +178,9 @@ class TestDatabaseSchema:
         schema.conn.execute(
             """
             INSERT INTO real_time_quotes
-            (symbol, market, price, change_amount, change_percent, volume, timestamp, provider)
+            (id, symbol, market, price, change_amount, change_percent, volume, timestamp, provider)
             VALUES
-            ('TEST001', 'cn', 10.55, 0.05, 0.47, 500000, ?, 'tushare')
+            ('realtime-001', 'TEST001', 'cn', 10.55, 0.05, 0.47, 500000, ?, 'tushare')
         """,
             [test_timestamp],
         )
@@ -236,9 +236,9 @@ class TestDatabaseSchema:
         schema.conn.execute(
             """
             INSERT INTO daily_ohlcv
-            (symbol, market, trade_date, open_price, high_price, low_price, close_price, volume, provider)
+            (id, symbol, market, trade_date, open_price, high_price, low_price, close_price, volume, provider)
             VALUES
-            ('TEST001', 'cn', ?, 10.50, 10.80, 10.30, 10.60, 1000000, 'tushare')
+            ('daily-002', 'TEST001', 'cn', ?, 10.50, 10.80, 10.30, 10.60, 1000000, 'tushare')
         """,
             [test_date],
         )
@@ -293,10 +293,15 @@ class TestDatabaseSchema:
 
         view_names = [v[0] for v in views]
 
-        # 检查是否创建了分区视图
-        expected_views = ["daily_ohlcv_2024", "daily_ohlcv_2023"]
-        for view in expected_views:
-            assert view in view_names, f"View {view} not found"
+        # 检查是否创建了分区表（注意：这些是表，不是视图）
+        tables = schema.conn.execute(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'"
+        ).fetchall()
+        table_names = [t[0] for t in tables]
+
+        expected_tables = ["daily_ohlcv_2024", "daily_ohlcv_2023"]
+        for table in expected_tables:
+            assert table in table_names, f"Table {table} not found"
 
         schema.close()
 
@@ -307,10 +312,10 @@ class TestDatabaseSchema:
         # 插入测试数据质量记录
         schema.conn.execute("""
             INSERT INTO data_quality
-            (symbol, market, date_range_start, date_range_end, completeness_score,
+            (id, symbol, market, date_range_start, date_range_end, completeness_score,
              accuracy_score, consistency_score, total_records, provider)
             VALUES
-            ('TEST001', 'cn', '2024-01-01', '2024-01-31', 98.5, 99.2, 97.8, 22, 'tushare')
+            ('quality-001', 'TEST001', 'cn', '2024-01-01', '2024-01-31', 98.5, 99.2, 97.8, 22, 'tushare')
         """)
 
         # 查询测试
@@ -369,7 +374,7 @@ class TestDatabaseSchema:
 
     def test_migration_tool(self, temp_db):
         """测试迁移工具"""
-        from vprism.infrastructure.storage.database_schema import DatabaseMigration
+        from core.data.storage.database_schema import DatabaseMigration
 
         migration = DatabaseMigration(temp_db)
 
@@ -388,7 +393,7 @@ class TestDatabaseSchema:
         schema = DatabaseSchema(temp_db)
 
         # 直接插入测试数据
-        from vprism.infrastructure.storage.database_schema import DatabaseMigration
+        from core.data.storage.database_schema import DatabaseMigration
 
         migration = DatabaseMigration(temp_db)
         try:

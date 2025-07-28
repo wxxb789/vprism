@@ -10,7 +10,7 @@ from decimal import Decimal
 import numpy as np
 import pandas as pd
 
-from vprism.core.models import DataPoint
+from core.models import DataPoint
 
 
 class TestDataQualityValidation:

@@ -6,21 +6,17 @@ including tool functionality, parameter validation, and error handling.
 """
 
 import os
-
-# Add Python path for imports
 import sys
 from datetime import datetime
 from unittest.mock import AsyncMock
 
 import pytest
 
-from vprism.core.models import DataPoint, DataResponse, ProviderInfo, ResponseMetadata
+# Set up Python path to prioritize local source
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "vprism_mcp"))
-
-# Import after path setup
-from server import VPrismMCPServer, create_mcp_server
+from core.models import DataPoint, DataResponse, ProviderInfo, ResponseMetadata
+from vprism_mcp.server import VPrismMCPServer, create_mcp_server
 
 
 class TestVPrismMCPServer:

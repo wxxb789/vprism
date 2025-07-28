@@ -7,24 +7,35 @@ Generate design document based on approved requirements.
 /spec-design [feature-name]
 ```
 
+## Phase Overview
+**Your Role**: Create technical architecture and design
+
+This is Phase 2 of the spec workflow. Your goal is to create a comprehensive technical design that translates requirements into a concrete implementation plan.
+
 ## Instructions
 You are working on the design phase of the spec workflow.
 
 1. **Prerequisites**
-   - Ensure requirements.md exists and is approved
-   - Load the requirements document for context
-   - **Load steering documents**: Check for and load tech.md and structure.md
+   - Ensure requirements.md exists and is approved in `.claude/specs/{feature-name}/`
+   - Load the requirements document from `.claude/specs/{feature-name}/requirements.md`
+   - **Load steering documents** (if available): 
+     - Check for .claude/steering/tech.md for technical standards
+     - Check for .claude/steering/structure.md for project conventions
+     - Check for .claude/steering/product.md for product context
    - Research existing codebase patterns and architecture
 
-2. **Generate Design Document**
-   - Create comprehensive design following the template
-   - Include all required sections:
-     - Overview
-     - Architecture
-     - Components and Interfaces
-     - Data Models
-     - Error Handling
-     - Testing Strategy
+2. **Process**
+   1. Research existing codebase patterns and architecture
+   2. Create comprehensive design document including:
+      - System overview and architecture
+      - Component specifications and interfaces
+      - Data models and validation rules
+      - Error handling strategies
+      - Testing approach
+   3. Include Mermaid diagrams for visual representation
+   4. Present complete design document
+   5. Ask: "Does the design look good? If so, we can move on to the implementation plan."
+   6. **CRITICAL**: Wait for explicit approval before proceeding
 
 3. **Codebase Research Phase** (MANDATORY)
    - **Map existing patterns**: Identify data models, API patterns, component structures that match your needs
@@ -54,22 +65,56 @@ You are working on the design phase of the spec workflow.
    - Ask: "Does the design look good? If so, we can move on to the implementation plan."
    - Incorporate feedback and revisions
    - Continue until explicit approval
+   - **CRITICAL**: Do not proceed without explicit approval
+
+## Design Sections Required
+- Overview
+- Architecture (with Mermaid diagrams)
+- Components and Interfaces
+- Data Models
+- Error Handling
+- Testing Strategy
 
 ## Design Structure
 ```markdown
 # Design Document
 
 ## Overview
-[High-level description]
+[High-level description of the feature and its place in the overall system]
+
+## Steering Document Alignment
+
+### Technical Standards (tech.md)
+[How the design follows documented technical patterns and standards]
+
+### Project Structure (structure.md)
+[How the implementation will follow project organization conventions]
 
 ## Code Reuse Analysis
 [What existing code will be leveraged, extended, or integrated]
 
 ## Architecture
-[System architecture building on existing patterns]
+[Describe the overall architecture and design patterns used]
+
+```mermaid
+graph TD
+    A[Component A] --> B[Component B]
+    B --> C[Component C]
+```
 
 ## Components and Interfaces
-[Detailed component specifications with reuse opportunities]
+
+### Component 1
+- **Purpose:** [What this component does]
+- **Interfaces:** [Public methods/APIs]
+- **Dependencies:** [What it depends on]
+- **Reuses:** [Existing components/utilities it builds upon]
+
+### Component 2
+- **Purpose:** [What this component does]
+- **Interfaces:** [Public methods/APIs]
+- **Dependencies:** [What it depends on]
+- **Reuses:** [Existing components/utilities it builds upon]
 
 ## Data Models
 [Data structures following established patterns]
@@ -80,6 +125,12 @@ You are working on the design phase of the spec workflow.
 ## Testing Strategy
 [Testing approach using existing utilities and patterns]
 ```
+
+## Critical Rules
+- **NEVER** proceed to the next phase without explicit user approval
+- Accept only clear affirmative responses: "yes", "approved", "looks good", etc.
+- If user provides feedback, make revisions and ask for approval again
+- Continue revision cycle until explicit approval is received
 
 ## Next Phase
 After approval, proceed to `/spec-tasks`.

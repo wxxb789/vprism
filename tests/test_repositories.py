@@ -1,23 +1,23 @@
 """测试仓储模式实现."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
 
-from vprism.core.models import AssetType, DataPoint, DataQuery, MarketType, TimeFrame
-from vprism.infrastructure.repositories import (
+from core.data.repositories import (
     CacheRepository,
     DataRepository,
     ProviderRepository,
     QueryRepository,
 )
-from vprism.infrastructure.storage import DatabaseManager
-from vprism.infrastructure.storage.models import (
+from core.data.storage import DatabaseManager
+from core.data.storage.models import (
     CacheRecord,
     DataRecord,
     ProviderRecord,
 )
+from core.models import AssetType, DataPoint, DataQuery, MarketType, TimeFrame
 
 
 class TestDataRepository:
@@ -68,7 +68,7 @@ class TestDataRepository:
             symbol="AAPL",
             asset_type="stock",
             market="us",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             open=100.0,
             high=105.0,
             low=99.0,
@@ -90,7 +90,7 @@ class TestDataRepository:
                 symbol=f"STOCK{i}",
                 asset_type="stock",
                 market="us",
-                timestamp=datetime.utcnow() - timedelta(days=i),
+                timestamp=datetime.now(UTC) - timedelta(days=i),
                 close=100.0 + i,
                 provider="test_provider",
             )
@@ -107,7 +107,7 @@ class TestDataRepository:
             symbol="TEST_SYMBOL",
             asset_type="stock",
             market="us",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             close=100.0,
             provider="test_provider",
         )
@@ -125,7 +125,7 @@ class TestDataRepository:
             symbol="QUERY_TEST",
             asset_type="stock",
             market="us",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             close=100.0,
             provider="test_provider",
         )
@@ -148,7 +148,7 @@ class TestDataRepository:
         """测试从DataPoint转换为DataRecord."""
         data_point = DataPoint(
             symbol="AAPL",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             open=Decimal("100.0"),
             high=Decimal("105.0"),
             low=Decimal("99.0"),
@@ -212,7 +212,7 @@ class TestDataRepository:
             cache_key="test_cache_key",
             query_hash="test_query_hash",
             data_source="test_provider",
-            expires_at=datetime.utcnow() + timedelta(hours=1),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
 
         saved_id = await cache_repo.save(cache_record)
@@ -285,7 +285,7 @@ class TestDataRepository:
             symbol="INTEGRATION_TEST",
             asset_type="stock",
             market="us",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             close=150.0,
             provider="integration_test_provider",
         )
@@ -309,7 +309,7 @@ class TestDataRepository:
                 symbol="SUMMARY_TEST",
                 asset_type="stock",
                 market="us",
-                timestamp=datetime.utcnow() - timedelta(days=i),
+                timestamp=datetime.now(UTC) - timedelta(days=i),
                 close=100.0 + i,
                 volume=1000000,
                 provider="test_provider",

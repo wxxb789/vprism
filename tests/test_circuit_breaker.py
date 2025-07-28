@@ -5,14 +5,14 @@ import contextlib
 
 import pytest
 
-from vprism.core.circuit_breaker import (
+from core.exceptions import ProviderError
+from core.patterns.circuitbreaker import (
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerRegistry,
     CircuitState,
     circuit_breaker,
 )
-from vprism.core.exceptions import ProviderError
 
 
 class TestCircuitBreakerConfig:

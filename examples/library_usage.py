@@ -59,9 +59,7 @@ def format_table(data_list, title):
     # 计算列宽
     col_widths = []
     for i, header in enumerate(headers):
-        max_width = max(
-            len(str(header)), max(len(row[i]) for row in rows) if rows else 0
-        )
+        max_width = max(len(str(header)), max(len(row[i]) for row in rows) if rows else 0)
         col_widths.append(min(max_width + 2, 25))  # 最大宽度25
 
     # 打印标题
@@ -97,27 +95,21 @@ def basic_usage():
 
     # 获取中国A股数据
     try:
-        data = vprism.get(
-            asset="stock", market="cn", symbols=["000001"], timeframe="1d", limit=10
-        )
+        data = vprism.get(asset="stock", market="cn", symbols=["000001"], timeframe="1d", limit=10)
         print_data_sample(data, "中国A股数据 - 平安银行(000001)")
     except Exception as e:
         print(f"获取中国A股数据失败: {e}")
 
     # 获取美股数据
     try:
-        data = vprism.get(
-            asset="stock", market="us", symbols=["AAPL"], timeframe="1d", limit=10
-        )
+        data = vprism.get(asset="stock", market="us", symbols=["AAPL"], timeframe="1d", limit=10)
         print_data_sample(data, "美股数据 - 苹果(AAPL)")
     except Exception as e:
         print(f"获取美股数据失败: {e}")
 
     # 获取加密货币数据
     try:
-        data = vprism.get(
-            asset="crypto", market="global", symbols=["BTC"], timeframe="1d", limit=10
-        )
+        data = vprism.get(asset="crypto", market="global", symbols=["BTC"], timeframe="1d", limit=10)
         print_data_sample(data, "加密货币数据 - 比特币(BTC)")
     except Exception as e:
         print(f"获取加密货币数据失败: {e}")
@@ -138,9 +130,7 @@ def advanced_usage():
 
     # 使用简单API获取数据
     try:
-        data = client.get(
-            asset="stock", market="us", symbols=["GOOGL"], timeframe="1d", limit=10
-        )
+        data = client.get(asset="stock", market="us", symbols=["GOOGL"], timeframe="1d", limit=10)
         print_data_sample(data, "谷歌股票数据 - GOOGL")
     except Exception as e:
         print(f"谷歌股票数据获取失败: {e}")
@@ -178,9 +168,7 @@ def error_handling_example():
 
     try:
         # 尝试获取不存在的股票代码
-        data = vprism.get(
-            asset="stock", market="cn", symbols=["INVALID_CODE"], timeframe="1d"
-        )
+        data = vprism.get(asset="stock", market="cn", symbols=["INVALID_CODE"], timeframe="1d")
     except vprism.VPrismException as e:
         print(f"捕获vprism异常: {e}")
     except Exception as e:

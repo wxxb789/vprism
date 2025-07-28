@@ -17,7 +17,17 @@
       "Bash(uv run:*)",
       "Bash(uv:*)",
       "Bash(ruff format:*)",
-      "Bash(pytest:*)"
+      "Bash(pytest:*)",
+      "mcp__sequential-thinking__problem_breakdown",
+      "Bash(touch:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "mcp__sequential-thinking__step_by_step_plan",
+      "mcp__sequential-thinking__analyze_problem",
+      "Bash(git mv:*)",
+      "Bash(find:*)",
+      "Bash(rg:*)"
     ],
     "deny": [],
     "allowedTools": [

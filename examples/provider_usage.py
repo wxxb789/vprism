@@ -3,9 +3,9 @@
 import asyncio
 from datetime import date
 
+from core.data.providers.factory import ProviderFactory
+from core.data.providers.registry import ProviderRegistry
 from vprism.core.models import AssetType, DataQuery, MarketType, TimeFrame
-from vprism.infrastructure.providers.factory import ProviderFactory
-from vprism.infrastructure.providers.registry import ProviderRegistry
 
 
 async def main():

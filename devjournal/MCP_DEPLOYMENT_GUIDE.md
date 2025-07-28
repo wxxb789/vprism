@@ -36,7 +36,7 @@ pip install fastmcp>=2.10.6
 #### STDIO Mode (Default)
 ```bash
 # Run MCP server with stdio transport
-python -m vprism.mcp
+python -m mcp
 
 # Or using main.py
 python main.py mcp
@@ -45,16 +45,16 @@ python main.py mcp
 #### HTTP Mode
 ```bash
 # Run MCP server with HTTP transport
-python -m vprism.mcp --transport http --host 127.0.0.1 --port 8001
+python -m mcp --transport http --host 127.0.0.1 --port 8001
 
 # Or
-python -m vprism.mcp --transport http
+python -m mcp --transport http
 ```
 
 #### SSE Mode
 ```bash
 # Run MCP server with SSE transport
-python -m vprism.mcp --transport sse --host 127.0.0.1 --port 8001
+python -m mcp --transport sse --host 127.0.0.1 --port 8001
 ```
 
 ### 3. MCP Configuration
@@ -69,7 +69,7 @@ Create an `mcp_config.json` file:
   "transport": {
     "stdio": {
       "command": "python",
-      "args": ["-m", "vprism.mcp"]
+      "args": ["-m", "mcp"]
     }
   }
 }
@@ -86,7 +86,7 @@ Add to your Claude Desktop configuration:
   "mcpServers": {
     "vprism": {
       "command": "python",
-      "args": ["-m", "vprism.mcp"],
+      "args": ["-m", "mcp"],
       "env": {}
     }
   }
@@ -99,7 +99,7 @@ Add to your Claude Desktop configuration:
 from fastmcp import Client
 
 async def main():
-    async with Client("stdio", command=["python", "-m", "vprism.mcp"]) as client:
+    async with Client("stdio", command=["python", "-m", "mcp"]) as client:
         # List available tools
         tools = await client.list_tools()
         print("Available tools:", [t.name for t in tools])
@@ -248,7 +248,7 @@ Run the comprehensive test suite:
 pytest tests/test_mcp_server.py -v
 
 # Run with coverage
-pytest tests/test_mcp_server.py --cov=vprism.mcp --cov-report=html
+pytest tests/test_mcp_server.py --cov=mcp --cov-report=html
 ```
 
 ## Performance Optimization
@@ -275,7 +275,7 @@ COPY . .
 RUN pip install -e .
 
 EXPOSE 8001
-CMD ["python", "-m", "vprism.mcp", "--transport", "http", "--host", "0.0.0.0"]
+CMD ["python", "-m", "mcp", "--transport", "http", "--host", "0.0.0.0"]
 ```
 
 ### Docker Compose
@@ -283,13 +283,13 @@ CMD ["python", "-m", "vprism.mcp", "--transport", "http", "--host", "0.0.0.0"]
 ```yaml
 version: '3.8'
 services:
-  vprism-mcp:
+  mcp:
     build: .
     ports:
       - "8001:8001"
     environment:
       - VPRISM_LOG_LEVEL=INFO
-    command: ["python", "-m", "vprism.mcp", "--transport", "http", "--host", "0.0.0.0"]
+    command: ["python", "-m", "mcp", "--transport", "http", "--host", "0.0.0.0"]
 ```
 
 ### Kubernetes
@@ -298,26 +298,26 @@ services:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: vprism-mcp
+  name: mcp
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: vprism-mcp
+      app: mcp
   template:
     metadata:
       labels:
-        app: vprism-mcp
+        app: mcp
     spec:
       containers:
-      - name: vprism-mcp
+      - name: mcp
         image: vprism:latest
         ports:
         - containerPort: 8001
         env:
         - name: VPRISM_LOG_LEVEL
           value: "INFO"
-        command: ["python", "-m", "vprism.mcp", "--transport", "http", "--host", "0.0.0.0"]
+        command: ["python", "-m", "mcp", "--transport", "http", "--host", "0.0.0.0"]
 ```
 
 ## Troubleshooting
@@ -334,9 +334,9 @@ spec:
 Enable debug logging:
 
 ```bash
-python -m vprism.mcp --debug
+python -m mcp --debug
 # or
-VPRISM_LOG_LEVEL=DEBUG python -m vprism.mcp
+VPRISM_LOG_LEVEL=DEBUG python -m mcp
 ```
 
 ### Health Check
@@ -364,7 +364,7 @@ The server includes health check endpoints:
 
 When adding new MCP tools:
 
-1. Update `src/vprism/mcp/server.py`
+1. Update `src/mcp/server.py`
 2. Add comprehensive tests in `tests/test_mcp_server.py`
 3. Update this documentation
 4. Add configuration options if needed

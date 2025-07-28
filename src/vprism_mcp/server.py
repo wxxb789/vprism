@@ -1,5 +1,5 @@
 """
-FastMCP Server for vPrism Financial Data Platform
+MCP Server for vPrism Financial Data Platform
 
 This module implements the MCP (Model Context Protocol) server interface
 for vPrism, providing financial data access through standardized MCP tools.
@@ -12,9 +12,9 @@ from typing import Any
 from fastmcp import FastMCP
 from loguru import logger
 
-from vprism.core.client import VPrismClient
-from vprism.core.exceptions import VPrismError
-from vprism.core.models import MarketType, TimeFrame
+from core.client import VPrismClient
+from core.exceptions import VPrismError
+from core.models import MarketType, TimeFrame
 
 
 class VPrismMCPServer:

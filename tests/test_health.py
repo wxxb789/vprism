@@ -1,10 +1,10 @@
 """健康检查系统测试"""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 
-from vprism.core.health import HealthChecker, HealthStatus, get_health_checker
+from core.health import HealthChecker, HealthStatus, get_health_checker
 
 
 class TestHealthChecker:
@@ -98,7 +98,7 @@ class TestHealthChecker:
         }
         health = HealthStatus(
             status="healthy",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             checks=checks,
             uptime_seconds=123.45,
         )

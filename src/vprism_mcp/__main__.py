@@ -10,7 +10,8 @@ import asyncio
 import sys
 
 from loguru import logger
-from server import create_mcp_server
+
+from vprism_mcp.server import create_mcp_server
 
 
 def setup_logging(level: str = "INFO") -> None:

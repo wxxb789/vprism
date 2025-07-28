@@ -84,7 +84,7 @@ return APIResponse(
 ### Phase 2: MCP Server API Compatibility
 **Files Modified:**
 - `tests/test_mcp_server.py` - Updated API calls
-- `src/vprism/mcp/server.py` - Fixed server initialization
+- `src/mcp/server.py` - Fixed server initialization
 
 **Changes Made:**
 ```python

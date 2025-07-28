@@ -9,10 +9,8 @@ import sys
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
-sys.path.insert(
-    0, os.path.join(os.path.dirname(__file__), "..", "..", "src", "vprism_web")
-)
-from app import create_app
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src", "web"))
+from web.app import create_app
 
 
 def test_basic_app():

@@ -5,15 +5,15 @@ from unittest.mock import Mock
 
 import pytest
 
-from vprism.core.exceptions import NoCapableProviderError
-from vprism.core.models import AssetType, DataQuery, MarketType, TimeFrame
-from vprism.core.services.data_router import DataRouter
-from vprism.infrastructure.providers.base import DataProvider
+from core.data.providers.base import DataProvider
+from core.exceptions import NoCapableProviderError
+from core.models import AssetType, DataQuery, MarketType, TimeFrame
+from core.services.routing import DataRouter
 
 
 class MockProvider(DataProvider):
     def __init__(self, name: str, capability):
-        from vprism.infrastructure.providers.base import (
+        from core.data.providers.base import (
             AuthConfig,
             AuthType,
             RateLimitConfig,
@@ -64,7 +64,7 @@ class TestDataRouter:
     @pytest.fixture
     def sample_providers(self):
         """创建示例提供商."""
-        from vprism.infrastructure.providers.base import ProviderCapability
+        from core.data.providers.base import ProviderCapability
 
         return [
             MockProvider(

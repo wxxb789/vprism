@@ -10,7 +10,7 @@ vprism支持四种部署模式：Python库模式、Web服务模式、MCP模式�
 |----------|----------|----------|----------|--------|
 | [Python库](#python库模式) | 个人开发、数据分析 | `import vprism` | 低 | 单机 |
 | [Web服务](#web服务模式) | API服务、微服务架构 | `python -m vprism_web.main` | 中 | 水平扩展 |
-| [MCP服务](#mcp模式) | AI助手集成、聊天机器人 | `python -m vprism_mcp.server` | 低-中 | 单机/集群 |
+| [MCP服务](#mcp模式) | AI助手集成、聊天机器人 | `python -m mcp.server` | 低-中 | 单机/集群 |
 | [容器化](#容器化部署) | 生产环境、云部署 | `docker run` | 可配置 | Kubernetes集群 |
 
 ## Python库模式
@@ -220,7 +220,7 @@ server {
   "mcpServers": {
     "vprism-finance": {
       "command": "/usr/bin/python3",
-      "args": ["-m", "vprism_mcp.server"],
+      "args": ["-m", "mcp.server"],
       "cwd": "/opt/vprism"
     }
   }
@@ -235,7 +235,7 @@ server {
   "mcpServers": {
     "vprism-finance": {
       "command": "python",
-      "args": ["-m", "vprism_mcp.server", "--transport", "http", "--port", "8080"],
+      "args": ["-m", "mcp.server", "--transport", "http", "--port", "8080"],
       "cwd": "/opt/vprism",
       "env": {
         "MCP_API_KEY": "your-secure-api-key",
@@ -252,12 +252,12 @@ server {
   "mcpServers": {
     "vprism-us-stocks": {
       "command": "python",
-      "args": ["-m", "vprism_mcp.server", "--config", "config/us_market.json"],
+      "args": ["-m", "mcp.server", "--config", "config/us_market.json"],
       "cwd": "/opt/vprism"
     },
     "vprism-cn-stocks": {
       "command": "python", 
-      "args": ["-m", "vprism_mcp.server", "--config", "config/cn_market.json"],
+      "args": ["-m", "mcp.server", "--config", "config/cn_market.json"],
       "cwd": "/opt/vprism"
     }
   }
