@@ -31,26 +31,47 @@ This document defines the technical standards, patterns, and architectural guide
 
 ## Architecture Patterns
 
+### New Project Structure
+All core functionality has been reorganized under `src/core/` for better modularity:
+
+```
+src/core/
+├── client/                 # Client building and query execution
+├── config/                 # Configuration management
+├── data/                   # Data layer (cache, providers, repositories)
+├── exceptions/             # Exception handling system
+├── health/                 # Health checking system
+├── logging/                # Logging configuration
+├── models/                 # Data models and schemas
+├── monitoring/             # Monitoring and metrics
+├── patterns/               # Design patterns (circuit breaker, retry, etc.)
+├── services/               # Core business services
+└── validation/             # Data validation and quality
+```
+
 ### MCP Server Architecture
 ```python
-# FastMCP-based server implementation
+# FastMCP-based server implementation in src/vprism_mcp/
 from fastmcp import FastMCP
+from src.core.services.data import DataService
+from src.core.data.providers import get_provider
 
 class VPrismMCPServer:
     def __init__(self):
         self.mcp = FastMCP("vprism-financial-data")
+        self.data_service = DataService()
         self._setup_tools()
     
     def _setup_tools(self):
         @self.mcp.tool()
-        async def get_stock_data(...):
-            # Implementation
-            pass
+        async def get_stock_data(symbol: str, period: str = "1y"):
+            """Get stock data for a given symbol."""
+            return await self.data_service.get_stock_data(symbol, period)
         
         @self.mcp.resource("data://markets")
         async def get_markets():
-            # Resource implementation
-            pass
+            """Get available markets."""
+            return await self.data_service.get_available_markets()
 ```
 
 ### Async-First Design
@@ -68,9 +89,9 @@ class VPrismMCPServer:
 ## Data Provider Integration
 
 ### Provider Architecture
-- **Base Class**: `core.data.providers.base.DataProvider`
+- **Base Class**: `src.core.data.providers.base.DataProvider`
 - **Naming Convention**: `{ProviderName}` (no "Provider" suffix)
-- **Registration**: Use provider factory pattern
+- **Registration**: Use provider factory pattern in `src.core.data.providers.registry`
 
 ### Rate Limiting
 - Implement exponential backoff
@@ -95,9 +116,9 @@ All configuration must use `VPRISM_` prefix:
 ### Test Structure
 ```
 tests/
-├── test_*.py           # Unit tests
+├── test_*.py           # Unit tests for src/core/
 ├── web/
-│   └── test_*.py       # Web-specific tests
+│   └── test_*.py       # Web service tests (src/web/)
 └── integration/
     └── test_*.py       # Integration tests
 ```
