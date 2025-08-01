@@ -107,9 +107,7 @@ def _setup_middleware(app: FastAPI) -> None:
                 extra={
                     "method": request.method,
                     "url": str(request.url),
-                    "client": f"{request.client.host}:{request.client.port}"
-                    if request.client
-                    else None,
+                    "client": f"{request.client.host}:{request.client.port}" if request.client else None,
                     "user_agent": request.headers.get("user-agent", "unknown"),
                 },
             )
@@ -166,9 +164,7 @@ def _setup_exception_handlers(app: FastAPI) -> None:
     """配置异常处理器"""
 
     @app.exception_handler(VPrismError)
-    async def vprism_exception_handler(
-        request: Request, exc: VPrismError
-    ) -> JSONResponse:
+    async def vprism_exception_handler(request: Request, exc: VPrismError) -> JSONResponse:
         """处理 vprism 自定义异常"""
         return JSONResponse(
             status_code=400,
@@ -186,9 +182,7 @@ def _setup_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(
-        request: Request, exc: HTTPException
-    ) -> JSONResponse:
+    async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
         """处理 HTTP 异常"""
         return JSONResponse(
             status_code=exc.status_code,
@@ -203,9 +197,7 @@ def _setup_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(Exception)
-    async def general_exception_handler(
-        request: Request, exc: Exception
-    ) -> JSONResponse:
+    async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         """处理未捕获的异常"""
         return JSONResponse(
             status_code=500,

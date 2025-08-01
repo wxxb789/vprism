@@ -68,13 +68,8 @@ class DataRouter:
         capable_providers = self.registry.find_capable_providers(query)
 
         if not capable_providers:
-            logger.error(
-                "No capable provider found", extra={"query_details": str(query)}
-            )
-            raise NoCapableProviderError(
-                f"No provider can handle query: asset={query.asset}, "
-                f"market={query.market}, symbols={query.symbols}"
-            )
+            logger.error("No capable provider found", extra={"query_details": str(query)})
+            raise NoCapableProviderError(f"No provider can handle query: asset={query.asset}, market={query.market}, symbols={query.symbols}")
 
         logger.info(
             "Found capable providers",
@@ -87,9 +82,7 @@ class DataRouter:
         # 如果只有一个可行的提供商，直接返回
         if len(capable_providers) == 1:
             provider = capable_providers[0]
-            logger.info(
-                "Routing to single provider", extra={"provider_name": provider.name}
-            )
+            logger.info("Routing to single provider", extra={"provider_name": provider.name})
             return provider
 
         # 使用评分系统选择最佳提供商
@@ -104,9 +97,7 @@ class DataRouter:
 
         return best_provider
 
-    def _select_best_provider(
-        self, providers: list[DataProvider], query: DataQuery
-    ) -> DataProvider:
+    def _select_best_provider(self, providers: list[DataProvider], query: DataQuery) -> DataProvider:
         """根据多个因素选择最佳提供商
 
         Args:
@@ -127,16 +118,11 @@ class DataRouter:
         scored_providers.sort(key=lambda x: x[0], reverse=True)
         best_score, best_provider = scored_providers[0]
 
-        logger.debug(
-            f"Provider selection scores: "
-            f"{[f'{p.name}:{s:.2f}' for s, p in scored_providers]}"
-        )
+        logger.debug(f"Provider selection scores: {[f'{p.name}:{s:.2f}' for s, p in scored_providers]}")
 
         return best_provider
 
-    def _calculate_provider_score(
-        self, provider: DataProvider, query: DataQuery
-    ) -> float:
+    def _calculate_provider_score(self, provider: DataProvider, query: DataQuery) -> float:
         """计算提供商的综合评分
 
         考虑因素：
@@ -174,9 +160,7 @@ class DataRouter:
 
         return min(final_score, 2.0)  # 限制最大值为2.0
 
-    def update_provider_score(
-        self, provider_name: str, success: bool, latency_ms: int
-    ) -> None:
+    def update_provider_score(self, provider_name: str, success: bool, latency_ms: int) -> None:
         """更新提供商的性能评分
 
         Args:
@@ -201,17 +185,11 @@ class DataRouter:
         new_score = max(0.1, min(2.0, current_score + score_delta))
         self.provider_scores[provider_name] = new_score
 
-        logger.debug(
-            f"Updated provider score: {provider_name} "
-            f"({current_score:.2f} -> {new_score:.2f}) "
-            f"success={success}, latency={latency_ms}ms"
-        )
+        logger.debug(f"Updated provider score: {provider_name} ({current_score:.2f} -> {new_score:.2f}) success={success}, latency={latency_ms}ms")
 
     def get_provider_ranking(self) -> dict[str, float]:
         """获取提供商排名"""
-        return dict(
-            sorted(self.provider_scores.items(), key=lambda x: x[1], reverse=True)
-        )
+        return dict(sorted(self.provider_scores.items(), key=lambda x: x[1], reverse=True))
 
     async def get_provider_health_status(self) -> dict[str, dict[str, Any]]:
         """获取提供商健康状态"""

@@ -314,12 +314,8 @@ class TestIntegration:
         registry = CircuitBreakerRegistry()
 
         # 为不同提供商创建熔断器
-        akshare_breaker = await registry.get_or_create(
-            "akshare", CircuitBreakerConfig(failure_threshold=3, name="akshare")
-        )
-        yahoo_breaker = await registry.get_or_create(
-            "yahoo", CircuitBreakerConfig(failure_threshold=2, name="yahoo")
-        )
+        akshare_breaker = await registry.get_or_create("akshare", CircuitBreakerConfig(failure_threshold=3, name="akshare"))
+        yahoo_breaker = await registry.get_or_create("yahoo", CircuitBreakerConfig(failure_threshold=2, name="yahoo"))
 
         async def akshare_call():
             raise ProviderError("akshare失败", "akshare")

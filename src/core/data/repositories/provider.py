@@ -37,9 +37,7 @@ class ProviderRepository(Repository[ProviderRecord]):
             return ProviderRecord(**record)
         return None
 
-    async def find_all(
-        self, limit: int | None = None, offset: int = 0
-    ) -> list[ProviderRecord]:
+    async def find_all(self, limit: int | None = None, offset: int = 0) -> list[ProviderRecord]:
         """查找所有提供商记录."""
         # 由于DatabaseManager没有find_all_providers，我们返回空列表
         # 实际实现需要扩展DatabaseManager
@@ -74,10 +72,7 @@ class ProviderRepository(Repository[ProviderRecord]):
                 record.avg_response_time_ms = response_time_ms
             else:
                 # 简单的移动平均
-                record.avg_response_time_ms = (
-                    record.avg_response_time_ms * (record.request_count - 1)
-                    + response_time_ms
-                ) / record.request_count
+                record.avg_response_time_ms = (record.avg_response_time_ms * (record.request_count - 1) + response_time_ms) / record.request_count
             record.updated_at = datetime.now(timezone.utc)
             await self.save(record)
             return True

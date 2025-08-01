@@ -66,9 +66,7 @@ class VPrismConfig:
         provider_config = ProviderConfig(**config_dict.get("providers", {}))
         logging_config = LoggingConfig(**config_dict.get("logging", {}))
 
-        return cls(
-            cache=cache_config, providers=provider_config, logging=logging_config
-        )
+        return cls(cache=cache_config, providers=provider_config, logging=logging_config)
 
     def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
@@ -166,9 +164,7 @@ def load_config_from_env() -> dict[str, Any]:
     if os.getenv("VPRISM_PROVIDER_MAX_RETRIES"):
         provider_config["max_retries"] = int(os.getenv("VPRISM_PROVIDER_MAX_RETRIES"))
     if os.getenv("VPRISM_PROVIDER_RATE_LIMIT"):
-        provider_config["rate_limit"] = (
-            os.getenv("VPRISM_PROVIDER_RATE_LIMIT").lower() == "true"
-        )
+        provider_config["rate_limit"] = os.getenv("VPRISM_PROVIDER_RATE_LIMIT").lower() == "true"
 
     if provider_config:
         config["providers"] = provider_config

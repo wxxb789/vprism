@@ -105,9 +105,7 @@ class ErrorContext:
         }
 
 
-def format_error_response(
-    error_code: ErrorCode, message: str | None = None, **kwargs: Any
-) -> dict[str, Any]:
+def format_error_response(error_code: ErrorCode, message: str | None = None, **kwargs: Any) -> dict[str, Any]:
     """格式化错误响应.
 
     Args:

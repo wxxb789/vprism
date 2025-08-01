@@ -37,12 +37,8 @@ class TestDataConsistencyValidator:
         )
 
         with patch.object(self.validator, "_get_vprism_data", return_value=data.copy()):
-            with patch.object(
-                self.validator, "_get_akshare_data", return_value=data.copy()
-            ):
-                report = self.validator.validate_consistency(
-                    "TEST", start_date, end_date
-                )
+            with patch.object(self.validator, "_get_akshare_data", return_value=data.copy()):
+                report = self.validator.validate_consistency("TEST", start_date, end_date)
 
         assert report.symbol == "TEST"
         assert report.total_records == 5
@@ -73,12 +69,8 @@ class TestDataConsistencyValidator:
         akshare_data.loc[2, "volume"] = 1210000  # 0.8% difference
 
         with patch.object(self.validator, "_get_vprism_data", return_value=vprism_data):
-            with patch.object(
-                self.validator, "_get_akshare_data", return_value=akshare_data
-            ):
-                report = self.validator.validate_consistency(
-                    "TEST", start_date, end_date
-                )
+            with patch.object(self.validator, "_get_akshare_data", return_value=akshare_data):
+                report = self.validator.validate_consistency("TEST", start_date, end_date)
 
         assert report.symbol == "TEST"
         assert report.total_records == 3
@@ -115,12 +107,8 @@ class TestDataConsistencyValidator:
         )
 
         with patch.object(self.validator, "_get_vprism_data", return_value=vprism_data):
-            with patch.object(
-                self.validator, "_get_akshare_data", return_value=akshare_data
-            ):
-                report = self.validator.validate_consistency(
-                    "TEST", start_date, end_date
-                )
+            with patch.object(self.validator, "_get_akshare_data", return_value=akshare_data):
+                report = self.validator.validate_consistency("TEST", start_date, end_date)
 
         assert report.missing_in_vprism == 2
         assert report.missing_in_akshare == 0
@@ -144,12 +132,8 @@ class TestDataConsistencyValidator:
         )
 
         with patch.object(self.validator, "_get_vprism_data", return_value=mock_data):
-            with patch.object(
-                self.validator, "_get_akshare_data", return_value=mock_data
-            ):
-                reports = self.validator.compare_multiple_symbols(
-                    symbols, start_date, end_date
-                )
+            with patch.object(self.validator, "_get_akshare_data", return_value=mock_data):
+                reports = self.validator.compare_multiple_symbols(symbols, start_date, end_date)
 
         assert len(reports) == 3
         for symbol, report in reports.items():
@@ -189,9 +173,7 @@ class TestDataConsistencyValidator:
         # Mock data with one symbol having low consistency
         mock_data = pd.DataFrame(
             {
-                "timestamp": pd.date_range(
-                    start=datetime(2024, 1, 1), periods=3, freq="D"
-                ),
+                "timestamp": pd.date_range(start=datetime(2024, 1, 1), periods=3, freq="D"),
                 "symbol": ["TEST"] * 3,
                 "open": [100.0, 101.0, 102.0],
                 "high": [101.0, 102.0, 103.0],
@@ -203,9 +185,7 @@ class TestDataConsistencyValidator:
 
         # Create slightly different data for one symbol to trigger alert
         low_consistency_data = mock_data.copy()
-        low_consistency_data.loc[1, "close"] = (
-            105.0  # 3.4% difference, above 1% tolerance
-        )
+        low_consistency_data.loc[1, "close"] = 105.0  # 3.4% difference, above 1% tolerance
 
         with patch.object(self.validator, "_get_vprism_data", return_value=mock_data):
             with patch.object(
@@ -228,12 +208,8 @@ class TestDataConsistencyValidator:
         empty_df = pd.DataFrame()
 
         with patch.object(self.validator, "_get_vprism_data", return_value=empty_df):
-            with patch.object(
-                self.validator, "_get_akshare_data", return_value=empty_df
-            ):
-                report = self.validator.validate_consistency(
-                    "TEST", start_date, end_date
-                )
+            with patch.object(self.validator, "_get_akshare_data", return_value=empty_df):
+                report = self.validator.validate_consistency("TEST", start_date, end_date)
 
         assert report.total_records == 0
         assert report.consistency_percentage == 0.0
@@ -261,12 +237,8 @@ class TestDataConsistencyValidator:
         akshare_data.loc[1, "open"] = 95.0  # 5.9% difference
 
         with patch.object(self.validator, "_get_vprism_data", return_value=vprism_data):
-            with patch.object(
-                self.validator, "_get_akshare_data", return_value=akshare_data
-            ):
-                report = self.validator.validate_consistency(
-                    "TEST", start_date, end_date
-                )
+            with patch.object(self.validator, "_get_akshare_data", return_value=akshare_data):
+                report = self.validator.validate_consistency("TEST", start_date, end_date)
 
         assert report.mismatching_records > 0
         assert report.max_price_difference > 0.05  # Should be > 5%
@@ -328,9 +300,7 @@ class TestConsistencyIntegration:
         validator = DataConsistencyValidator(tolerance=0.001)  # Very strict tolerance
 
         with patch.object(validator, "_get_vprism_data", return_value=vprism_data):
-            with patch.object(
-                validator, "_get_akshare_data", return_value=akshare_data
-            ):
+            with patch.object(validator, "_get_akshare_data", return_value=akshare_data):
                 report = validator.validate_consistency("000001", start_date, end_date)
 
         assert report.symbol == "000001"
@@ -342,9 +312,7 @@ class TestConsistencyIntegration:
     def test_weekend_data_handling(self):
         """Test handling of weekend data (when markets are closed)."""
         # Weekend dates when Chinese markets are closed
-        weekend_dates = pd.date_range(
-            start=datetime(2024, 1, 6), periods=2, freq="D"
-        )  # Sat, Sun
+        weekend_dates = pd.date_range(start=datetime(2024, 1, 6), periods=2, freq="D")  # Sat, Sun
 
         vprism_data = pd.DataFrame(
             {
@@ -363,12 +331,8 @@ class TestConsistencyIntegration:
         validator = DataConsistencyValidator()
 
         with patch.object(validator, "_get_vprism_data", return_value=vprism_data):
-            with patch.object(
-                validator, "_get_akshare_data", return_value=akshare_data
-            ):
-                report = validator.validate_consistency(
-                    "TEST", datetime(2024, 1, 6), datetime(2024, 1, 7)
-                )
+            with patch.object(validator, "_get_akshare_data", return_value=akshare_data):
+                report = validator.validate_consistency("TEST", datetime(2024, 1, 6), datetime(2024, 1, 7))
 
         assert report.total_records == 2
         assert report.missing_in_akshare == 2  # All weekend data missing in akshare

@@ -8,33 +8,33 @@ import duckdb
 
 class DatabaseSchema:
     """数据库表结构管理类，提供数据库初始化和表结构管理功能。"""
-    
+
     def __init__(self, db_path: str = "data/vprism.db"):
         """
         初始化数据库模式。
-        
+
         Args:
             db_path: 数据库文件路径
         """
         self.db_path = db_path
         self.conn = None
         self._initialize()
-    
+
     def _initialize(self):
         """初始化数据库连接和表结构。"""
         # 确保数据目录存在
         db_dir = os.path.dirname(self.db_path)
         if db_dir:  # 只在目录路径不为空时创建
             os.makedirs(db_dir, exist_ok=True)
-        
+
         # 连接数据库
         self.conn = duckdb.connect(self.db_path)
-        
+
         # 创建表结构
         self._create_tables()
         self._create_indexes()
         self._create_views()
-    
+
     def _create_tables(self):
         """创建所有数据表。"""
         # 创建数据记录表（兼容旧表名）
@@ -59,7 +59,7 @@ class DatabaseSchema:
                 PRIMARY KEY (symbol, market)
             )
         """)
-        
+
         # 创建数据记录表（新表名，用于测试兼容性）
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS data_records (
@@ -81,7 +81,7 @@ class DatabaseSchema:
                 metadata JSON
             )
         """)
-        
+
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS daily_ohlcv (
                 id VARCHAR PRIMARY KEY,
@@ -100,7 +100,7 @@ class DatabaseSchema:
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
+
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS intraday_ohlcv (
                 id VARCHAR PRIMARY KEY,
@@ -119,7 +119,7 @@ class DatabaseSchema:
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
+
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS real_time_quotes (
                 id VARCHAR PRIMARY KEY,
@@ -139,7 +139,7 @@ class DatabaseSchema:
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
+
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS cache_entries (
                 cache_key VARCHAR PRIMARY KEY,
@@ -153,7 +153,7 @@ class DatabaseSchema:
                 metadata JSON
             )
         """)
-        
+
         # 创建缓存记录表（兼容测试）
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS cache_records (
@@ -168,7 +168,7 @@ class DatabaseSchema:
                 metadata JSON
             )
         """)
-        
+
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS data_quality (
                 id VARCHAR PRIMARY KEY,
@@ -190,7 +190,7 @@ class DatabaseSchema:
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
+
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS provider_status (
                 provider_name VARCHAR PRIMARY KEY,
@@ -204,7 +204,7 @@ class DatabaseSchema:
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
+
         # 创建提供商记录表
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS provider_records (
@@ -222,7 +222,7 @@ class DatabaseSchema:
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
+
         # 创建查询记录表
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS query_records (
@@ -243,58 +243,58 @@ class DatabaseSchema:
                 completed_at TIMESTAMP
             )
         """)
-    
+
     def _create_indexes(self):
         """创建数据库索引。"""
         # 资产信息表索引
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_asset_symbol ON asset_info(symbol)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_asset_market ON asset_info(market)")
-        
+
         # 日线数据表索引
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_daily_symbol ON daily_ohlcv(symbol)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_daily_date ON daily_ohlcv(trade_date)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_daily_symbol_date ON daily_ohlcv(symbol, trade_date)")
-        
+
         # 分钟数据表索引
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_intraday_symbol ON intraday_ohlcv(symbol)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_intraday_timestamp ON intraday_ohlcv(timestamp)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_intraday_symbol_timeframe ON intraday_ohlcv(symbol, timeframe)")
-        
+
         # 实时报价索引
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_quotes_symbol ON real_time_quotes(symbol)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_quotes_timestamp ON real_time_quotes(timestamp)")
-        
+
         # 缓存索引
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_key ON cache_entries(cache_key)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_expires ON cache_entries(expires_at)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_source ON cache_entries(data_source)")
-        
+
         # 数据质量索引
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_quality_symbol ON data_quality(symbol)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_quality_date ON data_quality(date_range_start, date_range_end)")
-        
+
         # 提供商状态索引
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_provider_status ON provider_status(provider_name)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_provider_last_success ON provider_status(last_success)")
-        
+
         # 数据记录表索引
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_data_records_symbol ON data_records(symbol)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_data_records_timestamp ON data_records(timestamp)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_data_records_provider ON data_records(provider)")
-        
+
         # 缓存记录表索引
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_records_key ON cache_records(cache_key)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_records_expires ON cache_records(expires_at)")
-        
+
         # 提供商记录表索引
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_provider_records_name ON provider_records(name)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_provider_records_status ON provider_records(status)")
-        
+
         # 查询记录表索引
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_query_records_hash ON query_records(query_hash)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_query_records_status ON query_records(status)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_query_records_created ON query_records(created_at)")
-    
+
     def _create_views(self):
         """创建数据库视图。"""
         # 最新价格视图
@@ -312,7 +312,7 @@ class DatabaseSchema:
             LEFT JOIN daily_ohlcv d ON a.symbol = d.symbol AND a.market = d.market
             WHERE d.trade_date = (SELECT MAX(trade_date) FROM daily_ohlcv WHERE symbol = a.symbol AND market = a.market)
         """)
-        
+
         # 月度统计视图
         self.conn.execute("""
             CREATE OR REPLACE VIEW monthly_stats AS
@@ -331,7 +331,7 @@ class DatabaseSchema:
             GROUP BY symbol, market, DATE_TRUNC('month', trade_date)
             ORDER BY symbol, market, month DESC
         """)
-        
+
         # 缓存统计视图
         self.conn.execute("""
             CREATE OR REPLACE VIEW cache_statistics AS
@@ -345,7 +345,7 @@ class DatabaseSchema:
             FROM cache_entries
             GROUP BY data_source
         """)
-        
+
         # 数据质量统计视图
         self.conn.execute("""
             CREATE OR REPLACE VIEW data_quality_summary AS
@@ -359,7 +359,7 @@ class DatabaseSchema:
             FROM data_quality
             GROUP BY provider
         """)
-    
+
     def create_materialized_views(self):
         """创建物化视图。"""
         # 创建物化视图以提高查询性能
@@ -371,7 +371,7 @@ class DatabaseSchema:
         except Exception:
             # 如果物化视图已存在则跳过
             pass
-    
+
     def create_partitioned_tables(self):
         """创建分区表。"""
         # 创建按年份分区的表
@@ -386,19 +386,16 @@ class DatabaseSchema:
             except Exception:
                 # 如果分区表已存在则跳过
                 pass
-    
+
     def get_table_stats(self) -> Dict[str, int]:
         """
         获取表统计信息。
-        
+
         Returns:
             表名到记录数的映射字典
         """
-        tables = [
-            'asset_info', 'daily_ohlcv', 'intraday_ohlcv', 
-            'real_time_quotes', 'cache_entries', 'data_quality'
-        ]
-        
+        tables = ["asset_info", "daily_ohlcv", "intraday_ohlcv", "real_time_quotes", "cache_entries", "data_quality"]
+
         stats = {}
         for table in tables:
             try:
@@ -406,32 +403,32 @@ class DatabaseSchema:
                 stats[table] = result[0] if result else 0
             except Exception:
                 stats[table] = 0
-        
+
         return stats
-    
+
     def optimize_tables(self):
         """优化表性能。"""
         try:
             # 执行VACUUM操作
             self.conn.execute("CHECKPOINT")
-            
+
             # 更新统计信息
             self.conn.execute("ANALYZE")
-            
+
         except Exception:
             # 如果优化失败，不影响主要功能
             pass
-    
+
     def close(self):
         """关闭数据库连接。"""
         if self.conn:
             self.conn.close()
             self.conn = None
-    
+
     def __enter__(self):
         """上下文管理器入口。"""
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """上下文管理器出口。"""
         self.close()

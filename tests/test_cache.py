@@ -61,9 +61,7 @@ class TestCacheKey:
         ]
 
         for timeframe, expected_ttl in test_cases:
-            query = DataQuery(
-                asset=AssetType.STOCK, symbols=["000001"], timeframe=timeframe
-            )
+            query = DataQuery(asset=AssetType.STOCK, symbols=["000001"], timeframe=timeframe)
             cache_key = CacheKey(query)
             assert cache_key.ttl == expected_ttl
 
@@ -288,9 +286,7 @@ class TestMultiLevelCache:
 
         async def worker(worker_id):
             for i in range(5):
-                query = DataQuery(
-                    asset=AssetType.STOCK, symbols=[f"worker{worker_id}_stock{i}"]
-                )
+                query = DataQuery(asset=AssetType.STOCK, symbols=[f"worker{worker_id}_stock{i}"])
                 test_data = {"worker": worker_id, "index": i}
 
                 # 设置数据

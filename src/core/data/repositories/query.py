@@ -29,9 +29,7 @@ class QueryRepository(Repository[QueryRecord]):
         # 简化的实现
         return None
 
-    async def find_all(
-        self, limit: int | None = None, offset: int = 0
-    ) -> list[QueryRecord]:
+    async def find_all(self, limit: int | None = None, offset: int = 0) -> list[QueryRecord]:
         """查找所有查询记录."""
         # 简化的实现
         return []
@@ -51,9 +49,7 @@ class QueryRepository(Repository[QueryRecord]):
         # 简化的实现
         return []
 
-    async def create_query_record(
-        self, query: DataQuery, query_hash: str
-    ) -> QueryRecord:
+    async def create_query_record(self, query: DataQuery, query_hash: str) -> QueryRecord:
         """创建新的查询记录."""
         return QueryRecord(
             query_hash=query_hash,
@@ -85,9 +81,7 @@ class QueryRepository(Repository[QueryRecord]):
 
     async def mark_failed(self, query_id: str, error_message: str) -> None:
         """标记查询为失败."""
-        self.db_manager.update_query_record(
-            query_id, status="failed", completed_at=datetime.now(timezone.utc)
-        )
+        self.db_manager.update_query_record(query_id, status="failed", completed_at=datetime.now(timezone.utc))
 
     async def get_query_stats(self) -> dict[str, Any]:
         """获取查询统计信息."""
@@ -113,15 +107,10 @@ class QueryRepository(Repository[QueryRecord]):
         # 简单的哈希生成
         import hashlib
 
-        query_str = (
-            f"{query.asset}{query.market}{query.symbols}"
-            f"{query.timeframe}{query.start}{query.end}"
-        )
+        query_str = f"{query.asset}{query.market}{query.symbols}{query.timeframe}{query.start}{query.end}"
         return hashlib.md5(query_str.encode()).hexdigest()
 
-    async def get_performance_metrics(
-        self, start_date: datetime, end_date: datetime
-    ) -> dict[str, Any]:
+    async def get_performance_metrics(self, start_date: datetime, end_date: datetime) -> dict[str, Any]:
         """获取性能指标."""
         # 简化的实现
         return {

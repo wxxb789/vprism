@@ -128,9 +128,7 @@ class TestDatabaseManager:
         assert len(us_records) == 2
 
         # 测试时间范围查询
-        recent_records = db_manager.query_data_records(
-            start_date=datetime.now(UTC) - timedelta(hours=12)
-        )
+        recent_records = db_manager.query_data_records(start_date=datetime.now(UTC) - timedelta(hours=12))
         assert len(recent_records) >= 1
 
     def test_provider_record_operations(self, db_manager):

@@ -35,9 +35,7 @@ class CacheRepository(Repository[CacheRecord]):
         """根据缓存键查找缓存记录."""
         return await self.find_by_id(cache_key)
 
-    async def find_all(
-        self, limit: int | None = None, offset: int = 0
-    ) -> list[CacheRecord]:
+    async def find_all(self, limit: int | None = None, offset: int = 0) -> list[CacheRecord]:
         """查找所有缓存记录."""
         # 简化的实现，实际需要通过扩展DatabaseManager
         return []

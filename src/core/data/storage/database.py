@@ -187,9 +187,7 @@ class DatabaseManager:
 
     def get_provider_record(self, name: str) -> dict[str, Any] | None:
         """获取提供商记录."""
-        result = self.connection.execute(
-            "SELECT * FROM provider_records WHERE name = ?", [name]
-        ).fetchone()
+        result = self.connection.execute("SELECT * FROM provider_records WHERE name = ?", [name]).fetchone()
 
         if result:
             columns = [desc[0] for desc in self.connection.description]
@@ -232,9 +230,7 @@ class DatabaseManager:
 
     def get_cache_record(self, cache_key: str) -> dict[str, Any] | None:
         """获取缓存记录."""
-        result = self.connection.execute(
-            "SELECT * FROM cache_records WHERE cache_key = ?", [cache_key]
-        ).fetchone()
+        result = self.connection.execute("SELECT * FROM cache_records WHERE cache_key = ?", [cache_key]).fetchone()
 
         if result:
             columns = [desc[0] for desc in self.connection.description]
@@ -298,21 +294,15 @@ class DatabaseManager:
         stats["data_records_count"] = result[0] if result else 0
 
         # 提供商统计
-        result = self.connection.execute(
-            "SELECT COUNT(*) FROM provider_records"
-        ).fetchone()
+        result = self.connection.execute("SELECT COUNT(*) FROM provider_records").fetchone()
         stats["provider_records_count"] = result[0] if result else 0
 
         # 缓存统计
-        result = self.connection.execute(
-            "SELECT COUNT(*) FROM cache_records"
-        ).fetchone()
+        result = self.connection.execute("SELECT COUNT(*) FROM cache_records").fetchone()
         stats["cache_records_count"] = result[0] if result else 0
 
         # 查询统计
-        result = self.connection.execute(
-            "SELECT COUNT(*) FROM query_records"
-        ).fetchone()
+        result = self.connection.execute("SELECT COUNT(*) FROM query_records").fetchone()
         stats["query_records_count"] = result[0] if result else 0
 
         return stats
@@ -320,9 +310,7 @@ class DatabaseManager:
     def cleanup_expired_cache(self) -> int:
         """清理过期的缓存记录."""
         try:
-            result = self.connection.execute(
-                "DELETE FROM cache_records WHERE expires_at <= CURRENT_TIMESTAMP"
-            )
+            result = self.connection.execute("DELETE FROM cache_records WHERE expires_at <= CURRENT_TIMESTAMP")
             return max(0, result.rowcount)  # Ensure non-negative
         except Exception:
             return 0
@@ -330,9 +318,7 @@ class DatabaseManager:
     def cleanup_old_data(self, days_to_keep: int = 90) -> int:
         """清理旧数据记录."""
         cutoff_date = datetime.now(timezone.utc).replace(days=-days_to_keep)
-        result = self.connection.execute(
-            "DELETE FROM data_records WHERE timestamp < ?", [cutoff_date]
-        )
+        result = self.connection.execute("DELETE FROM data_records WHERE timestamp < ?", [cutoff_date])
         return result.rowcount
 
     # 数据库维护

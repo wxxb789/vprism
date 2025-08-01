@@ -34,9 +34,7 @@ class TestErrorMessageTemplate:
 
     def test_get_message_with_valid_template(self):
         """测试获取有效模板消息."""
-        message = ErrorMessageTemplate.get_message(
-            ErrorCode.PROVIDER_ERROR, provider="akshare", message="连接失败"
-        )
+        message = ErrorMessageTemplate.get_message(ErrorCode.PROVIDER_ERROR, provider="akshare", message="连接失败")
         assert "akshare" in message
         assert "连接失败" in message
 
@@ -47,9 +45,7 @@ class TestErrorMessageTemplate:
 
     def test_get_message_with_rate_limit(self):
         """测试获取速率限制消息."""
-        message = ErrorMessageTemplate.get_message(
-            ErrorCode.RATE_LIMIT_EXCEEDED, retry_after=60
-        )
+        message = ErrorMessageTemplate.get_message(ErrorCode.RATE_LIMIT_EXCEEDED, retry_after=60)
         assert "60秒" in message
 
 
@@ -81,18 +77,14 @@ class TestErrorHandler:
     def test_handle_exception_with_vprism_error(self, error_handler):
         """测试处理VPrismError异常."""
         original_error = VPrismError("原始错误", "ORIGINAL_ERROR")
-        handled_error = error_handler.handle_exception(
-            original_error, operation="test_operation"
-        )
+        handled_error = error_handler.handle_exception(original_error, operation="test_operation")
 
         assert handled_error is original_error
 
     def test_handle_exception_with_timeout_error(self, error_handler):
         """测试处理超时异常."""
         timeout_error = TimeoutError("请求超时")
-        handled_error = error_handler.handle_exception(
-            timeout_error, operation="fetch_data", provider="akshare"
-        )
+        handled_error = error_handler.handle_exception(timeout_error, operation="fetch_data", provider="akshare")
 
         assert isinstance(handled_error, ProviderError)
         assert handled_error.provider_name == "akshare"
@@ -101,9 +93,7 @@ class TestErrorHandler:
     def test_handle_exception_with_network_error(self, error_handler):
         """测试处理网络异常."""
         network_error = ConnectionError("网络连接失败")
-        handled_error = error_handler.handle_exception(
-            network_error, operation="connect", provider="yahoo"
-        )
+        handled_error = error_handler.handle_exception(network_error, operation="connect", provider="yahoo")
 
         assert isinstance(handled_error, NetworkError)
         assert handled_error.provider_name == "yahoo"
@@ -131,9 +121,7 @@ class TestErrorTracker:
 
     def test_record_error(self, error_tracker):
         """测试记录错误."""
-        error_tracker.record_error(
-            error_code="PROVIDER_ERROR", provider="akshare", operation="fetch_data"
-        )
+        error_tracker.record_error(error_code="PROVIDER_ERROR", provider="akshare", operation="fetch_data")
 
         key = "PROVIDER_ERROR:akshare:fetch_data"
         assert key in error_tracker.error_counts
@@ -169,9 +157,7 @@ class TestErrorContextManager:
 
     def test_set_context(self, error_context_manager):
         """测试设置上下文."""
-        error_context_manager.set_context(
-            operation="test_operation", provider="test_provider", extra_data="test"
-        )
+        error_context_manager.set_context(operation="test_operation", provider="test_provider", extra_data="test")
 
         assert error_context_manager.operation == "test_operation"
         assert error_context_manager.provider == "test_provider"
@@ -271,9 +257,7 @@ class TestErrorResponseFormat:
 
     def test_format_error_response(self):
         """测试格式化错误响应."""
-        response = format_error_response(
-            ErrorCode.PROVIDER_ERROR, provider="akshare", message="连接失败"
-        )
+        response = format_error_response(ErrorCode.PROVIDER_ERROR, provider="akshare", message="连接失败")
 
         assert "error" in response
         assert response["error"]["code"] == "PROVIDER_ERROR"
@@ -312,9 +296,7 @@ class TestErrorHandlingIntegration:
                 {"provider": "akshare", "symbol": "000001"},
             )
         except Exception as e:
-            handled_error = handler.handle_exception(
-                e, "fetch_data", "akshare", symbol="000001"
-            )
+            handled_error = handler.handle_exception(e, "fetch_data", "akshare", symbol="000001")
 
             response = handler.create_error_response(handled_error)
 

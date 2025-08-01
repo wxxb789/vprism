@@ -56,9 +56,7 @@ class TestExponentialBackoffRetry:
     @pytest.fixture
     def retry_instance(self):
         """创建重试实例."""
-        config = RetryConfig(
-            max_attempts=3, base_delay=0.1, max_delay=1.0, multiplier=2.0
-        )
+        config = RetryConfig(max_attempts=3, base_delay=0.1, max_delay=1.0, multiplier=2.0)
         return ExponentialBackoffRetry(config)
 
     @pytest.mark.asyncio
@@ -125,9 +123,7 @@ class TestExponentialBackoffRetry:
     @pytest.mark.asyncio
     async def test_skip_retry_on_specific_exception(self):
         """测试特定异常跳过重试."""
-        config = RetryConfig(
-            max_attempts=3, base_delay=0.1, skip_on_exceptions=[ValueError]
-        )
+        config = RetryConfig(max_attempts=3, base_delay=0.1, skip_on_exceptions=[ValueError])
         retry_instance = ExponentialBackoffRetry(config)
 
         call_count = 0
@@ -144,9 +140,7 @@ class TestExponentialBackoffRetry:
 
     def test_calculate_delay(self):
         """测试延迟计算."""
-        config = RetryConfig(
-            base_delay=1.0, max_delay=10.0, multiplier=2.0, jitter=False
-        )
+        config = RetryConfig(base_delay=1.0, max_delay=10.0, multiplier=2.0, jitter=False)
         retry_instance = ExponentialBackoffRetry(config)
 
         assert retry_instance._calculate_delay(0) == 1.0
@@ -157,9 +151,7 @@ class TestExponentialBackoffRetry:
 
     def test_calculate_delay_with_jitter(self):
         """测试带抖动的延迟计算."""
-        config = RetryConfig(
-            base_delay=1.0, max_delay=10.0, multiplier=2.0, jitter=True
-        )
+        config = RetryConfig(base_delay=1.0, max_delay=10.0, multiplier=2.0, jitter=True)
         retry_instance = ExponentialBackoffRetry(config)
 
         # 多次调用，验证抖动效果
@@ -344,12 +336,8 @@ class TestIntegration:
         registry = RetryRegistry()
 
         # 为不同提供商创建重试实例
-        akshare_retry = await registry.get_or_create(
-            "akshare", RetryConfig(max_attempts=3, base_delay=0.1)
-        )
-        yahoo_retry = await registry.get_or_create(
-            "yahoo", RetryConfig(max_attempts=2, base_delay=0.2)
-        )
+        akshare_retry = await registry.get_or_create("akshare", RetryConfig(max_attempts=3, base_delay=0.1))
+        yahoo_retry = await registry.get_or_create("yahoo", RetryConfig(max_attempts=2, base_delay=0.2))
 
         # 测试成功的akshare调用
         async def akshare_success():

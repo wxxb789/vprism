@@ -42,9 +42,7 @@ class DataService:
                 "action": "initialization",
                 "router_type": type(router).__name__ if router else "default",
                 "cache_type": type(cache).__name__ if cache else "default",
-                "repository_type": type(repository).__name__
-                if repository
-                else "default",
+                "repository_type": type(repository).__name__ if repository else "default",
             },
         )
 
@@ -198,9 +196,7 @@ class DataService:
                 "Query completed successfully",
                 extra={
                     "retrieved_records": len(response.data),
-                    "data_source": response.source.name
-                    if response.source
-                    else "unknown",
+                    "data_source": response.source.name if response.source else "unknown",
                 },
             )
             return response
@@ -285,9 +281,7 @@ class DataService:
         )
 
         response = await self.query_data(query)
-        logger.info(
-            "Latest data retrieved", extra={"records_count": len(response.data)}
-        )
+        logger.info("Latest data retrieved", extra={"records_count": len(response.data)})
         return response
 
     @PerformanceLogger("get_historical")
@@ -370,9 +364,7 @@ class DataService:
         Returns:
             Dict[str, DataResponse]: 查询ID到响应的映射
         """
-        logger = bind(
-            component="DataService", action="batch_query", query_count=len(queries)
-        )
+        logger = bind(component="DataService", action="batch_query", query_count=len(queries))
         logger.info("Starting batch query processing")
 
         # 并发执行所有查询
@@ -440,11 +432,7 @@ class DataService:
         symbols_str = ",".join(sorted(query.symbols)) if query.symbols else ""
         start_str = query.start.isoformat() if query.start else "None"
         end_str = query.end.isoformat() if query.end else "None"
-        return (
-            f"{query.asset.value}:{query.market.value}:"
-            f"{symbols_str}:{query.timeframe.value}:"
-            f"{start_str}:{end_str}"
-        )
+        return f"{query.asset.value}:{query.market.value}:{symbols_str}:{query.timeframe.value}:{start_str}:{end_str}"
 
     async def health_check(self) -> dict[str, bool]:
         """健康检查.

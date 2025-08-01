@@ -26,14 +26,10 @@ logger = StructuredLogger().logger
 class AkShare(DataProvider):
     """akshare数据提供商实现."""
 
-    def __init__(
-        self, auth_config: AuthConfig = None, rate_limit: RateLimitConfig = None
-    ):
+    def __init__(self, auth_config: AuthConfig = None, rate_limit: RateLimitConfig = None):
         """初始化akshare提供商."""
         if auth_config is None:
-            auth_config = AuthConfig(
-                auth_type=AuthType.NONE, credentials={}, required_fields=[]
-            )
+            auth_config = AuthConfig(auth_type=AuthType.NONE, credentials={}, required_fields=[])
 
         if rate_limit is None:
             rate_limit = RateLimitConfig(
@@ -151,9 +147,7 @@ class AkShare(DataProvider):
             elif market == "hk":
                 return await self._get_hk_data(symbol, query)
             else:
-                return DataResponse(
-                    data=[], metadata={"error": f"Unsupported market: {market}"}
-                )
+                return DataResponse(data=[], metadata={"error": f"Unsupported market: {market}"})
 
         except Exception as e:
             logger.error(f"Error fetching data from AkShare: {e}")
@@ -179,9 +173,7 @@ class AkShare(DataProvider):
             "1m": "monthly",
         }
 
-        ak_timeframe = timeframe_map.get(
-            query.timeframe.value if query.timeframe else "1d", "daily"
-        )
+        ak_timeframe = timeframe_map.get(query.timeframe.value if query.timeframe else "1d", "daily")
 
         try:
             # 根据资产类型选择不同的接口
@@ -313,9 +305,7 @@ class AkShare(DataProvider):
                     df = df[df["date"] <= pd.to_datetime(query.end)]
 
             if df.empty:
-                return DataResponse(
-                    data=[], metadata={"message": "No data in date range"}
-                )
+                return DataResponse(data=[], metadata={"message": "No data in date range"})
 
             data_points = []
             for _, row in df.iterrows():
@@ -380,9 +370,7 @@ class AkShare(DataProvider):
                     df = df[df["date"] <= pd.to_datetime(query.end)]
 
             if df.empty:
-                return DataResponse(
-                    data=[], metadata={"message": "No data in date range"}
-                )
+                return DataResponse(data=[], metadata={"message": "No data in date range"})
 
             data_points = []
             for _, row in df.iterrows():
@@ -434,11 +422,7 @@ class AkShare(DataProvider):
                 # 获取中国实时行情
                 df = ak.stock_zh_a_spot()
                 if df is not None and not df.empty:
-                    row = (
-                        df[df["代码"] == symbol].iloc[0]
-                        if symbol in df["代码"].values
-                        else None
-                    )
+                    row = df[df["代码"] == symbol].iloc[0] if symbol in df["代码"].values else None
                     if row is not None:
                         return {
                             "symbol": symbol,
@@ -452,11 +436,7 @@ class AkShare(DataProvider):
                 # 获取美国实时行情
                 df = ak.stock_us_spot()
                 if df is not None and not df.empty:
-                    row = (
-                        df[df["symbol"] == symbol].iloc[0]
-                        if symbol in df["symbol"].values
-                        else None
-                    )
+                    row = df[df["symbol"] == symbol].iloc[0] if symbol in df["symbol"].values else None
                     if row is not None:
                         return {
                             "symbol": symbol,

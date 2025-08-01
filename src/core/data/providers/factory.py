@@ -15,9 +15,7 @@ class ProviderFactory:
     _providers: dict[str, Any] = {}
 
     @classmethod
-    def create_yahoo_provider(
-        cls, rate_limit: RateLimitConfig | None = None
-    ) -> YFinance:
+    def create_yahoo_provider(cls, rate_limit: RateLimitConfig | None = None) -> YFinance:
         """创建Yahoo Finance数据提供商.
 
         Args:
@@ -41,9 +39,7 @@ class ProviderFactory:
         return YFinance(auth_config, rate_limit)
 
     @classmethod
-    def create_akshare_provider(
-        cls, rate_limit: RateLimitConfig | None = None
-    ) -> AkShare:
+    def create_akshare_provider(cls, rate_limit: RateLimitConfig | None = None) -> AkShare:
         """创建AkShare数据提供商.
 
         Args:
@@ -67,9 +63,7 @@ class ProviderFactory:
         return AkShare(auth_config, rate_limit)
 
     @classmethod
-    def create_provider_by_market(
-        cls, market: MarketType, api_key: str | None = None
-    ) -> Any:
+    def create_provider_by_market(cls, market: MarketType, api_key: str | None = None) -> Any:
         """根据市场类型创建合适的提供商.
 
         Args:

@@ -39,9 +39,7 @@ class DataRepository(Repository[DataRecord]):
             return DataRecord(**record)
         return None
 
-    async def find_all(
-        self, limit: int | None = None, offset: int = 0
-    ) -> list[DataRecord]:
+    async def find_all(self, limit: int | None = None, offset: int = 0) -> list[DataRecord]:
         """查找所有数据记录."""
         records = self.db_manager.query_data_records(limit=limit)
         return [DataRecord(**record) for record in records]
@@ -59,20 +57,14 @@ class DataRepository(Repository[DataRecord]):
         )
         return [DataRecord(**record) for record in records]
 
-    async def find_by_symbol(
-        self, symbol: str, limit: int | None = None
-    ) -> list[DataRecord]:
+    async def find_by_symbol(self, symbol: str, limit: int | None = None) -> list[DataRecord]:
         """根据股票代码查找数据记录."""
         records = self.db_manager.query_data_records(symbol=symbol, limit=limit)
         return [DataRecord(**record) for record in records]
 
-    async def find_by_date_range(
-        self, start_date: datetime, end_date: datetime, symbol: str | None = None
-    ) -> list[DataRecord]:
+    async def find_by_date_range(self, start_date: datetime, end_date: datetime, symbol: str | None = None) -> list[DataRecord]:
         """根据日期范围查找数据记录."""
-        records = self.db_manager.query_data_records(
-            symbol=symbol, start_date=start_date, end_date=end_date
-        )
+        records = self.db_manager.query_data_records(symbol=symbol, start_date=start_date, end_date=end_date)
         return [DataRecord(**record) for record in records]
 
     async def delete(self, entity_id: str) -> bool:

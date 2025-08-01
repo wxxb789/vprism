@@ -15,9 +15,7 @@ class APIResponse(BaseModel):
     success: bool = Field(..., description="请求是否成功")
     data: Any | None = Field(None, description="响应数据")
     message: str | None = Field(None, description="响应消息")
-    timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="响应时间戳"
-    )
+    timestamp: datetime = Field(default_factory=datetime.utcnow, description="响应时间戳")
     request_id: str | None = Field(None, description="请求ID，用于追踪")
 
     model_config = ConfigDict(
@@ -35,9 +33,7 @@ class ErrorResponse(BaseModel):
     error: str = Field(..., description="错误类型")
     message: str = Field(..., description="错误消息")
     details: dict[str, Any] | None = Field(None, description="详细错误信息")
-    timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="错误时间戳"
-    )
+    timestamp: datetime = Field(default_factory=datetime.utcnow, description="错误时间戳")
     request_id: str | None = Field(None, description="请求ID，用于追踪")
 
     model_config = ConfigDict(
@@ -64,9 +60,7 @@ class MarketDataRequest(BaseModel):
 
     market: str = Field(..., description="市场类型")
     timeframe: str = Field("daily", description="时间周期")
-    symbols: list[str] | None = Field(
-        None, description="股票代码列表，为空时获取整个市场"
-    )
+    symbols: list[str] | None = Field(None, description="股票代码列表，为空时获取整个市场")
     start_date: str | None = Field(None, description="开始日期 (YYYY-MM-DD)")
     end_date: str | None = Field(None, description="结束日期 (YYYY-MM-DD)")
 
@@ -74,9 +68,7 @@ class MarketDataRequest(BaseModel):
 class BatchDataRequest(BaseModel):
     """批量数据请求模型"""
 
-    queries: list[StockDataRequest] = Field(
-        ..., min_length=1, max_length=100, description="查询列表"
-    )
+    queries: list[StockDataRequest] = Field(..., min_length=1, max_length=100, description="查询列表")
     async_processing: bool = Field(False, description="是否异步处理")
 
 
@@ -86,9 +78,7 @@ class HealthStatus(BaseModel):
     status: str = Field(..., description="系统状态")
     version: str = Field(..., description="系统版本")
     uptime: float = Field(..., description="运行时间(秒)")
-    timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="检查时间戳"
-    )
+    timestamp: datetime = Field(default_factory=datetime.utcnow, description="检查时间戳")
     components: dict[str, str] = Field(..., description="各组件状态")
 
     model_config = ConfigDict(

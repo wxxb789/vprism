@@ -87,15 +87,7 @@ class TestVPrismClient:
         """测试查询构建器"""
         client = VPrismClient()
 
-        query = (
-            client.query()
-            .asset("stock")
-            .market("cn")
-            .symbols(["000001"])
-            .timeframe("1d")
-            .date_range("2024-01-01", "2024-12-31")
-            .build()
-        )
+        query = client.query().asset("stock").market("cn").symbols(["000001"]).timeframe("1d").date_range("2024-01-01", "2024-12-31").build()
 
         assert query.asset == AssetType.STOCK
         assert query.market == MarketType.CN
@@ -113,14 +105,7 @@ class TestVPrismClient:
 
         client = VPrismClient()
 
-        query = (
-            client.query()
-            .asset("stock")
-            .market("cn")
-            .symbols(["000001"])
-            .timeframe("1d")
-            .build()
-        )
+        query = client.query().asset("stock").market("cn").symbols(["000001"]).timeframe("1d").build()
 
         result = await client.execute(query)
 
@@ -143,9 +128,7 @@ class TestVPrismClient:
 
         client = VPrismClient()
 
-        result = client.get(
-            asset="stock", market="cn", symbols=["000001"], timeframe="1d"
-        )
+        result = client.get(asset="stock", market="cn", symbols=["000001"], timeframe="1d")
 
         assert result == {"data": "sync_test"}
 
@@ -160,9 +143,7 @@ class TestVPrismClient:
 
         client = VPrismClient()
 
-        result = await client.get_async(
-            asset="stock", market="cn", symbols=["000001"], timeframe="1d"
-        )
+        result = await client.get_async(asset="stock", market="cn", symbols=["000001"], timeframe="1d")
 
         assert result == {"data": "async_test"}
 
@@ -182,9 +163,7 @@ class TestGlobalInterface:
         mock_provider.get_data = mock_coro
         mock_route_query.return_value = mock_provider
 
-        result = vprism.get(
-            asset="stock", market="cn", symbols=["000001"], timeframe="1d"
-        )
+        result = vprism.get(asset="stock", market="cn", symbols=["000001"], timeframe="1d")
 
         assert result == {"data": "mock_data"}
 
@@ -197,9 +176,7 @@ class TestGlobalInterface:
         mock_provider.get_data.return_value = {"data": "mock_async_data"}
         mock_route_query.return_value = mock_provider
 
-        result = await vprism.get_async(
-            asset="stock", market="cn", symbols=["000001"], timeframe="1d"
-        )
+        result = await vprism.get_async(asset="stock", market="cn", symbols=["000001"], timeframe="1d")
 
         assert result == {"data": "mock_async_data"}
 
@@ -216,14 +193,7 @@ class TestGlobalInterface:
         mock_route_query.return_value = mock_provider
 
         # 使用全局query
-        query = (
-            vprism.query()
-            .asset("stock")
-            .market("us")
-            .symbols(["AAPL"])
-            .timeframe("1d")
-            .build()
-        )
+        query = vprism.query().asset("stock").market("us").symbols(["AAPL"]).timeframe("1d").build()
 
         # 使用全局execute
         result = asyncio.run(vprism.execute(query))
@@ -255,9 +225,7 @@ class TestErrorHandling:
         """测试无效的时间框架"""
         with pytest.raises(ValueError):
             client = VPrismClient()
-            client.get(
-                asset="stock", market="cn", symbols=["000001"], timeframe="invalid"
-            )
+            client.get(asset="stock", market="cn", symbols=["000001"], timeframe="invalid")
 
     def test_empty_symbols(self):
         """测试空股票代码列表"""
@@ -285,9 +253,7 @@ class TestConfiguration:
         assert config_obj.providers.timeout == 120
         assert config_obj.providers.max_retries == 10
 
-    @patch.dict(
-        os.environ, {"VPRISM_CACHE_ENABLED": "false", "VPRISM_PROVIDER_TIMEOUT": "90"}
-    )
+    @patch.dict(os.environ, {"VPRISM_CACHE_ENABLED": "false", "VPRISM_PROVIDER_TIMEOUT": "90"})
     def test_config_from_env(self):
         """测试从环境变量加载配置"""
         client = VPrismClient()

@@ -1,11 +1,16 @@
 """数据提供商使用示例."""
 
 import asyncio
+import os
+import sys
 from datetime import date
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from core.data.providers.factory import ProviderFactory
 from core.data.providers.registry import ProviderRegistry
-from vprism.core.models import AssetType, DataQuery, MarketType, TimeFrame
+from core.models.market import AssetType, MarketType, TimeFrame
+from core.models.query import DataQuery
 
 
 async def main():

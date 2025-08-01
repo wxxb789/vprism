@@ -1,9 +1,13 @@
 """vprism库模式使用示例（简化版）"""
 
+import os
+import sys
 from datetime import date, datetime
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+
 import vprism
-from vprism.core.client import VPrismClient
+from core.client.client import VPrismClient
 
 
 def format_table(data_list, title):
@@ -169,7 +173,7 @@ def error_handling_example():
     try:
         # 尝试获取不存在的股票代码
         data = vprism.get(asset="stock", market="cn", symbols=["INVALID_CODE"], timeframe="1d")
-    except vprism.VPrismException as e:
+    except Exception as e:
         print(f"捕获vprism异常: {e}")
     except Exception as e:
         print(f"捕获其他异常: {e}")

@@ -171,9 +171,7 @@ class TestDataQualityScoring:
 
         # Calculate completeness scores
         complete_score = 1.0 - (complete_data.isna().sum().sum() / complete_data.size)
-        incomplete_score = 1.0 - (
-            incomplete_data.isna().sum().sum() / incomplete_data.size
-        )
+        incomplete_score = 1.0 - (incomplete_data.isna().sum().sum() / incomplete_data.size)
 
         assert complete_score == 1.0
         assert 0.8 < incomplete_score < 0.95  # Should be around 0.93
@@ -222,9 +220,7 @@ class TestDataQualityScoring:
             }
         )
 
-        stale_data = pd.DataFrame(
-            {"timestamp": [current_time - timedelta(days=2)] * 5, "price": [100.0] * 5}
-        )
+        stale_data = pd.DataFrame({"timestamp": [current_time - timedelta(days=2)] * 5, "price": [100.0] * 5})
 
         # Calculate timeliness scores (higher is better)
         def calculate_timeliness_score(df, current_time):

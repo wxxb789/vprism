@@ -34,12 +34,8 @@ class ResilientExecutor:
             函数返回结果
         """
         # 获取或创建熔断器
-        circuit_config = CircuitBreakerConfig(
-            name=self.circuit_breaker_name, **self.circuit_config
-        )
-        breaker = await circuit_breaker_registry.get_or_create(
-            self.circuit_breaker_name, circuit_config
-        )
+        circuit_config = CircuitBreakerConfig(name=self.circuit_breaker_name, **self.circuit_config)
+        breaker = await circuit_breaker_registry.get_or_create(self.circuit_breaker_name, circuit_config)
 
         # 获取或创建重试器
         retry_config = RetryConfig(**self.retry_config)

@@ -33,15 +33,9 @@ async def main():
         default="stdio",
         help="Transport method for MCP communication",
     )
-    parser.add_argument(
-        "--host", default="127.0.0.1", help="Host address for HTTP/SSE transport"
-    )
-    parser.add_argument(
-        "--port", type=int, default=8001, help="Port for HTTP/SSE transport"
-    )
-    parser.add_argument(
-        "--config", type=str, help="Path to configuration file (JSON/YAML)"
-    )
+    parser.add_argument("--host", default="127.0.0.1", help="Host address for HTTP/SSE transport")
+    parser.add_argument("--port", type=int, default=8001, help="Port for HTTP/SSE transport")
+    parser.add_argument("--config", type=str, help="Path to configuration file (JSON/YAML)")
     parser.add_argument(
         "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],

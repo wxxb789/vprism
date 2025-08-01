@@ -76,15 +76,11 @@ class TestDataService:
         ]
 
     @pytest.mark.asyncio
-    async def test_simple_api_get_single_symbol(
-        self, service, mock_router, sample_data
-    ):
+    async def test_simple_api_get_single_symbol(self, service, mock_router, sample_data):
         """测试简单API：获取单个股票数据."""
         mock_response = DataResponse(
             data=sample_data,
-            metadata=ResponseMetadata(
-                total_records=len(sample_data), query_time_ms=100.0, data_source="test"
-            ),
+            metadata=ResponseMetadata(total_records=len(sample_data), query_time_ms=100.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
         mock_router.route_query.return_value = mock_response
@@ -96,9 +92,7 @@ class TestDataService:
         mock_router.route_query.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_simple_api_get_multiple_symbols(
-        self, service, mock_router, sample_data
-    ):
+    async def test_simple_api_get_multiple_symbols(self, service, mock_router, sample_data):
         """测试简单API：获取多个股票数据."""
         # 为每个符号创建数据
         data = [
@@ -127,9 +121,7 @@ class TestDataService:
         ]
         mock_response = DataResponse(
             data=data,
-            metadata=ResponseMetadata(
-                total_records=len(data), query_time_ms=100.0, data_source="test"
-            ),
+            metadata=ResponseMetadata(total_records=len(data), query_time_ms=100.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
         mock_router.route_query.return_value = mock_response
@@ -146,9 +138,7 @@ class TestDataService:
         """测试简单API：使用默认日期."""
         mock_router.route_query.return_value = DataResponse(
             data=[],
-            metadata=ResponseMetadata(
-                total_records=0, query_time_ms=0.0, data_source="test"
-            ),
+            metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
 
@@ -168,9 +158,7 @@ class TestDataService:
         """测试简单API：不同市场."""
         mock_router.route_query.return_value = DataResponse(
             data=[],
-            metadata=ResponseMetadata(
-                total_records=0, query_time_ms=0.0, data_source="test"
-            ),
+            metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
 
@@ -191,22 +179,12 @@ class TestDataService:
         """测试链式API：流畅接口."""
         mock_response = DataResponse(
             data=sample_data,
-            metadata=ResponseMetadata(
-                total_records=len(sample_data), query_time_ms=100.0, data_source="test"
-            ),
+            metadata=ResponseMetadata(total_records=len(sample_data), query_time_ms=100.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
         mock_router.route_query.return_value = mock_response
 
-        result = await (
-            service.query()
-            .asset("stock")
-            .market("cn")
-            .symbols(["000001"])
-            .start("2024-01-01")
-            .end("2024-01-31")
-            .get()
-        )
+        result = await service.query().asset("stock").market("cn").symbols(["000001"]).start("2024-01-01").end("2024-01-31").get()
 
         assert len(result.data) == 1
         assert result.data[0].symbol == "000001"
@@ -216,9 +194,7 @@ class TestDataService:
         """测试链式API：使用周期参数."""
         mock_router.route_query.return_value = DataResponse(
             data=[],
-            metadata=ResponseMetadata(
-                total_records=0, query_time_ms=0.0, data_source="test"
-            ),
+            metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
 
@@ -240,16 +216,12 @@ class TestDataService:
         mock_cache.get.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_cache_miss_and_store(
-        self, service, mock_cache, mock_repository, sample_data
-    ):
+    async def test_cache_miss_and_store(self, service, mock_cache, mock_repository, sample_data):
         """测试缓存未命中并存储."""
         mock_router = AsyncMock()
         mock_router.route_query.return_value = DataResponse(
             data=sample_data,
-            metadata=ResponseMetadata(
-                total_records=len(sample_data), query_time_ms=100.0, data_source="test"
-            ),
+            metadata=ResponseMetadata(total_records=len(sample_data), query_time_ms=100.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
         service.router = mock_router
@@ -261,9 +233,7 @@ class TestDataService:
         mock_repository.save_data_points.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_database_fallback_on_error(
-        self, service, mock_router, mock_repository, sample_data
-    ):
+    async def test_database_fallback_on_error(self, service, mock_router, mock_repository, sample_data):
         """测试数据库回退机制."""
         # 路由器失败
         mock_router.route_query.side_effect = Exception("Router error")
@@ -280,9 +250,7 @@ class TestDataService:
         """测试获取最新数据."""
         mock_router.route_query.return_value = DataResponse(
             data=[],
-            metadata=ResponseMetadata(
-                total_records=0, query_time_ms=0.0, data_source="test"
-            ),
+            metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
 
@@ -298,9 +266,7 @@ class TestDataService:
         """测试获取历史数据."""
         mock_router.route_query.return_value = DataResponse(
             data=[],
-            metadata=ResponseMetadata(
-                total_records=0, query_time_ms=0.0, data_source="test"
-            ),
+            metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
 
@@ -315,9 +281,7 @@ class TestDataService:
         """测试批量查询."""
         mock_router.route_query.return_value = DataResponse(
             data=sample_data,
-            metadata=ResponseMetadata(
-                total_records=len(sample_data), query_time_ms=100.0, data_source="test"
-            ),
+            metadata=ResponseMetadata(total_records=len(sample_data), query_time_ms=100.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
 
@@ -340,9 +304,7 @@ class TestDataService:
         mock_router.route_query.side_effect = [
             DataResponse(
                 data=[],
-                metadata=ResponseMetadata(
-                    total_records=0, query_time_ms=0.0, data_source="test_provider"
-                ),
+                metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test_provider"),
                 source=ProviderInfo(name="test_provider", endpoint="test"),
             ),
             Exception("Query failed"),

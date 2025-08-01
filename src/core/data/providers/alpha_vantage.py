@@ -81,10 +81,7 @@ class AlphaVantage(DataProvider):
 
         try:
             # 测试API密钥是否有效
-            url = (
-                f"{self.BASE_URL}?function=SYMBOL_SEARCH&keywords=IBM"
-                f"&apikey={self.api_key}"
-            )
+            url = f"{self.BASE_URL}?function=SYMBOL_SEARCH&keywords=IBM&apikey={self.api_key}"
             async with aiohttp.ClientSession() as session, session.get(url) as response:
                 data = await response.json()
                 if "Error Message" in data:
@@ -149,9 +146,7 @@ class AlphaVantage(DataProvider):
 
         return data_points
 
-    async def _fetch_symbol_data(
-        self, symbol: str, query: DataQuery
-    ) -> list[DataPoint]:
+    async def _fetch_symbol_data(self, symbol: str, query: DataQuery) -> list[DataPoint]:
         """获取单个符号的数据."""
         data_points = []
 
@@ -264,9 +259,7 @@ class AlphaVantage(DataProvider):
 
         return data_points
 
-    async def _fetch_crypto_data(
-        self, symbol: str, query: DataQuery
-    ) -> list[DataPoint]:
+    async def _fetch_crypto_data(self, symbol: str, query: DataQuery) -> list[DataPoint]:
         """获取加密货币数据."""
         data_points = []
 
@@ -325,9 +318,7 @@ class AlphaVantage(DataProvider):
         }
         return mapping.get(timeframe, "1min")
 
-    def _parse_alpha_vantage_response(
-        self, data: dict[str, Any], symbol: str, function: str
-    ) -> list[DataPoint]:
+    def _parse_alpha_vantage_response(self, data: dict[str, Any], symbol: str, function: str) -> list[DataPoint]:
         """解析AlphaVantage响应."""
         data_points = []
 
@@ -370,9 +361,7 @@ class AlphaVantage(DataProvider):
                 open_price = Decimal(str(values.get("1. open", values.get("open", 0))))
                 high_price = Decimal(str(values.get("2. high", values.get("high", 0))))
                 low_price = Decimal(str(values.get("3. low", values.get("low", 0))))
-                close_price = Decimal(
-                    str(values.get("4. close", values.get("close", 0)))
-                )
+                close_price = Decimal(str(values.get("4. close", values.get("close", 0))))
                 volume = Decimal(str(values.get("5. volume", values.get("volume", 0))))
 
                 data_point = DataPoint(

@@ -107,9 +107,7 @@ class CircuitBreaker:
         if self.last_failure_time is None:
             return 0.0
 
-        remaining = self.config.recovery_timeout - (
-            time.time() - self.last_failure_time
-        )
+        remaining = self.config.recovery_timeout - (time.time() - self.last_failure_time)
         return max(0.0, remaining)
 
     def get_state(self) -> dict[str, Any]:
@@ -120,9 +118,7 @@ class CircuitBreaker:
             "failure_count": self.failure_count,
             "success_count": self.success_count,
             "last_failure_time": self.last_failure_time,
-            "remaining_time": self._get_remaining_time()
-            if self.state == CircuitState.OPEN
-            else 0.0,
+            "remaining_time": self._get_remaining_time() if self.state == CircuitState.OPEN else 0.0,
         }
 
     def reset(self) -> None:
@@ -140,9 +136,7 @@ class CircuitBreakerRegistry:
         self._breakers: dict[str, CircuitBreaker] = {}
         self._lock = asyncio.Lock()
 
-    async def get_or_create(
-        self, name: str, config: CircuitBreakerConfig | None = None
-    ) -> CircuitBreaker:
+    async def get_or_create(self, name: str, config: CircuitBreakerConfig | None = None) -> CircuitBreaker:
         """获取或创建熔断器.
 
         Args:
@@ -201,9 +195,7 @@ class CircuitBreakerDecorator:
         """装饰器实现."""
 
         async def wrapper(*args, **kwargs):
-            breaker = await circuit_breaker_registry.get_or_create(
-                self.name, self.config
-            )
+            breaker = await circuit_breaker_registry.get_or_create(self.name, self.config)
             return await breaker.call(func, *args, **kwargs)
 
         return wrapper

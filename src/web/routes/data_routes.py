@@ -38,13 +38,7 @@ async def get_stock_data(
         client = request.app.state.vprism_client
 
         # 构建查询
-        query = (
-            client.query()
-            .asset(symbol)
-            .market(market)
-            .timeframe(timeframe)
-            .limit(limit)
-        )
+        query = client.query().asset(symbol).market(market).timeframe(timeframe).limit(limit)
 
         if start_date:
             query = query.start_date(start_date)
@@ -77,13 +71,7 @@ async def get_stock_data_post(
     try:
         client = request.app.state.vprism_client
 
-        query = (
-            client.query()
-            .asset(request_data.symbol)
-            .market(request_data.market)
-            .timeframe(request_data.timeframe)
-            .limit(request_data.limit)
-        )
+        query = client.query().asset(request_data.symbol).market(request_data.market).timeframe(request_data.timeframe).limit(request_data.limit)
 
         if request_data.start_date:
             query = query.start_date(request_data.start_date)
@@ -116,9 +104,7 @@ async def get_market_data(
         client = request.app.state.vprism_client
 
         # 构建基础查询
-        query = (
-            client.query().market(request_data.market).timeframe(request_data.timeframe)
-        )
+        query = client.query().market(request_data.market).timeframe(request_data.timeframe)
 
         if request_data.start_date:
             query = query.start_date(request_data.start_date)
@@ -134,9 +120,7 @@ async def get_market_data(
                 results.append(
                     {
                         "symbol": symbol,
-                        "data": result.model_dump()
-                        if hasattr(result, "model_dump")
-                        else result,
+                        "data": result.model_dump() if hasattr(result, "model_dump") else result,
                     }
                 )
 
@@ -178,13 +162,7 @@ async def get_batch_data(
 
         queries = []
         for query_req in request_data.queries:
-            query = (
-                client.query()
-                .asset(query_req.symbol)
-                .market(query_req.market)
-                .timeframe(query_req.timeframe)
-                .limit(query_req.limit)
-            )
+            query = client.query().asset(query_req.symbol).market(query_req.market).timeframe(query_req.timeframe).limit(query_req.limit)
 
             if query_req.start_date:
                 query = query.start_date(query_req.start_date)
@@ -210,9 +188,7 @@ async def get_batch_data(
                 response_data.append(
                     {
                         "query": request_data.queries[i].model_dump(),
-                        "data": result.model_dump()
-                        if hasattr(result, "model_dump")
-                        else result,
+                        "data": result.model_dump() if hasattr(result, "model_dump") else result,
                     }
                 )
 

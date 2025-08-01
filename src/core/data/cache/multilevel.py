@@ -79,9 +79,7 @@ class MultiLevelCache:
     async def _get_l2_count(self) -> int:
         """获取L2缓存条目数."""
         try:
-            result = self.l2_cache._conn.execute(
-                "SELECT COUNT(*) FROM cache"
-            ).fetchone()
+            result = self.l2_cache._conn.execute("SELECT COUNT(*) FROM cache").fetchone()
             return result[0] if result else 0
         except Exception:
             return 0

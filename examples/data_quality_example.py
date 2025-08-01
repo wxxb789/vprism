@@ -12,8 +12,8 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-from vprism.core.consistency import DataConsistencyValidator
-from vprism.core.quality import DataCleaner, DataQualityScorer, DataQualityValidator
+from core.validation.consistency import DataConsistencyValidator
+from core.validation.quality import DataCleaner, DataQualityScorer, DataQualityValidator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -243,15 +243,11 @@ def run_complete_workflow():
     cleaner = DataCleaner()
     cleaned = cleaner.clean_missing_values(data, method="interpolate")
     cleaned = cleaner.remove_outliers(cleaned)
-    print(
-        f"Step 4: Cleaned data: {len(cleaned)} records (removed {len(data) - len(cleaned)})"
-    )
+    print(f"Step 4: Cleaned data: {len(cleaned)} records (removed {len(data) - len(cleaned)})")
 
     # Step 5: Re-evaluate quality
     new_score = scorer.calculate_overall_score(cleaned)
-    print(
-        f"Step 5: New quality score: {new_score.overall:.2%} ({new_score.level.value})"
-    )
+    print(f"Step 5: New quality score: {new_score.overall:.2%} ({new_score.level.value})")
 
     print(f"\nQuality improvement: {new_score.overall - score.overall:.2%}")
 

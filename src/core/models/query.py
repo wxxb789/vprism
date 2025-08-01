@@ -53,9 +53,7 @@ class QueryBuilder:
         self._query["symbols"] = symbols
         return self
 
-    def date_range(
-        self, start: datetime | date, end: datetime | date
-    ) -> "QueryBuilder":
+    def date_range(self, start: datetime | date, end: datetime | date) -> "QueryBuilder":
         """设置日期范围."""
         if isinstance(start, datetime):
             self._query["start"] = start

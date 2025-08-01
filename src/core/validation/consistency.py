@@ -36,9 +36,7 @@ class ConsistencyReport:
         # Allow explicit override for testing
         if self.consistency_percentage == 0.0:
             if self.total_records > 0:
-                self.consistency_percentage = (
-                    self.matching_records / self.total_records * 100.0
-                )
+                self.consistency_percentage = self.matching_records / self.total_records * 100.0
             else:
                 self.consistency_percentage = 0.0
 
@@ -55,9 +53,7 @@ class DataConsistencyValidator:
         """
         self.tolerance = tolerance
 
-    def validate_consistency(
-        self, symbol: str, start_date: datetime, end_date: datetime
-    ) -> ConsistencyReport:
+    def validate_consistency(self, symbol: str, start_date: datetime, end_date: datetime) -> ConsistencyReport:
         """
         Validate data consistency for a symbol between date range.
 
@@ -76,9 +72,7 @@ class DataConsistencyValidator:
         # Validate data
         return self._compare_dataframes(vprism_data, akshare_data, symbol)
 
-    def _get_vprism_data(
-        self, symbol: str, start_date: datetime, end_date: datetime
-    ) -> pd.DataFrame:
+    def _get_vprism_data(self, symbol: str, start_date: datetime, end_date: datetime) -> pd.DataFrame:
         """Get data from vprism (to be implemented)."""
         # This is a placeholder - actual implementation would fetch from vprism
         try:
@@ -108,9 +102,7 @@ class DataConsistencyValidator:
                 ]
             )
 
-    def _get_akshare_data(
-        self, symbol: str, start_date: datetime, end_date: datetime
-    ) -> pd.DataFrame:
+    def _get_akshare_data(self, symbol: str, start_date: datetime, end_date: datetime) -> pd.DataFrame:
         """Get data from akshare (to be implemented)."""
         # This is a placeholder - actual implementation would fetch from akshare
         try:
@@ -140,9 +132,7 @@ class DataConsistencyValidator:
                 ]
             )
 
-    def _compare_dataframes(
-        self, vprism_df: pd.DataFrame, akshare_df: pd.DataFrame, symbol: str
-    ) -> ConsistencyReport:
+    def _compare_dataframes(self, vprism_df: pd.DataFrame, akshare_df: pd.DataFrame, symbol: str) -> ConsistencyReport:
         """Compare dataframes and return consistency report."""
         if vprism_df.empty and akshare_df.empty:
             return ConsistencyReport(
@@ -166,9 +156,7 @@ class DataConsistencyValidator:
             vprism_df["timestamp"] = pd.to_datetime(vprism_df["timestamp"]).dt.date
         elif not vprism_df.empty:
             # Create timestamp from index if available
-            if vprism_df.index.name == "timestamp" or isinstance(
-                vprism_df.index, pd.DatetimeIndex
-            ):
+            if vprism_df.index.name == "timestamp" or isinstance(vprism_df.index, pd.DatetimeIndex):
                 vprism_df = vprism_df.reset_index()
                 vprism_df["timestamp"] = pd.to_datetime(vprism_df["timestamp"]).dt.date
             else:
@@ -179,13 +167,9 @@ class DataConsistencyValidator:
             akshare_df["timestamp"] = pd.to_datetime(akshare_df["timestamp"]).dt.date
         elif not akshare_df.empty:
             # Create timestamp from index if available
-            if akshare_df.index.name == "timestamp" or isinstance(
-                akshare_df.index, pd.DatetimeIndex
-            ):
+            if akshare_df.index.name == "timestamp" or isinstance(akshare_df.index, pd.DatetimeIndex):
                 akshare_df = akshare_df.reset_index()
-                akshare_df["timestamp"] = pd.to_datetime(
-                    akshare_df["timestamp"]
-                ).dt.date
+                akshare_df["timestamp"] = pd.to_datetime(akshare_df["timestamp"]).dt.date
             else:
                 # Create default timestamps for empty or malformed data
                 akshare_df["timestamp"] = pd.to_datetime("2024-01-01").date
@@ -195,13 +179,7 @@ class DataConsistencyValidator:
             # Only akshare data exists
             akshare_df = akshare_df.copy()
             akshare_df["timestamp"] = pd.to_datetime(akshare_df["timestamp"]).dt.date
-            merged = akshare_df.rename(
-                columns={
-                    col: f"{col}_akshare"
-                    for col in akshare_df.columns
-                    if col != "timestamp"
-                }
-            )
+            merged = akshare_df.rename(columns={col: f"{col}_akshare" for col in akshare_df.columns if col != "timestamp"})
             # Add missing vprism columns
             for col in ["open", "high", "low", "close", "volume", "symbol"]:
                 merged[f"{col}_vprism"] = pd.NA
@@ -210,13 +188,7 @@ class DataConsistencyValidator:
             # Only vprism data exists
             vprism_df = vprism_df.copy()
             vprism_df["timestamp"] = pd.to_datetime(vprism_df["timestamp"]).dt.date
-            merged = vprism_df.rename(
-                columns={
-                    col: f"{col}_vprism"
-                    for col in vprism_df.columns
-                    if col != "timestamp"
-                }
-            )
+            merged = vprism_df.rename(columns={col: f"{col}_vprism" for col in vprism_df.columns if col != "timestamp"})
             # Add missing akshare columns
             for col in ["open", "high", "low", "close", "volume", "symbol"]:
                 merged[f"{col}_akshare"] = pd.NA
@@ -282,11 +254,7 @@ class DataConsistencyValidator:
                 matching_records += 1
             else:
                 mismatching_records += 1
-                issues.append(
-                    f"Price mismatch on {timestamp}: "
-                    f"vprism={vprism_close}, akshare={akshare_close}, "
-                    f"diff={price_diff_pct:.2%}"
-                )
+                issues.append(f"Price mismatch on {timestamp}: vprism={vprism_close}, akshare={akshare_close}, diff={price_diff_pct:.2%}")
 
         total_records = valid_comparison_records
 
@@ -327,11 +295,7 @@ class DataConsistencyValidator:
             }
 
         # Calculate summary statistics
-        average_price_difference = (
-            sum(price_differences) / len(price_differences)
-            if price_differences
-            else 0.0
-        )
+        average_price_difference = sum(price_differences) / len(price_differences) if price_differences else 0.0
         max_price_difference = max(price_differences) if price_differences else 0.0
 
         # Determine date range
@@ -365,9 +329,7 @@ class DataConsistencyValidator:
             detailed_comparison=detailed_comparison,
         )
 
-    def compare_multiple_symbols(
-        self, symbols: list[str], start_date: datetime, end_date: datetime
-    ) -> dict[str, ConsistencyReport]:
+    def compare_multiple_symbols(self, symbols: list[str], start_date: datetime, end_date: datetime) -> dict[str, ConsistencyReport]:
         """
         Compare consistency for multiple symbols.
 
@@ -386,9 +348,7 @@ class DataConsistencyValidator:
 
         return reports
 
-    def run_automated_validation(
-        self, symbols: list[str], days_back: int = 7, alert_threshold: float = 95.0
-    ) -> dict[str, any]:
+    def run_automated_validation(self, symbols: list[str], days_back: int = 7, alert_threshold: float = 95.0) -> dict[str, any]:
         """
         Run automated validation with alerting.
 
@@ -408,11 +368,7 @@ class DataConsistencyValidator:
         # Generate summary
         total_symbols = len(symbols)
         validated_symbols = len(reports)
-        alert_symbols = [
-            symbol
-            for symbol, report in reports.items()
-            if report.consistency_percentage < alert_threshold
-        ]
+        alert_symbols = [symbol for symbol, report in reports.items() if report.consistency_percentage < alert_threshold]
 
         return {
             "total_symbols": total_symbols,

@@ -99,9 +99,7 @@ class SimpleDuckDBCache(CacheStrategy):
         """清理过期数据."""
         """清理过期缓存项."""
         try:
-            result = self._conn.execute(
-                "DELETE FROM cache WHERE expiry <= ?", [time.time()]
-            )
+            result = self._conn.execute("DELETE FROM cache WHERE expiry <= ?", [time.time()])
             return result.rowcount
         except Exception:
             return 0

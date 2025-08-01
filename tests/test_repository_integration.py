@@ -107,9 +107,7 @@ class TestRepositoryIntegration:
         return data
 
     @pytest.mark.asyncio
-    async def test_full_data_workflow(
-        self, repository, sample_assets, sample_ohlcv_data
-    ):
+    async def test_full_data_workflow(self, repository, sample_assets, sample_ohlcv_data):
         """测试完整的数据工作流程"""
         # 1. 保存资产信息
         for asset in sample_assets:
@@ -130,14 +128,10 @@ class TestRepositoryIntegration:
         assert result is True
 
         # 4. 验证OHLCV数据保存成功
-        ohlcv_000001 = await repository.get_ohlcv_data(
-            "000001", "cn", date(2024, 1, 1), date(2024, 1, 30)
-        )
+        ohlcv_000001 = await repository.get_ohlcv_data("000001", "cn", date(2024, 1, 1), date(2024, 1, 30))
         assert len(ohlcv_000001) == 30
 
-        ohlcv_aapl = await repository.get_ohlcv_data(
-            "AAPL", "us", date(2024, 1, 1), date(2024, 1, 30)
-        )
+        ohlcv_aapl = await repository.get_ohlcv_data("AAPL", "us", date(2024, 1, 1), date(2024, 1, 30))
         assert len(ohlcv_aapl) == 30
 
         # 5. 验证数据完整性
@@ -173,9 +167,7 @@ class TestRepositoryIntegration:
         assert result is True
 
         # 验证指标保存成功
-        retrieved = await repository.get_data_quality_metrics(
-            "000001", "cn", date(2024, 1, 1), date(2024, 1, 31)
-        )
+        retrieved = await repository.get_data_quality_metrics("000001", "cn", date(2024, 1, 1), date(2024, 1, 31))
         assert retrieved is not None
         assert retrieved.completeness_score == 98.5
         assert retrieved.provider == "tushare"
@@ -306,9 +298,7 @@ class TestRepositoryIntegration:
         retrieved_asset = await repository.get_asset_info("TEST001", "cn")
         assert retrieved_asset is not None
 
-        retrieved_ohlcv = await repository.get_ohlcv_data(
-            "TEST001", "cn", date(2024, 1, 1), date(2024, 1, 10)
-        )
+        retrieved_ohlcv = await repository.get_ohlcv_data("TEST001", "cn", date(2024, 1, 1), date(2024, 1, 10))
         assert len(retrieved_ohlcv) == 10
 
         # 验证数据匹配（使用近似比较来处理浮点精度问题）
@@ -367,9 +357,7 @@ class TestRepositoryIntegration:
         assert len(symbols) == 100
 
         # 验证某个资产的数据
-        sample_ohlcv = await repository.get_ohlcv_data(
-            "TEST0001", "cn", date(2024, 1, 1), date(2024, 1, 30)
-        )
+        sample_ohlcv = await repository.get_ohlcv_data("TEST0001", "cn", date(2024, 1, 1), date(2024, 1, 30))
         assert len(sample_ohlcv) == 30
 
     def teardown_method(self):

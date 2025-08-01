@@ -73,16 +73,12 @@ class TestBatchProcessor:
         ]
 
     @pytest.mark.asyncio
-    async def test_process_batch_success(
-        self, processor, mock_data_service, sample_queries, sample_data
-    ):
+    async def test_process_batch_success(self, processor, mock_data_service, sample_queries, sample_data):
         """测试批量处理成功."""
         # 设置mock响应
         mock_response = DataResponse(
             data=sample_data,
-            metadata=ResponseMetadata(
-                total_records=len(sample_data), query_time_ms=100.0, data_source="test"
-            ),
+            metadata=ResponseMetadata(total_records=len(sample_data), query_time_ms=100.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
 
@@ -95,9 +91,7 @@ class TestBatchProcessor:
         processor.registry.is_healthy = lambda name: True
 
         # 创建批量请求
-        batch_request = BatchRequest(
-            queries=sample_queries, concurrent_limit=2, timeout=10
-        )
+        batch_request = BatchRequest(queries=sample_queries, concurrent_limit=2, timeout=10)
 
         result = await processor.process_batch(batch_request)
 
@@ -108,16 +102,12 @@ class TestBatchProcessor:
         assert result.total_time_seconds > 0
 
     @pytest.mark.asyncio
-    async def test_process_batch_with_failures(
-        self, processor, mock_data_service, sample_queries
-    ):
+    async def test_process_batch_with_failures(self, processor, mock_data_service, sample_queries):
         """测试批量处理包含失败."""
         # 设置mock响应：第一个成功，第二个失败
         mock_response = DataResponse(
             data=[],
-            metadata=ResponseMetadata(
-                total_records=0, query_time_ms=0.0, data_source="test"
-            ),
+            metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
 
@@ -174,9 +164,7 @@ class TestBatchProcessor:
         """测试优化批量处理."""
         mock_response = DataResponse(
             data=[],
-            metadata=ResponseMetadata(
-                total_records=0, query_time_ms=0.0, data_source="test"
-            ),
+            metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
 
@@ -205,9 +193,7 @@ class TestBatchProcessor:
         """测试获取市场数据批量接口."""
         mock_response = DataResponse(
             data=[],
-            metadata=ResponseMetadata(
-                total_records=0, query_time_ms=0.0, data_source="test"
-            ),
+            metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
 
@@ -235,9 +221,7 @@ class TestBatchProcessor:
             results={
                 "q1": DataResponse(
                     data=[],
-                    metadata=ResponseMetadata(
-                        total_records=0, query_time_ms=0.0, data_source="test"
-                    ),
+                    metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test"),
                     source=ProviderInfo(name="test", endpoint="test"),
                 )
             },
@@ -290,9 +274,7 @@ class TestBatchProcessor:
 
         mock_response = DataResponse(
             data=[],
-            metadata=ResponseMetadata(
-                total_records=0, query_time_ms=0.0, data_source="test"
-            ),
+            metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
 

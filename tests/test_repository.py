@@ -84,9 +84,7 @@ class TestDuckDBRepository:
         assert result is True
 
         # 获取数据
-        retrieved = await repository.get_ohlcv_data(
-            "000001", "cn", date(2024, 1, 1), date(2024, 1, 2)
-        )
+        retrieved = await repository.get_ohlcv_data("000001", "cn", date(2024, 1, 1), date(2024, 1, 2))
         assert len(retrieved) == 2
         assert retrieved[0].close_price == Decimal("10.60")
         assert retrieved[1].close_price == Decimal("10.75")
@@ -138,9 +136,7 @@ class TestDuckDBRepository:
         assert result is True
 
         # 获取指标
-        retrieved = await repository.get_data_quality_metrics(
-            "000001", "cn", date(2024, 1, 1), date(2024, 1, 31)
-        )
+        retrieved = await repository.get_data_quality_metrics("000001", "cn", date(2024, 1, 1), date(2024, 1, 31))
         assert retrieved is not None
         assert retrieved.completeness_score == 98.5
         assert retrieved.accuracy_score == 99.2
@@ -223,9 +219,7 @@ class TestDuckDBRepository:
         assert asset is None
 
         # 获取不存在的OHLCV数据
-        ohlcv = await repository.get_ohlcv_data(
-            "NONEXISTENT", "cn", date(2024, 1, 1), date(2024, 1, 1)
-        )
+        ohlcv = await repository.get_ohlcv_data("NONEXISTENT", "cn", date(2024, 1, 1), date(2024, 1, 1))
         assert len(ohlcv) == 0
 
         # 获取不存在的实时报价

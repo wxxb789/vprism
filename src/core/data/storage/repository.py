@@ -122,9 +122,7 @@ class DataRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_real_time_quote(
-        self, symbol: str, market: str
-    ) -> RealTimeQuote | None:
+    async def get_real_time_quote(self, symbol: str, market: str) -> RealTimeQuote | None:
         """获取实时报价"""
         pass
 
@@ -134,9 +132,7 @@ class DataRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_data_quality_metrics(
-        self, symbol: str, market: str, start_date: date, end_date: date
-    ) -> DataQualityMetrics | None:
+    async def get_data_quality_metrics(self, symbol: str, market: str, start_date: date, end_date: date) -> DataQualityMetrics | None:
         """获取数据质量指标"""
         pass
 
@@ -237,11 +233,7 @@ class DuckDBRepository(DataRepository):
             # 对于日线数据，使用时间戳的日期部分
             for item in data:
                 # 检查时间戳是否有时间部分（不是00:00:00）
-                has_time = (
-                    item.timestamp.hour != 0
-                    or item.timestamp.minute != 0
-                    or item.timestamp.second != 0
-                )
+                has_time = item.timestamp.hour != 0 or item.timestamp.minute != 0 or item.timestamp.second != 0
 
                 if has_time:  # 分钟级数据
                     self.schema.conn.execute(
@@ -319,9 +311,7 @@ class DuckDBRepository(DataRepository):
                 table_name = "intraday_ohlcv"
                 time_column = "timestamp"
                 start_datetime = datetime.combine(start_date, datetime.min.time())
-                end_datetime = datetime.combine(
-                    end_date, datetime.max.time().replace(microsecond=0)
-                )
+                end_datetime = datetime.combine(end_date, datetime.max.time().replace(microsecond=0))
                 query = f"""
                     SELECT symbol, market, timestamp, open_price, high_price, low_price,
                            close_price, volume, amount, provider
@@ -421,9 +411,7 @@ class DuckDBRepository(DataRepository):
             logger.error(f"Failed to save real time quote: {e}")
             return False
 
-    async def get_real_time_quote(
-        self, symbol: str, market: str
-    ) -> RealTimeQuote | None:
+    async def get_real_time_quote(self, symbol: str, market: str) -> RealTimeQuote | None:
         """获取实时报价"""
         try:
             result = self.schema.conn.execute(
@@ -489,9 +477,7 @@ class DuckDBRepository(DataRepository):
             logger.error(f"Failed to save data quality metrics: {e}")
             return False
 
-    async def get_data_quality_metrics(
-        self, symbol: str, market: str, start_date: date, end_date: date
-    ) -> DataQualityMetrics | None:
+    async def get_data_quality_metrics(self, symbol: str, market: str, start_date: date, end_date: date) -> DataQualityMetrics | None:
         """获取数据质量指标"""
         try:
             result = self.schema.conn.execute(

@@ -74,25 +74,17 @@ class DataQualityValidator:
             issues.append("Close price must be positive")
 
         # OHLCV relationships
-        if (
-            data_point.high is not None
-            and data_point.low is not None
-            and data_point.high < data_point.low
-        ):
+        if data_point.high is not None and data_point.low is not None and data_point.high < data_point.low:
             issues.append("High price must be >= low price")
 
-        if (
-            data_point.high is not None
-            and data_point.open is not None
-            and data_point.close is not None
-        ) and data_point.high < max(data_point.open, data_point.close):
+        if (data_point.high is not None and data_point.open is not None and data_point.close is not None) and data_point.high < max(
+            data_point.open, data_point.close
+        ):
             issues.append("High price must be >= max(open, close)")
 
-        if (
-            data_point.low is not None
-            and data_point.open is not None
-            and data_point.close is not None
-        ) and data_point.low > min(data_point.open, data_point.close):
+        if (data_point.low is not None and data_point.open is not None and data_point.close is not None) and data_point.low > min(
+            data_point.open, data_point.close
+        ):
             issues.append("Low price must be <= min(open, close)")
 
         # Volume validation
@@ -132,9 +124,7 @@ class DataQualityValidator:
 
         return issues
 
-    def detect_missing_data(
-        self, df: pd.DataFrame, expected_frequency: str = "D"
-    ) -> dict[str, Any]:
+    def detect_missing_data(self, df: pd.DataFrame, expected_frequency: str = "D") -> dict[str, Any]:
         """Detect missing data points based on expected frequency."""
         if df.empty or "timestamp" not in df.columns:
             return {"missing_count": 0, "missing_percentage": 0.0, "gaps": []}
@@ -145,9 +135,7 @@ class DataQualityValidator:
         # Create expected date range
         start_date = df["timestamp"].min()
         end_date = df["timestamp"].max()
-        expected_range = pd.date_range(
-            start=start_date, end=end_date, freq=expected_frequency
-        )
+        expected_range = pd.date_range(start=start_date, end=end_date, freq=expected_frequency)
 
         # Find missing dates
         actual_dates = set(df["timestamp"].dt.date)
@@ -156,9 +144,7 @@ class DataQualityValidator:
 
         missing_count = len(missing_dates)
         total_expected = len(expected_range)
-        missing_percentage = (
-            missing_count / total_expected if total_expected > 0 else 0.0
-        )
+        missing_percentage = missing_count / total_expected if total_expected > 0 else 0.0
 
         return {
             "missing_count": missing_count,
@@ -166,9 +152,7 @@ class DataQualityValidator:
             "gaps": sorted(missing_dates),
         }
 
-    def detect_outliers(
-        self, df: pd.DataFrame, method: str = "iqr", threshold: float = 1.5
-    ) -> pd.DataFrame:
+    def detect_outliers(self, df: pd.DataFrame, method: str = "iqr", threshold: float = 1.5) -> pd.DataFrame:
         """Detect outliers in price and volume data."""
         if df.empty:
             return pd.DataFrame()
@@ -188,9 +172,7 @@ class DataQualityValidator:
                     lower_bound = Q1 - threshold * IQR
                     upper_bound = Q3 + threshold * IQR
 
-                    col_outliers = (col_series < lower_bound) | (
-                        col_series > upper_bound
-                    )
+                    col_outliers = (col_series < lower_bound) | (col_series > upper_bound)
                     outlier_mask |= col_outliers
 
                 elif method == "zscore":
@@ -212,9 +194,7 @@ class DataQualityValidator:
                 lower_bound = Q1 - threshold * IQR
                 upper_bound = Q3 + threshold * IQR
 
-                volume_outliers = (volume_series < lower_bound) | (
-                    volume_series > upper_bound
-                )
+                volume_outliers = (volume_series < lower_bound) | (volume_series > upper_bound)
                 outlier_mask |= volume_outliers
 
         return df[outlier_mask]
@@ -239,14 +219,10 @@ class DataQualityValidator:
                         issues.append(f"Row {idx}: High (>{high}) < Low (>{low})")
 
                     if high < max(open_p, close):
-                        issues.append(
-                            f"Row {idx}: High (>{high}) < max(Open=>{open_p}, Close=>{close})"
-                        )
+                        issues.append(f"Row {idx}: High (>{high}) < max(Open=>{open_p}, Close=>{close})")
 
                     if low > min(open_p, close):
-                        issues.append(
-                            f"Row {idx}: Low (>{low}) > min(Open=>{open_p}, Close=>{close})"
-                        )
+                        issues.append(f"Row {idx}: Low (>{low}) > min(Open=>{open_p}, Close=>{close})")
 
                 except (ValueError, TypeError):
                     issues.append(f"Row {idx}: Invalid numeric values")
@@ -285,9 +261,7 @@ class DataQualityScorer:
 
         return min(1.0, accuracy)
 
-    def calculate_timeliness_score(
-        self, df: pd.DataFrame, current_time: datetime | None = None
-    ) -> float:
+    def calculate_timeliness_score(self, df: pd.DataFrame, current_time: datetime | None = None) -> float:
         """Calculate timeliness score based on data freshness."""
         if df.empty or "timestamp" not in df.columns:
             return 0.0
@@ -319,9 +293,7 @@ class DataQualityScorer:
 
         return min(1.0, consistency)
 
-    def calculate_overall_score(
-        self, df: pd.DataFrame, current_time: datetime | None = None
-    ) -> QualityScore:
+    def calculate_overall_score(self, df: pd.DataFrame, current_time: datetime | None = None) -> QualityScore:
         """Calculate comprehensive data quality score."""
         validator = DataQualityValidator()
 
@@ -339,10 +311,7 @@ class DataQualityScorer:
         }
 
         overall = (
-            completeness * weights["completeness"]
-            + accuracy * weights["accuracy"]
-            + timeliness * weights["timeliness"]
-            + consistency * weights["consistency"]
+            completeness * weights["completeness"] + accuracy * weights["accuracy"] + timeliness * weights["timeliness"] + consistency * weights["consistency"]
         )
 
         # Collect all issues
@@ -378,9 +347,7 @@ class DataCleaner:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
-    def clean_missing_values(
-        self, df: pd.DataFrame, method: str = "interpolate"
-    ) -> pd.DataFrame:
+    def clean_missing_values(self, df: pd.DataFrame, method: str = "interpolate") -> pd.DataFrame:
         """Clean missing values using specified method."""
         df_cleaned = df.copy()
 
@@ -400,9 +367,7 @@ class DataCleaner:
 
         return df_cleaned
 
-    def remove_outliers(
-        self, df: pd.DataFrame, method: str = "iqr", threshold: float = 1.5
-    ) -> pd.DataFrame:
+    def remove_outliers(self, df: pd.DataFrame, method: str = "iqr", threshold: float = 1.5) -> pd.DataFrame:
         """Remove outliers from the dataset."""
         validator = DataQualityValidator()
         outlier_df = validator.detect_outliers(df, method, threshold)
@@ -445,8 +410,6 @@ class DataCleaner:
         if "timestamp" in df.columns:
             df_standardized["timestamp"] = pd.to_datetime(df["timestamp"])
             # Ensure consistent timezone handling
-            df_standardized["timestamp"] = df_standardized["timestamp"].dt.tz_localize(
-                None
-            )
+            df_standardized["timestamp"] = df_standardized["timestamp"].dt.tz_localize(None)
 
         return df_standardized

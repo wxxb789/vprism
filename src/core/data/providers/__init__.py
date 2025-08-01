@@ -11,6 +11,7 @@ from .base import (
 from .factory import ProviderFactory, create_default_providers, get_provider
 from .alpha_vantage import AlphaVantage
 from .registry import ProviderRegistry
+
 # from .vprism import VPrism  # vprism provider no longer exists
 from .yfinance import YFinance
 

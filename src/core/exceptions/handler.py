@@ -137,9 +137,7 @@ class ErrorHandler:
         # 根据异常类型映射到标准错误
         return self._map_to_standard_error(error, error_context)
 
-    def _map_to_standard_error(
-        self, error: Exception, context: dict[str, Any]
-    ) -> VPrismError:
+    def _map_to_standard_error(self, error: Exception, context: dict[str, Any]) -> VPrismError:
         """将标准异常映射到VPrismError."""
         from .base import (
             CacheError,
@@ -182,11 +180,7 @@ class ErrorHandler:
                     details=context,
                 )
 
-        elif (
-            "Validation" in error_type
-            or "validation" in str(error).lower()
-            or "数据格式无效" in str(error)
-        ):
+        elif "Validation" in error_type or "validation" in str(error).lower() or "数据格式无效" in str(error):
             return DataValidationError(
                 str(error),
                 validation_errors=context.get("validation_errors", {}),
@@ -252,18 +246,14 @@ class ErrorContextManager:
         self.provider = None
         self.context = {}
 
-    def set_context(
-        self, operation: str, provider: str | None = None, **context: Any
-    ) -> None:
+    def set_context(self, operation: str, provider: str | None = None, **context: Any) -> None:
         """设置错误上下文."""
         self.operation = operation
         self.provider = provider
         self.context = context
 
     @contextmanager
-    def error_context(
-        self, operation: str, provider: str | None = None, **context: Any
-    ):
+    def error_context(self, operation: str, provider: str | None = None, **context: Any):
         """错误上下文管理器."""
         self.set_context(operation, provider, **context)
         try:
@@ -276,9 +266,7 @@ class ErrorContextManager:
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            raise self.error_handler.handle_exception(
-                e, self.operation, self.provider, **self.context
-            )
+            raise self.error_handler.handle_exception(e, self.operation, self.provider, **self.context)
 
 
 # 全局错误处理器实例

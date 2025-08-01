@@ -73,14 +73,10 @@ async def readiness_check(request: Request) -> APIResponse:
         if client and hasattr(client, "router") and client.router:
             return APIResponse(success=True, data={"ready": True}, message="应用已就绪")
         else:
-            return APIResponse(
-                success=False, data={"ready": False}, message="应用未就绪"
-            )
+            return APIResponse(success=False, data={"ready": False}, message="应用未就绪")
 
     except Exception as e:
-        return APIResponse(
-            success=False, data={"ready": False}, message=f"就绪检查失败: {str(e)}"
-        )
+        return APIResponse(success=False, data={"ready": False}, message=f"就绪检查失败: {str(e)}")
 
 
 @router.get("/health/live", response_model=APIResponse)
@@ -126,9 +122,7 @@ async def provider_health_check(request: Request) -> APIResponse:
         )
 
     except Exception as e:
-        return APIResponse(
-            success=False, data=None, message=f"提供商检查失败: {str(e)}"
-        )
+        return APIResponse(success=False, data=None, message=f"提供商检查失败: {str(e)}")
 
 
 @router.get("/health/cache", response_model=APIResponse)
@@ -140,13 +134,9 @@ async def cache_health_check(request: Request) -> APIResponse:
     """
     try:
         # 获取缓存统计（简化实现）
-        cache_stats = CacheStats(
-            hits=1000, misses=200, hit_rate=0.833, size=500, memory_usage="50MB"
-        )
+        cache_stats = CacheStats(hits=1000, misses=200, hit_rate=0.833, size=500, memory_usage="50MB")
 
-        return APIResponse(
-            success=True, data=jsonable_encoder(cache_stats), message="缓存系统状态正常"
-        )
+        return APIResponse(success=True, data=jsonable_encoder(cache_stats), message="缓存系统状态正常")
 
     except Exception as e:
         return APIResponse(success=False, data=None, message=f"缓存检查失败: {str(e)}")
@@ -162,8 +152,7 @@ async def get_metrics(request: Request) -> APIResponse:
     try:
         # 简化实现，实际应该集成 Prometheus 等监控系统
         metrics = {
-            "uptime": time.time()
-            - getattr(request.app.state, "start_time", time.time()),
+            "uptime": time.time() - getattr(request.app.state, "start_time", time.time()),
             "requests_count": 1000,  # 应该从实际计数器获取
             "error_rate": 0.02,
             "average_response_time": 150.5,

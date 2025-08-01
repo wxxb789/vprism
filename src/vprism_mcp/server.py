@@ -63,9 +63,7 @@ class VPrismMCPServer:
                 Dictionary containing stock data with OHLCV values
             """
             try:
-                logger.info(
-                    f"Getting stock data for {symbol} from {start_date} to {end_date}"
-                )
+                logger.info(f"Getting stock data for {symbol} from {start_date} to {end_date}")
 
                 # Convert string parameters to enum types
                 market_type = MarketType(market.lower())
@@ -95,21 +93,11 @@ class VPrismMCPServer:
                     for point in data.data:
                         result["data"].append(
                             {
-                                "date": point.timestamp.isoformat()
-                                if hasattr(point.timestamp, "isoformat")
-                                else str(point.timestamp),
-                                "open": float(point.open_price)
-                                if point.open_price
-                                else None,
-                                "high": float(point.high_price)
-                                if point.high_price
-                                else None,
-                                "low": float(point.low_price)
-                                if point.low_price
-                                else None,
-                                "close": float(point.close_price)
-                                if point.close_price
-                                else None,
+                                "date": point.timestamp.isoformat() if hasattr(point.timestamp, "isoformat") else str(point.timestamp),
+                                "open": float(point.open_price) if point.open_price else None,
+                                "high": float(point.high_price) if point.high_price else None,
+                                "low": float(point.low_price) if point.low_price else None,
+                                "close": float(point.close_price) if point.close_price else None,
                                 "volume": int(point.volume) if point.volume else None,
                             }
                         )
@@ -127,9 +115,7 @@ class VPrismMCPServer:
                 }
 
         @self.mcp.tool()
-        async def get_market_overview(
-            market: str = "us", date: str | None = None
-        ) -> dict[str, Any]:
+        async def get_market_overview(market: str = "us", date: str | None = None) -> dict[str, Any]:
             """
             Get market overview data including major indices.
 
@@ -171,17 +157,9 @@ class VPrismMCPServer:
                             overview_data[symbol] = {
                                 "symbol": symbol,
                                 "date": target_date,
-                                "close": float(point.close_price)
-                                if point.close_price
-                                else 0.0,
-                                "change": float(point.close_price - point.open_price)
-                                if point.close_price and point.open_price
-                                else 0.0,
-                                "change_percent": float(
-                                    (point.close_price - point.open_price)
-                                    / point.open_price
-                                    * 100
-                                )
+                                "close": float(point.close_price) if point.close_price else 0.0,
+                                "change": float(point.close_price - point.open_price) if point.close_price and point.open_price else 0.0,
+                                "change_percent": float((point.close_price - point.open_price) / point.open_price * 100)
                                 if point.close_price and point.open_price
                                 else 0.0,
                                 "volume": int(point.volume) if point.volume else 0,
@@ -203,9 +181,7 @@ class VPrismMCPServer:
                 }
 
         @self.mcp.tool()
-        async def search_symbols(
-            query: str, market: str = "us", limit: int = 10
-        ) -> dict[str, Any]:
+        async def search_symbols(query: str, market: str = "us", limit: int = 10) -> dict[str, Any]:
             """
             Search for stock symbols by name or ticker.
 
@@ -261,9 +237,7 @@ class VPrismMCPServer:
                     },
                 }
 
-                market_symbols = common_symbols.get(
-                    market.lower(), common_symbols["us"]
-                )
+                market_symbols = common_symbols.get(market.lower(), common_symbols["us"])
 
                 results = []
                 query_lower = query.lower()
@@ -271,9 +245,7 @@ class VPrismMCPServer:
                 # Search by symbol
                 for symbol, name in market_symbols.items():
                     if query_lower in symbol.lower() or query_lower in name.lower():
-                        results.append(
-                            {"symbol": symbol, "name": name, "market": market}
-                        )
+                        results.append({"symbol": symbol, "name": name, "market": market})
                         if len(results) >= limit:
                             break
 
@@ -322,23 +294,13 @@ class VPrismMCPServer:
                     return {
                         "symbol": symbol.upper(),
                         "market": market,
-                        "price": float(point.close_price)
-                        if point.close_price
-                        else None,
-                        "change": float(point.close_price - point.open_price)
-                        if point.close_price and point.open_price
-                        else None,
-                        "change_percent": float(
-                            (point.close_price - point.open_price)
-                            / point.open_price
-                            * 100
-                        )
+                        "price": float(point.close_price) if point.close_price else None,
+                        "change": float(point.close_price - point.open_price) if point.close_price and point.open_price else None,
+                        "change_percent": float((point.close_price - point.open_price) / point.open_price * 100)
                         if point.close_price and point.open_price
                         else None,
                         "volume": int(point.volume) if point.volume else None,
-                        "timestamp": point.timestamp.isoformat()
-                        if hasattr(point.timestamp, "isoformat")
-                        else str(point.timestamp),
+                        "timestamp": point.timestamp.isoformat() if hasattr(point.timestamp, "isoformat") else str(point.timestamp),
                     }
                 else:
                     return {"error": "No data available", "symbol": symbol}
@@ -354,9 +316,7 @@ class VPrismMCPServer:
                 }
 
         @self.mcp.tool()
-        async def get_batch_quotes(
-            symbols: list[str], market: str = "us"
-        ) -> dict[str, Any]:
+        async def get_batch_quotes(symbols: list[str], market: str = "us") -> dict[str, Any]:
             """
             Get real-time quotes for multiple symbols at once.
 
@@ -389,23 +349,13 @@ class VPrismMCPServer:
                             point = data.data[-1]
                             results[symbol.upper()] = {
                                 "symbol": symbol.upper(),
-                                "price": float(point.close_price)
-                                if point.close_price
-                                else None,
-                                "change": float(point.close_price - point.open_price)
-                                if point.close_price and point.open_price
-                                else None,
-                                "change_percent": float(
-                                    (point.close_price - point.open_price)
-                                    / point.open_price
-                                    * 100
-                                )
+                                "price": float(point.close_price) if point.close_price else None,
+                                "change": float(point.close_price - point.open_price) if point.close_price and point.open_price else None,
+                                "change_percent": float((point.close_price - point.open_price) / point.open_price * 100)
                                 if point.close_price and point.open_price
                                 else None,
                                 "volume": int(point.volume) if point.volume else None,
-                                "timestamp": point.timestamp.isoformat()
-                                if hasattr(point.timestamp, "isoformat")
-                                else str(point.timestamp),
+                                "timestamp": point.timestamp.isoformat() if hasattr(point.timestamp, "isoformat") else str(point.timestamp),
                             }
                         else:
                             results[symbol.upper()] = {

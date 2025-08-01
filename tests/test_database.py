@@ -26,9 +26,7 @@ class TestDatabaseSchema:
         schema = DatabaseSchema(temp_db)
 
         # 验证表存在
-        tables = schema.conn.execute(
-            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'"
-        ).fetchall()
+        tables = schema.conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'").fetchall()
 
         table_names = [t[0] for t in tables]
         expected_tables = [
@@ -95,9 +93,7 @@ class TestDatabaseSchema:
         """)
 
         # 查询测试
-        result = schema.conn.execute(
-            "SELECT symbol, name, asset_type FROM asset_info WHERE symbol = 'TEST001'"
-        ).fetchone()
+        result = schema.conn.execute("SELECT symbol, name, asset_type FROM asset_info WHERE symbol = 'TEST001'").fetchone()
 
         assert result is not None
         assert result[0] == "TEST001"
@@ -186,9 +182,7 @@ class TestDatabaseSchema:
         )
 
         # 查询测试
-        result = schema.conn.execute(
-            "SELECT symbol, price, change_percent FROM real_time_quotes WHERE symbol = 'TEST001'"
-        ).fetchone()
+        result = schema.conn.execute("SELECT symbol, price, change_percent FROM real_time_quotes WHERE symbol = 'TEST001'").fetchone()
 
         assert result is not None
         assert result[0] == "TEST001"
@@ -266,9 +260,7 @@ class TestDatabaseSchema:
         schema.create_materialized_views()
 
         # 验证视图存在
-        views = schema.conn.execute(
-            "SELECT table_name FROM information_schema.tables WHERE table_type = 'VIEW'"
-        ).fetchall()
+        views = schema.conn.execute("SELECT table_name FROM information_schema.tables WHERE table_type = 'VIEW'").fetchall()
 
         view_names = [v[0] for v in views]
 
@@ -287,16 +279,12 @@ class TestDatabaseSchema:
         schema.create_partitioned_tables()
 
         # 验证视图存在
-        views = schema.conn.execute(
-            "SELECT table_name FROM information_schema.tables WHERE table_type = 'VIEW'"
-        ).fetchall()
+        views = schema.conn.execute("SELECT table_name FROM information_schema.tables WHERE table_type = 'VIEW'").fetchall()
 
         view_names = [v[0] for v in views]
 
         # 检查是否创建了分区表（注意：这些是表，不是视图）
-        tables = schema.conn.execute(
-            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'"
-        ).fetchall()
+        tables = schema.conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'").fetchall()
         table_names = [t[0] for t in tables]
 
         expected_tables = ["daily_ohlcv_2024", "daily_ohlcv_2023"]
@@ -345,9 +333,7 @@ class TestDatabaseSchema:
         """)
 
         # 查询测试
-        result = schema.conn.execute(
-            "SELECT provider_name, status, uptime_percent FROM provider_status WHERE provider_name = 'tushare'"
-        ).fetchone()
+        result = schema.conn.execute("SELECT provider_name, status, uptime_percent FROM provider_status WHERE provider_name = 'tushare'").fetchone()
 
         assert result is not None
         assert result[0] == "tushare"
@@ -400,12 +386,8 @@ class TestDatabaseSchema:
             migration.setup_test_data()
 
             # 验证数据
-            asset_count = schema.conn.execute(
-                "SELECT COUNT(*) FROM asset_info"
-            ).fetchone()[0]
-            daily_count = schema.conn.execute(
-                "SELECT COUNT(*) FROM daily_ohlcv"
-            ).fetchone()[0]
+            asset_count = schema.conn.execute("SELECT COUNT(*) FROM asset_info").fetchone()[0]
+            daily_count = schema.conn.execute("SELECT COUNT(*) FROM daily_ohlcv").fetchone()[0]
 
             assert asset_count >= 0
             assert daily_count >= 0

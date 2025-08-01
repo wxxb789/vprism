@@ -31,9 +31,7 @@ def demo_web_service():
     # 2. 获取股票数据 (GET)
     print("\n2. 获取股票数据 (GET)...")
     try:
-        response = requests.get(
-            f"{base_url}/data/stock/AAPL?market=us&timeframe=1d&limit=5"
-        )
+        response = requests.get(f"{base_url}/data/stock/AAPL?market=us&timeframe=1d&limit=5")
         if response.status_code == 200:
             data = response.json()
             print(f"   ✓ 成功获取 {len(data['data']['data'])} 条 AAPL 数据")
@@ -71,9 +69,7 @@ def demo_web_service():
             data = response.json()
             print(f"   ✓ 成功获取 {len(data['data'])} 只股票的数据")
             for item in data["data"]:
-                print(
-                    f"   ✓ {item['query']['symbol']}: {len(item['data']['data'])} 条记录"
-                )
+                print(f"   ✓ {item['query']['symbol']}: {len(item['data']['data'])} 条记录")
         else:
             print(f"   ✗ 批量查询失败: {response.status_code}")
     except Exception as e:

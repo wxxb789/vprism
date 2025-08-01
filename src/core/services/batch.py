@@ -85,9 +85,7 @@ class BatchProcessor:
         """
         start_time = datetime.now()
 
-        logger.info(
-            f"Starting batch processing with {len(batch_request.queries)} queries"
-        )
+        logger.info(f"Starting batch processing with {len(batch_request.queries)} queries")
 
         # 按提供商分组查询
         provider_groups = self._group_queries_by_provider(batch_request.queries)
@@ -123,16 +121,8 @@ class BatchProcessor:
             else:
                 # 处理成功结果
                 final_results.update(result)
-                success_count += len(
-                    [
-                        r
-                        for r in result.values()
-                        if not getattr(r.metadata, "error", None)
-                    ]
-                )
-                failure_count += len(
-                    [r for r in result.values() if getattr(r.metadata, "error", None)]
-                )
+                success_count += len([r for r in result.values() if not getattr(r.metadata, "error", None)])
+                failure_count += len([r for r in result.values() if getattr(r.metadata, "error", None)])
 
         total_time = (datetime.now() - start_time).total_seconds()
 
@@ -145,16 +135,11 @@ class BatchProcessor:
             processed_queries=list(final_results.keys()),
         )
 
-        logger.info(
-            f"Batch processing completed: {success_count} successful, "
-            f"{failure_count} failed in {total_time:.2f} seconds"
-        )
+        logger.info(f"Batch processing completed: {success_count} successful, {failure_count} failed in {total_time:.2f} seconds")
 
         return result
 
-    def _group_queries_by_provider(
-        self, queries: list[DataQuery]
-    ) -> dict[str, list[DataQuery]]:
+    def _group_queries_by_provider(self, queries: list[DataQuery]) -> dict[str, list[DataQuery]]:
         """按提供商分组查询.
 
         Args:
@@ -212,17 +197,13 @@ class BatchProcessor:
 
         # 简单的选择策略：选择健康的第一个提供商
         for provider in providers:
-            if hasattr(self.registry, "is_healthy") and self.registry.is_healthy(
-                provider.name
-            ):
+            if hasattr(self.registry, "is_healthy") and self.registry.is_healthy(provider.name):
                 return provider
 
         # 如果没有健康的，返回第一个
         return providers[0]
 
-    async def _process_provider_group(
-        self, provider_name: str, queries: list[DataQuery], batch_request: BatchRequest
-    ) -> dict[str, DataResponse]:
+    async def _process_provider_group(self, provider_name: str, queries: list[DataQuery], batch_request: BatchRequest) -> dict[str, DataResponse]:
         """处理单个提供商的查询组.
 
         Args:
@@ -235,9 +216,7 @@ class BatchProcessor:
         """
         semaphore = asyncio.Semaphore(batch_request.concurrent_limit)
 
-        async def process_single_query(
-            query: DataQuery, index: int
-        ) -> tuple[str, DataResponse]:
+        async def process_single_query(query: DataQuery, index: int) -> tuple[str, DataResponse]:
             """处理单个查询."""
             async with semaphore:
                 query_id = f"{provider_name}_{index}"
@@ -261,14 +240,10 @@ class BatchProcessor:
                                     query_time_ms=0.0,
                                     data_source=provider_name,
                                 ),
-                                source=ProviderInfo(
-                                    name=provider_name, endpoint=provider_name
-                                ),
+                                source=ProviderInfo(name=provider_name, endpoint=provider_name),
                             )
                         else:
-                            await asyncio.sleep(
-                                batch_request.retry_delay * (2**attempt)
-                            )
+                            await asyncio.sleep(batch_request.retry_delay * (2**attempt))
 
                     except Exception as e:
                         if attempt == batch_request.retry_count:
@@ -280,14 +255,10 @@ class BatchProcessor:
                                     query_time_ms=0.0,
                                     data_source=provider_name,
                                 ),
-                                source=ProviderInfo(
-                                    name=provider_name, endpoint=provider_name
-                                ),
+                                source=ProviderInfo(name=provider_name, endpoint=provider_name),
                             )
                         else:
-                            await asyncio.sleep(
-                                batch_request.retry_delay * (2**attempt)
-                            )
+                            await asyncio.sleep(batch_request.retry_delay * (2**attempt))
 
         # 并发处理所有查询
         tasks = [process_single_query(query, i) for i, query in enumerate(queries)]
@@ -403,8 +374,6 @@ class BatchProcessor:
             "failure_count": result.failure_count,
             "success_rate": success_rate,
             "total_time_seconds": result.total_time_seconds,
-            "queries_per_second": total_queries / result.total_time_seconds
-            if result.total_time_seconds > 0
-            else 0,
+            "queries_per_second": total_queries / result.total_time_seconds if result.total_time_seconds > 0 else 0,
             "errors": result.errors,
         }

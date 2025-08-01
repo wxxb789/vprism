@@ -107,9 +107,7 @@ class TestDataQualityValidator:
 
         df = pd.DataFrame(
             {
-                "timestamp": pd.date_range(
-                    start="2024-01-01", periods=len(prices), freq="D"
-                ),
+                "timestamp": pd.date_range(start="2024-01-01", periods=len(prices), freq="D"),
                 "close": prices,
             }
         )
@@ -131,9 +129,7 @@ class TestDataQualityValidator:
 
         issues = self.validator.check_consistency(df)
         assert len(issues) > 0
-        assert any(
-            "high" in issue.lower() and "low" in issue.lower() for issue in issues
-        )
+        assert any("high" in issue.lower() and "low" in issue.lower() for issue in issues)
 
 
 class TestDataQualityScorer:
@@ -323,9 +319,7 @@ class TestDataCleaner:
 
         df = pd.DataFrame(
             {
-                "timestamp": pd.date_range(
-                    start="2024-01-01", periods=len(prices), freq="D"
-                ),
+                "timestamp": pd.date_range(start="2024-01-01", periods=len(prices), freq="D"),
                 "close": prices,
             }
         )

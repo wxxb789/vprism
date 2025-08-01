@@ -60,9 +60,7 @@ class DataRouter:
         # 使用评分系统选择最佳提供商
         return await self._select_best_provider(capable_providers, query)
 
-    async def _select_best_provider(
-        self, providers: list[DataProvider], query: DataQuery
-    ) -> DataProvider:
+    async def _select_best_provider(self, providers: list[DataProvider], query: DataQuery) -> DataProvider:
         """根据评分系统选择最佳提供商.
 
         Args:
@@ -86,9 +84,7 @@ class DataRouter:
 
             return best_provider
 
-    def _calculate_provider_score(
-        self, provider: DataProvider, query: DataQuery
-    ) -> float:
+    def _calculate_provider_score(self, provider: DataProvider, query: DataQuery) -> float:
         """计算提供商对特定查询的评分.
 
         Args:
@@ -131,9 +127,7 @@ class DataRouter:
 
         return max(0.1, min(2.0, final_score))
 
-    def update_provider_score(
-        self, provider_name: str, success: bool, latency_ms: int
-    ) -> None:
+    def update_provider_score(self, provider_name: str, success: bool, latency_ms: int) -> None:
         """更新提供商性能评分.
 
         Args:
@@ -237,13 +231,9 @@ class DataRouter:
                     "score": score,
                     "capability": {
                         "supported_assets": list(provider.capability.supported_assets),
-                        "supported_markets": list(
-                            provider.capability.supported_markets
-                        ),
+                        "supported_markets": list(provider.capability.supported_markets),
                         "data_delay_seconds": provider.capability.data_delay_seconds,
-                        "max_symbols_per_request": (
-                            provider.capability.max_symbols_per_request
-                        ),
+                        "max_symbols_per_request": (provider.capability.max_symbols_per_request),
                     },
                     "stats": stats,
                     "selected": False,

@@ -72,18 +72,12 @@ class ExponentialBackoffRetry:
                 self.last_exception = e
 
                 # 检查是否应该跳过重试
-                if any(
-                    isinstance(e, exc_type)
-                    for exc_type in self.config.skip_on_exceptions
-                ):
+                if any(isinstance(e, exc_type) for exc_type in self.config.skip_on_exceptions):
                     self.state = RetryState.FAILED
                     raise e
 
                 # 检查是否应该重试
-                should_retry = any(
-                    isinstance(e, exc_type)
-                    for exc_type in self.config.retry_on_exceptions
-                )
+                should_retry = any(isinstance(e, exc_type) for exc_type in self.config.retry_on_exceptions)
 
                 if not should_retry or self.attempt_count >= self.config.max_attempts:
                     self.state = RetryState.FAILED
@@ -148,9 +142,7 @@ class RetryRegistry:
         self._retries: dict[str, ExponentialBackoffRetry] = {}
         self._lock = asyncio.Lock()
 
-    async def get_or_create(
-        self, name: str, config: RetryConfig | None = None
-    ) -> ExponentialBackoffRetry:
+    async def get_or_create(self, name: str, config: RetryConfig | None = None) -> ExponentialBackoffRetry:
         """获取或创建重试实例.
 
         Args:
@@ -284,12 +276,8 @@ class ResilientExecutor:
         from .circuit_breaker import CircuitBreakerConfig, circuit_breaker_registry
 
         # 获取或创建熔断器
-        circuit_config = CircuitBreakerConfig(
-            name=self.circuit_breaker_name, **self.circuit_config
-        )
-        breaker = await circuit_breaker_registry.get_or_create(
-            self.circuit_breaker_name, circuit_config
-        )
+        circuit_config = CircuitBreakerConfig(name=self.circuit_breaker_name, **self.circuit_config)
+        breaker = await circuit_breaker_registry.get_or_create(self.circuit_breaker_name, circuit_config)
 
         # 获取或创建重试器
         retry_config = RetryConfig(**self.retry_config)

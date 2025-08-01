@@ -83,11 +83,7 @@ def configure_logging(level: str = "INFO", **kwargs: Any) -> None:
         logging.basicConfig(
             level=getattr(logging, level.upper()),
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            **{
-                k: v
-                for k, v in kwargs.items()
-                if k not in ["console_output", "file_output", "file_path"]
-            },
+            **{k: v for k, v in kwargs.items() if k not in ["console_output", "file_output", "file_path"]},
         )
 
 

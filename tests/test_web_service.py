@@ -134,9 +134,7 @@ class TestWebService:
                     provider="test_provider",
                 )
             ],
-            metadata=ResponseMetadata(
-                total_records=1, query_time_ms=150.5, data_source="test_provider"
-            ),
+            metadata=ResponseMetadata(total_records=1, query_time_ms=150.5, data_source="test_provider"),
             source=ProviderInfo(name="test_provider", endpoint="https://api.test.com"),
         )
         mock_client.execute_async.return_value = mock_response
@@ -175,9 +173,7 @@ class TestWebService:
                     provider="test_provider",
                 )
             ],
-            metadata=ResponseMetadata(
-                total_records=1, query_time_ms=100.0, data_source="test_provider"
-            ),
+            metadata=ResponseMetadata(total_records=1, query_time_ms=100.0, data_source="test_provider"),
             source=ProviderInfo(name="test_provider", endpoint="https://api.test.com"),
         )
         mock_client.execute_async.return_value = mock_response
@@ -222,9 +218,7 @@ class TestWebService:
                     provider="test_provider",
                 )
             ],
-            metadata=ResponseMetadata(
-                total_records=1, query_time_ms=150.0, data_source="test_provider"
-            ),
+            metadata=ResponseMetadata(total_records=1, query_time_ms=150.0, data_source="test_provider"),
             source=ProviderInfo(name="test_provider", endpoint="https://api.test.com"),
         )
         mock_client.execute_async.return_value = mock_response
@@ -267,9 +261,7 @@ class TestWebService:
                     provider="test_provider",
                 )
             ],
-            metadata=ResponseMetadata(
-                total_records=1, query_time_ms=120.0, data_source="test_provider"
-            ),
+            metadata=ResponseMetadata(total_records=1, query_time_ms=120.0, data_source="test_provider"),
             source=ProviderInfo(name="test_provider", endpoint="https://api.test.com"),
         )
         mock_response2 = DataResponse(
@@ -282,9 +274,7 @@ class TestWebService:
                     provider="test_provider",
                 )
             ],
-            metadata=ResponseMetadata(
-                total_records=1, query_time_ms=110.0, data_source="test_provider"
-            ),
+            metadata=ResponseMetadata(total_records=1, query_time_ms=110.0, data_source="test_provider"),
             source=ProviderInfo(name="test_provider", endpoint="https://api.test.com"),
         )
         mock_client.batch_get_async.return_value = [mock_response1, mock_response2]
@@ -326,10 +316,7 @@ class TestWebService:
     async def test_batch_data_limit_exceeded(self, app, mock_client):
         """测试批量数据超出限制"""
         request_data = {
-            "queries": [
-                {"symbol": f"STOCK{i}", "market": "us", "timeframe": "daily"}
-                for i in range(101)
-            ],  # 超过100个限制
+            "queries": [{"symbol": f"STOCK{i}", "market": "us", "timeframe": "daily"} for i in range(101)],  # 超过100个限制
             "async_processing": False,
         }
 

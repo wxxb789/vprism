@@ -56,9 +56,7 @@ class TestDataRouter:
         registry.mark_unhealthy = Mock()
         registry.mark_healthy = Mock()
         registry.providers = {p.name: p for p in sample_providers}  # 添加providers属性
-        registry.get_all_providers = Mock(
-            return_value=sample_providers
-        )  # 添加get_all_providers方法
+        registry.get_all_providers = Mock(return_value=sample_providers)  # 添加get_all_providers方法
         return registry
 
     @pytest.fixture
@@ -111,9 +109,7 @@ class TestDataRouter:
         mock_registry.find_capable_providers.return_value = [sample_providers[0]]
 
         router = DataRouter(mock_registry)
-        query = DataQuery(
-            asset=AssetType.STOCK, market=MarketType.CN, symbols=["000001"]
-        )
+        query = DataQuery(asset=AssetType.STOCK, market=MarketType.CN, symbols=["000001"])
 
         provider = await router.route_query(query)
 
@@ -121,16 +117,12 @@ class TestDataRouter:
         mock_registry.find_capable_providers.assert_called_once_with(query)
 
     @pytest.mark.asyncio
-    async def test_route_multiple_providers_select_best(
-        self, mock_registry, sample_providers
-    ):
+    async def test_route_multiple_providers_select_best(self, mock_registry, sample_providers):
         """测试多个提供商中选择最佳提供商."""
         # 设置mock注册表的providers属性
         mock_registry.providers = {p.name: p for p in sample_providers}
         # 只返回能处理US市场的提供商
-        capable_providers = [
-            p for p in sample_providers if p.name in ["yahoo", "alpha_vantage"]
-        ]
+        capable_providers = [p for p in sample_providers if p.name in ["yahoo", "alpha_vantage"]]
         mock_registry.find_capable_providers.return_value = capable_providers
 
         router = DataRouter(mock_registry)

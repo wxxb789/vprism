@@ -38,9 +38,7 @@ class YFinance(DataProvider):
             auth_config: 认证配置
             rate_limit: 速率限制配置
         """
-        auth_config = auth_config or AuthConfig(
-            auth_type=AuthType.NONE, credentials={}, required_fields=[]
-        )
+        auth_config = auth_config or AuthConfig(auth_type=AuthType.NONE, credentials={}, required_fields=[])
         rate_limit = rate_limit or RateLimitConfig(
             requests_per_minute=1000,
             requests_per_hour=5000,
@@ -129,9 +127,7 @@ class YFinance(DataProvider):
             logger.error(f"Error getting data from Yahoo Finance: {e}")
             return DataResponse(
                 data=[],
-                metadata=ResponseMetadata(
-                    total_records=0, query_time_ms=0.0, data_source="error"
-                ),
+                metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="error"),
                 source={"name": "yfinance", "endpoint": "error"},
             )
 
@@ -161,9 +157,7 @@ class YFinance(DataProvider):
         if not query.symbols:
             return DataResponse(
                 data=[],
-                metadata=ResponseMetadata(
-                    total_records=0, query_time_ms=0.0, data_source="error"
-                ),
+                metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="error"),
                 source={"name": "yfinance", "endpoint": "error"},
             )
 
@@ -191,16 +185,12 @@ class YFinance(DataProvider):
         try:
             ticker = yf.Ticker(symbol)
 
-            data = ticker.history(
-                start=query.start_date, end=query.end_date, interval=yf_timeframe
-            )
+            data = ticker.history(start=query.start_date, end=query.end_date, interval=yf_timeframe)
 
             if data is None or data.empty:
                 return DataResponse(
                     data=[],
-                    metadata=ResponseMetadata(
-                        total_records=0, query_time_ms=0.0, data_source="yfinance"
-                    ),
+                    metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="yfinance"),
                     source={
                         "name": "yfinance",
                         "endpoint": "https://finance.yahoo.com/",
@@ -238,9 +228,7 @@ class YFinance(DataProvider):
             logger.error(f"Error getting historical data from Yahoo Finance: {e}")
             return DataResponse(
                 data=[],
-                metadata=ResponseMetadata(
-                    total_records=0, query_time_ms=0.0, data_source="error"
-                ),
+                metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="error"),
                 source={"name": "yfinance", "endpoint": "error"},
             )
 
@@ -258,17 +246,11 @@ class YFinance(DataProvider):
 
                 return {
                     "symbol": symbol,
-                    "price": Decimal(
-                        str(info.get("currentPrice", info.get("regularMarketPrice", 0)))
-                    ),
+                    "price": Decimal(str(info.get("currentPrice", info.get("regularMarketPrice", 0)))),
                     "change": Decimal(str(info.get("regularMarketChange", 0))),
-                    "change_percent": Decimal(
-                        str(info.get("regularMarketChangePercent", 0))
-                    ),
+                    "change_percent": Decimal(str(info.get("regularMarketChangePercent", 0))),
                     "volume": Decimal(str(info.get("regularMarketVolume", 0))),
-                    "previous_close": Decimal(
-                        str(info.get("regularMarketPreviousClose", 0))
-                    ),
+                    "previous_close": Decimal(str(info.get("regularMarketPreviousClose", 0))),
                     "timestamp": datetime.now(),
                     "market": market,
                 }

@@ -11,9 +11,7 @@ class RepositoryFactory:
     _instance: DuckDBRepository | None = None
 
     @classmethod
-    def create_repository(
-        cls, db_path: str = None, use_memory: bool = False
-    ) -> DataRepository:
+    def create_repository(cls, db_path: str = None, use_memory: bool = False) -> DataRepository:
         """
         创建数据仓储实例
 

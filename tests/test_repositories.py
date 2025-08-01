@@ -225,9 +225,7 @@ class TestDataRepository:
     @pytest.mark.asyncio
     async def test_cache_repository_increment_hit_count(self, cache_repo):
         """测试缓存命中计数递增."""
-        cache_record = CacheRecord(
-            cache_key="hit_test", query_hash="query_hash", hit_count=0
-        )
+        cache_record = CacheRecord(cache_key="hit_test", query_hash="query_hash", hit_count=0)
 
         await cache_repo.save(cache_record)
         await cache_repo.increment_hit_count("hit_test")
@@ -263,9 +261,7 @@ class TestDataRepository:
         query_record = await query_repo.create_query_record(query, query_hash)
         query_id = await query_repo.save(query_record)
 
-        await query_repo.mark_completed(
-            query_id, request_time_ms=150, response_size=1024, cache_hit=True
-        )
+        await query_repo.mark_completed(query_id, request_time_ms=150, response_size=1024, cache_hit=True)
 
         # 验证查询记录已更新（通过DatabaseManager）
         assert query_id is not None
@@ -274,9 +270,7 @@ class TestDataRepository:
     async def test_repository_patterns_integration(self, data_repo, provider_repo):
         """测试仓储模式的集成使用."""
         # 创建提供商
-        provider = ProviderRecord(
-            name="integration_test_provider", version="2.0.0", status="active"
-        )
+        provider = ProviderRecord(name="integration_test_provider", version="2.0.0", status="active")
 
         provider_id = await provider_repo.save(provider)
 

@@ -59,9 +59,7 @@ class TestVPrismMCPServer:
                     volume=Decimal("1200000"),
                 ),
             ],
-            metadata=ResponseMetadata(
-                total_records=2, query_time_ms=150.5, data_source="test_provider"
-            ),
+            metadata=ResponseMetadata(total_records=2, query_time_ms=150.5, data_source="test_provider"),
             source=ProviderInfo(name="test_provider", endpoint="https://api.test.com"),
         )
 
@@ -85,9 +83,7 @@ class TestVPrismMCPServer:
 
         # Handle empty tools case
         if not tools:
-            pytest.skip(
-                "No tools found - FastMCP might not be fully initialized in test"
-            )
+            pytest.skip("No tools found - FastMCP might not be fully initialized in test")
 
         # Handle both string and object formats
         tool_names = []
@@ -110,9 +106,7 @@ class TestVPrismMCPServer:
         ]
 
         for tool_name in expected_tools:
-            assert tool_name in tool_names or any(
-                tool_name in str(t) for t in tool_names
-            )
+            assert tool_name in tool_names or any(tool_name in str(t) for t in tool_names)
 
     @pytest.mark.asyncio
     async def test_server_resources_exist(self):
@@ -122,9 +116,7 @@ class TestVPrismMCPServer:
 
         # Handle empty resources case
         if not resources:
-            pytest.skip(
-                "No resources found - FastMCP might not be fully initialized in test"
-            )
+            pytest.skip("No resources found - FastMCP might not be fully initialized in test")
 
         # Handle both string and object formats
         resource_uris = []
@@ -141,9 +133,7 @@ class TestVPrismMCPServer:
         expected_resources = ["data://markets"]
 
         for resource_uri in expected_resources:
-            assert resource_uri in resource_uris or any(
-                resource_uri in str(r) for r in resource_uris
-            )
+            assert resource_uri in resource_uris or any(resource_uri in str(r) for r in resource_uris)
 
     @pytest.mark.asyncio
     async def test_server_prompts_exist(self):
@@ -153,9 +143,7 @@ class TestVPrismMCPServer:
 
         # Handle empty prompts case
         if not prompts:
-            pytest.skip(
-                "No prompts found - FastMCP might not be fully initialized in test"
-            )
+            pytest.skip("No prompts found - FastMCP might not be fully initialized in test")
 
         # Handle both string and object formats
         prompt_names = []
@@ -172,9 +160,7 @@ class TestVPrismMCPServer:
         expected_prompts = ["financial_analysis"]
 
         for prompt_name in expected_prompts:
-            assert prompt_name in prompt_names or any(
-                prompt_name in str(p) for p in prompt_names
-            )
+            assert prompt_name in prompt_names or any(prompt_name in str(p) for p in prompt_names)
 
 
 if __name__ == "__main__":

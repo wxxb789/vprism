@@ -47,9 +47,7 @@ class HealthChecker:
             disk = psutil.disk_usage("/")
 
             return {
-                "status": "healthy"
-                if cpu_percent < 90 and memory.percent < 90
-                else "degraded",
+                "status": "healthy" if cpu_percent < 90 and memory.percent < 90 else "degraded",
                 "details": {
                     "cpu_percent": cpu_percent,
                     "memory_percent": memory.percent,
@@ -107,10 +105,7 @@ class HealthChecker:
                     if result.get("status") == "unhealthy":
                         overall_status = "unhealthy"
                         failed_checks += 1
-                    elif (
-                        result.get("status") == "degraded"
-                        and overall_status == "healthy"
-                    ):
+                    elif result.get("status") == "degraded" and overall_status == "healthy":
                         overall_status = "degraded"
         except Exception as e:
             logger.error("Health check execution failed", extra={"error": str(e)})

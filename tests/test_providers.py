@@ -234,9 +234,7 @@ class TestIntegration:
         registry.register(akshare)
         registry.register(yfinance)
 
-        query = DataQuery(
-            asset=AssetType.STOCK, market=MarketType.CN, symbols=["000001"]
-        )
+        query = DataQuery(asset=AssetType.STOCK, market=MarketType.CN, symbols=["000001"])
 
         capable_providers = registry.find_capable_providers(query)
         assert len(capable_providers) >= 1  # akshare应该能处理

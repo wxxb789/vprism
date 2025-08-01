@@ -82,9 +82,7 @@ class ProviderRegistry:
         """
         capable = []
         for provider in self.providers.values():
-            if self.provider_health.get(
-                provider.name, False
-            ) and provider.can_handle_query(query):
+            if self.provider_health.get(provider.name, False) and provider.can_handle_query(query):
                 capable.append(provider)
         return capable
 
@@ -97,9 +95,7 @@ class ProviderRegistry:
         if provider_name in self.providers:
             self.provider_health[provider_name] = True
             if provider_name in self.provider_metadata:
-                self.provider_metadata[provider_name]["last_health_check"] = (
-                    datetime.now(timezone.utc)
-                )
+                self.provider_metadata[provider_name]["last_health_check"] = datetime.now(timezone.utc)
 
     def mark_unhealthy(self, provider_name: str) -> None:
         """标记提供商为不健康状态.
@@ -110,9 +106,7 @@ class ProviderRegistry:
         if provider_name in self.providers:
             self.provider_health[provider_name] = False
             if provider_name in self.provider_metadata:
-                self.provider_metadata[provider_name]["last_health_check"] = (
-                    datetime.now(timezone.utc)
-                )
+                self.provider_metadata[provider_name]["last_health_check"] = datetime.now(timezone.utc)
                 self.provider_metadata[provider_name]["total_failures"] += 1
 
     def is_healthy(self, provider_name: str) -> bool:
@@ -140,15 +134,9 @@ class ProviderRegistry:
                     "healthy": self.provider_health.get(name, False),
                     "capability": {
                         "supported_assets": list(provider.capability.supported_assets),
-                        "supported_markets": list(
-                            provider.capability.supported_markets
-                        ),
-                        "supported_timeframes": list(
-                            provider.capability.supported_timeframes
-                        ),
-                        "max_symbols_per_request": (
-                            provider.capability.max_symbols_per_request
-                        ),
+                        "supported_markets": list(provider.capability.supported_markets),
+                        "supported_timeframes": list(provider.capability.supported_timeframes),
+                        "max_symbols_per_request": (provider.capability.max_symbols_per_request),
                         "supports_real_time": provider.capability.supports_real_time,
                         "supports_historical": provider.capability.supports_historical,
                         "data_delay_seconds": provider.capability.data_delay_seconds,
@@ -243,11 +231,7 @@ class ProviderRegistry:
             "total_providers": total_providers,
             "healthy_providers": healthy_providers,
             "unhealthy_providers": total_providers - healthy_providers,
-            "health_percentage": (
-                (healthy_providers / total_providers * 100)
-                if total_providers > 0
-                else 0
-            ),
+            "health_percentage": ((healthy_providers / total_providers * 100) if total_providers > 0 else 0),
             "providers": self.get_provider_list(),
         }
 
