@@ -2,8 +2,7 @@
 
 from typing import Any
 
-from core.models.market import MarketType
-
+from ...models.market import MarketType
 from .akshare import AkShare
 from .base import AuthConfig, AuthType, RateLimitConfig
 from .yfinance import YFinance

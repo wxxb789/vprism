@@ -2,8 +2,7 @@
 
 from typing import Any
 
-from core.models import DataQuery
-
+from ...models import DataQuery
 from .duckdb import SimpleDuckDBCache
 from .key import CacheKey
 from .memory import ThreadSafeInMemoryCache

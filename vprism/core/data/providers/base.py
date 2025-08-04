@@ -5,9 +5,9 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from enum import Enum
 
-from core.models.base import DataPoint
-from core.models.query import DataQuery
-from core.models.response import DataResponse
+from ...models.base import DataPoint
+from ...models.query import DataQuery
+from ...models.response import DataResponse
 
 
 class AuthType(str, Enum):

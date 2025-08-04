@@ -1,6 +1,6 @@
 """数据库存储模型."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -22,8 +22,8 @@ class DataRecord(BaseModel):
     amount: float | None = None
     timeframe: str | None = None
     provider: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     metadata: dict[str, Any] | None = None
 
 
@@ -39,8 +39,8 @@ class ProviderRecord(BaseModel):
     request_count: int = 0
     error_count: int = 0
     avg_response_time_ms: float | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     capabilities: dict[str, Any] | None = None
 
 
@@ -53,7 +53,7 @@ class CacheRecord(BaseModel):
     data_source: str | None = None
     hit_count: int = 0
     last_access: datetime | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     expires_at: datetime | None = None
     metadata: dict[str, Any] | None = None
 
@@ -74,5 +74,5 @@ class QueryRecord(BaseModel):
     request_time_ms: int | None = None
     response_size: int | None = None
     cache_hit: bool = False
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     completed_at: datetime | None = None

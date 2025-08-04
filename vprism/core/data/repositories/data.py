@@ -4,10 +4,9 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from core.models import DataPoint, DataQuery
-from core.data.storage.database import DatabaseManager
-from core.data.storage.models import DataRecord
-
+from ...models import DataPoint, DataQuery
+from ..storage.database import DatabaseManager
+from ..storage.models import DataRecord
 from .base import Repository
 
 
@@ -114,10 +113,10 @@ class DataRepository(Repository[DataRecord]):
             symbol=data_point.symbol,
             asset_type="stock",  # 默认为股票，可根据需要调整
             timestamp=data_point.timestamp,
-            open=float(data_point.open) if data_point.open else None,
-            high=float(data_point.high) if data_point.high else None,
-            low=float(data_point.low) if data_point.low else None,
-            close=float(data_point.close) if data_point.close else None,
+            open=float(data_point.open_price) if data_point.open_price else None,
+            high=float(data_point.high_price) if data_point.high_price else None,
+            low=float(data_point.low_price) if data_point.low_price else None,
+            close=float(data_point.close_price) if data_point.close_price else None,
             volume=int(data_point.volume) if data_point.volume else None,
             amount=float(data_point.amount) if data_point.amount else None,
             provider=provider,

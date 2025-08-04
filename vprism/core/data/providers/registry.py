@@ -2,10 +2,10 @@
 
 import asyncio
 import contextlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-from core.models.query import DataQuery
+from ...models.query import DataQuery
 from .base import DataProvider
 
 
@@ -30,7 +30,7 @@ class ProviderRegistry:
         self.providers[provider.name] = provider
         self.provider_health[provider.name] = True  # 默认健康
         self.provider_metadata[provider.name] = {
-            "registered_at": datetime.now(timezone.utc),
+            "registered_at": datetime.now(UTC),
             "last_health_check": None,
             "health_check_count": 0,
             "total_failures": 0,
@@ -95,7 +95,7 @@ class ProviderRegistry:
         if provider_name in self.providers:
             self.provider_health[provider_name] = True
             if provider_name in self.provider_metadata:
-                self.provider_metadata[provider_name]["last_health_check"] = datetime.now(timezone.utc)
+                self.provider_metadata[provider_name]["last_health_check"] = datetime.now(UTC)
 
     def mark_unhealthy(self, provider_name: str) -> None:
         """标记提供商为不健康状态.
@@ -106,7 +106,7 @@ class ProviderRegistry:
         if provider_name in self.providers:
             self.provider_health[provider_name] = False
             if provider_name in self.provider_metadata:
-                self.provider_metadata[provider_name]["last_health_check"] = datetime.now(timezone.utc)
+                self.provider_metadata[provider_name]["last_health_check"] = datetime.now(UTC)
                 self.provider_metadata[provider_name]["total_failures"] += 1
 
     def is_healthy(self, provider_name: str) -> bool:

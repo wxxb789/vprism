@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from core.models import (
+from vprism.core.models import (
     AssetType,
     DataPoint,
     DataQuery,
@@ -16,8 +16,8 @@ from core.models import (
     ResponseMetadata,
     TimeFrame,
 )
-from core.services.data import DataService
-from core.services.routing import DataRouter
+from vprism.core.services.data import DataService
+from vprism.core.services.routing import DataRouter
 
 
 class TestDataService:
@@ -350,7 +350,7 @@ class TestQueryBuilder:
         """创建测试服务实例."""
         from unittest.mock import AsyncMock
 
-        from core.data.providers.registry import ProviderRegistry
+        from vprism.core.data.providers.registry import ProviderRegistry
 
         registry = ProviderRegistry()
         router = AsyncMock()
@@ -438,7 +438,7 @@ class TestDataServiceIntegration:
         """测试简单API使用模式."""
         from unittest.mock import AsyncMock
 
-        from core.data.providers.registry import ProviderRegistry
+        from vprism.core.data.providers.registry import ProviderRegistry
 
         registry = ProviderRegistry()
         router = AsyncMock()
@@ -453,7 +453,7 @@ class TestDataServiceIntegration:
         """测试链式API使用模式."""
         from unittest.mock import AsyncMock
 
-        from core.data.providers.registry import ProviderRegistry
+        from vprism.core.data.providers.registry import ProviderRegistry
 
         registry = ProviderRegistry()
         router = AsyncMock()
@@ -469,7 +469,7 @@ class TestDataServiceIntegration:
         """测试查询构建器独立性."""
         from unittest.mock import AsyncMock
 
-        from core.data.providers.registry import ProviderRegistry
+        from vprism.core.data.providers.registry import ProviderRegistry
 
         registry = ProviderRegistry()
         router = AsyncMock()

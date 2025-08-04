@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from core.data.storage import (
+from vprism.core.data.storage import (
     CacheRecord,
     DatabaseManager,
     DataRecord,

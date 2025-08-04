@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 import pytest
 
-from core.data.storage.schema import DatabaseSchema
+from vprism.core.data.storage.schema import DatabaseSchema
 
 
 class TestDatabaseSchema:
@@ -360,7 +360,7 @@ class TestDatabaseSchema:
 
     def test_migration_tool(self, temp_db):
         """测试迁移工具"""
-        from core.data.storage.database_schema import DatabaseMigration
+        from vprism.core.data.storage.database_schema import DatabaseMigration
 
         migration = DatabaseMigration(temp_db)
 
@@ -379,7 +379,7 @@ class TestDatabaseSchema:
         schema = DatabaseSchema(temp_db)
 
         # 直接插入测试数据
-        from core.data.storage.database_schema import DatabaseMigration
+        from vprism.core.data.storage.database_schema import DatabaseMigration
 
         migration = DatabaseMigration(temp_db)
         try:

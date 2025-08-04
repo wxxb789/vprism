@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from core.health import HealthChecker, HealthStatus, get_health_checker
+from vprism.core.health import HealthChecker, HealthStatus, get_health_checker
 
 
 class TestHealthChecker:

@@ -3,7 +3,7 @@ Web API 数据模型
 定义 FastAPI 的请求/响应模型
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -15,7 +15,7 @@ class APIResponse(BaseModel):
     success: bool = Field(..., description="请求是否成功")
     data: Any | None = Field(None, description="响应数据")
     message: str | None = Field(None, description="响应消息")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="响应时间戳")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC), description="响应时间戳")
     request_id: str | None = Field(None, description="请求ID，用于追踪")
 
     model_config = ConfigDict(
@@ -33,7 +33,7 @@ class ErrorResponse(BaseModel):
     error: str = Field(..., description="错误类型")
     message: str = Field(..., description="错误消息")
     details: dict[str, Any] | None = Field(None, description="详细错误信息")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="错误时间戳")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC), description="错误时间戳")
     request_id: str | None = Field(None, description="请求ID，用于追踪")
 
     model_config = ConfigDict(
@@ -78,7 +78,7 @@ class HealthStatus(BaseModel):
     status: str = Field(..., description="系统状态")
     version: str = Field(..., description="系统版本")
     uptime: float = Field(..., description="运行时间(秒)")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="检查时间戳")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC), description="检查时间戳")
     components: dict[str, str] = Field(..., description="各组件状态")
 
     model_config = ConfigDict(

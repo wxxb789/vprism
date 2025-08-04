@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 
-from core.data.storage.schema import DatabaseSchema
+from .schema import DatabaseSchema
 
 
 class DatabaseMigration:

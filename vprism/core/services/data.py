@@ -8,6 +8,7 @@ from loguru import logger
 from vprism.core.data.cache.multilevel import MultiLevelCache
 from vprism.core.data.repositories.data import DataRepository
 from vprism.core.data.storage.database import DatabaseManager
+from vprism.core.models.base import DataPoint
 from vprism.core.models.market import AssetType, MarketType, TimeFrame
 from vprism.core.models.query import DataQuery
 from vprism.core.models.response import DataResponse, ProviderInfo, ResponseMetadata
@@ -157,10 +158,17 @@ class DataService:
                     "Cache hit",
                     extra={"cache_key": cache_key, "cached_records": len(cached_data)},
                 )
+                # Ensure cached data is converted to DataPoint instances
+                data_points = []
+                for item in cached_data:
+                    if isinstance(item, dict):
+                        data_points.append(DataPoint(**item))
+                    else:
+                        data_points.append(item)
                 return DataResponse(
-                    data=cached_data,
+                    data=data_points,
                     metadata=ResponseMetadata(
-                        total_records=len(cached_data),
+                        total_records=len(data_points),
                         query_time_ms=0.0,
                         data_source="cache",
                         cache_hit=True,
@@ -215,10 +223,17 @@ class DataService:
                         "Retrieved fallback data from storage",
                         extra={"stored_records": len(stored_data)},
                     )
+                    # Ensure stored data is converted to DataPoint instances
+                    data_points = []
+                    for item in stored_data:
+                        if isinstance(item, dict):
+                            data_points.append(DataPoint(**item))
+                        else:
+                            data_points.append(item)
                     return DataResponse(
-                        data=stored_data,
+                        data=data_points,
                         metadata=ResponseMetadata(
-                            total_records=len(stored_data),
+                            total_records=len(data_points),
                             query_time_ms=0.0,
                             data_source="repository",
                         ),

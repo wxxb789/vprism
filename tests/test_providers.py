@@ -6,13 +6,13 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from core.data.providers import (
+from vprism.core.data.providers import (
     AkShare,
     ProviderRegistry,
     # VPrism,  # vprism provider no longer exists
     YFinance,
 )
-from core.models import AssetType, DataPoint, DataQuery, MarketType, TimeFrame
+from vprism.core.models import AssetType, DataPoint, DataQuery, MarketType, TimeFrame
 
 
 class TestProviderBase:

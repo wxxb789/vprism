@@ -61,29 +61,29 @@ class DataQualityValidator:
         issues = []
 
         # Price validation
-        if data_point.open is not None and data_point.open <= 0:
+        if data_point.open_price is not None and data_point.open_price <= 0:
             issues.append("Open price must be positive")
 
-        if data_point.high is not None and data_point.high <= 0:
+        if data_point.high_price is not None and data_point.high_price <= 0:
             issues.append("High price must be positive")
 
-        if data_point.low is not None and data_point.low <= 0:
+        if data_point.low_price is not None and data_point.low_price <= 0:
             issues.append("Low price must be positive")
 
-        if data_point.close is not None and data_point.close <= 0:
+        if data_point.close_price is not None and data_point.close_price <= 0:
             issues.append("Close price must be positive")
 
         # OHLCV relationships
-        if data_point.high is not None and data_point.low is not None and data_point.high < data_point.low:
+        if data_point.high_price is not None and data_point.low_price is not None and data_point.high_price < data_point.low_price:
             issues.append("High price must be >= low price")
 
-        if (data_point.high is not None and data_point.open is not None and data_point.close is not None) and data_point.high < max(
-            data_point.open, data_point.close
+        if (data_point.high_price is not None and data_point.open_price is not None and data_point.close_price is not None) and data_point.high_price < max(
+            data_point.open_price, data_point.close_price
         ):
             issues.append("High price must be >= max(open, close)")
 
-        if (data_point.low is not None and data_point.open is not None and data_point.close is not None) and data_point.low > min(
-            data_point.open, data_point.close
+        if (data_point.low_price is not None and data_point.open_price is not None and data_point.close_price is not None) and data_point.low_price > min(
+            data_point.open_price, data_point.close_price
         ):
             issues.append("Low price must be <= min(open, close)")
 

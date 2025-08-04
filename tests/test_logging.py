@@ -5,7 +5,7 @@ import asyncio
 import pytest
 from loguru import logger
 
-from core.logging import (
+from vprism.core.logging import (
     LogConfig,
     PerformanceLogger,
     StructuredLogger,

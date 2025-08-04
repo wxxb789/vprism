@@ -1,12 +1,11 @@
 """提供商仓储实现."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-from core.data.storage.database import DatabaseManager
-from core.data.storage.models import ProviderRecord
-
+from ..storage.database import DatabaseManager
+from ..storage.models import ProviderRecord
 from .base import Repository
 
 
@@ -59,7 +58,7 @@ class ProviderRepository(Repository[ProviderRecord]):
             record.request_count += 1
             if not success:
                 record.error_count += 1
-            record.updated_at = datetime.now(timezone.utc)
+            record.updated_at = datetime.now(UTC)
             await self.save(record)
             return True
         return False
@@ -73,7 +72,7 @@ class ProviderRepository(Repository[ProviderRecord]):
             else:
                 # 简单的移动平均
                 record.avg_response_time_ms = (record.avg_response_time_ms * (record.request_count - 1) + response_time_ms) / record.request_count
-            record.updated_at = datetime.now(timezone.utc)
+            record.updated_at = datetime.now(UTC)
             await self.save(record)
             return True
         return False

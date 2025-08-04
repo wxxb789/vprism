@@ -6,15 +6,15 @@ from decimal import Decimal
 
 import pytest
 
-from core.data.storage.factory import RepositoryFactory
-from core.data.storage.repository import (
+from vprism.core.data.storage.factory import RepositoryFactory
+from vprism.core.data.storage.repository import (
     AssetInfo,
     DataQualityMetrics,
     DuckDBRepository,
     OHLCVData,
     RealTimeQuote,
 )
-from core.models import MarketType
+from vprism.core.models import MarketType
 
 
 class TestDuckDBRepository:

@@ -10,7 +10,7 @@ from decimal import Decimal
 import numpy as np
 import pandas as pd
 
-from core.models import DataPoint
+from vprism.core.models import DataPoint, MarketType
 
 
 class TestDataQualityValidation:
@@ -21,55 +21,59 @@ class TestDataQualityValidation:
         # Valid data point
         valid_dp = DataPoint(
             symbol="AAPL",
+            market=MarketType.US,
             timestamp=datetime.now(),
-            open=Decimal("149.50"),
-            high=Decimal("151.00"),
-            low=Decimal("149.00"),
-            close=Decimal("150.25"),
+            open_price=Decimal("149.50"),
+            high_price=Decimal("151.00"),
+            low_price=Decimal("149.00"),
+            close_price=Decimal("150.25"),
             volume=Decimal("1000000"),
         )
-        assert valid_dp.open > 0
+        assert valid_dp.open_price > 0
         assert valid_dp.volume >= 0
-        assert valid_dp.high >= valid_dp.low
+        assert valid_dp.high_price >= valid_dp.low_price
 
     def test_invalid_price_values(self):
         """Test validation of invalid price values."""
         # Note: DataPoint doesn't validate on creation, validation is done by quality checker
         dp = DataPoint(
             symbol="AAPL",
+            market=MarketType.US,
             timestamp=datetime.now(),
-            open=Decimal("-150.25"),
-            high=Decimal("151.00"),
-            low=Decimal("149.00"),
-            close=Decimal("150.25"),
+            open_price=Decimal("-150.25"),
+            high_price=Decimal("151.00"),
+            low_price=Decimal("149.00"),
+            close_price=Decimal("150.25"),
             volume=Decimal("1000000"),
         )
-        assert dp.open < 0  # Just verify the value is set
+        assert dp.open_price < 0  # Just verify the value is set
 
     def test_invalid_ohlcv_relationship(self):
         """Test validation of OHLCV price relationships."""
         # Note: DataPoint doesn't validate on creation, validation is done by quality checker
         dp = DataPoint(
             symbol="AAPL",
+            market=MarketType.US,
             timestamp=datetime.now(),
-            open=Decimal("149.50"),
-            high=Decimal("148.00"),  # Invalid: high < low
-            low=Decimal("149.00"),
-            close=Decimal("150.25"),
+            open_price=Decimal("149.50"),
+            high_price=Decimal("148.00"),  # Invalid: high < low
+            low_price=Decimal("149.00"),
+            close_price=Decimal("150.25"),
             volume=Decimal("1000000"),
         )
-        assert dp.high < dp.low  # Verify invalid relationship exists
+        assert dp.high_price < dp.low_price  # Verify invalid relationship exists
 
     def test_volume_validation(self):
         """Test volume data validation."""
         # Note: DataPoint doesn't validate on creation, validation is done by quality checker
         dp = DataPoint(
             symbol="AAPL",
+            market=MarketType.US,
             timestamp=datetime.now(),
-            open=Decimal("149.50"),
-            high=Decimal("151.00"),
-            low=Decimal("149.00"),
-            close=Decimal("150.25"),
+            open_price=Decimal("149.50"),
+            high_price=Decimal("151.00"),
+            low_price=Decimal("149.00"),
+            close_price=Decimal("150.25"),
             volume=Decimal("-1000"),  # Invalid negative volume
         )
         assert dp.volume < 0  # Verify negative value
@@ -130,22 +134,23 @@ class TestDataQualityChecks:
             base_price = 100.0 + i
             dp = DataPoint(
                 symbol="AAPL",
+                market=MarketType.US,
                 timestamp=ts,
-                open=Decimal(str(base_price - 0.5)),
-                high=Decimal(str(base_price + 1.0)),
-                low=Decimal(str(base_price - 1.0)),
-                close=Decimal(str(base_price)),
+                open_price=Decimal(str(base_price - 0.5)),
+                high_price=Decimal(str(base_price + 1.0)),
+                low_price=Decimal(str(base_price - 1.0)),
+                close_price=Decimal(str(base_price)),
                 volume=Decimal(str(1000000 + i * 10000)),
             )
             data_points.append(dp)
 
         # Verify consistency
         for dp in data_points:
-            assert dp.high >= dp.low
-            assert dp.open > 0
-            assert dp.close > 0
-            assert dp.high >= max(dp.open, dp.close)
-            assert dp.low <= min(dp.open, dp.close)
+            assert dp.high_price >= dp.low_price
+            assert dp.open_price > 0
+            assert dp.close_price > 0
+            assert dp.high_price >= max(dp.open_price, dp.close_price)
+            assert dp.low_price <= min(dp.open_price, dp.close_price)
 
 
 class TestDataQualityScoring:

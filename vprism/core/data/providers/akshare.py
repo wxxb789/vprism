@@ -1,17 +1,15 @@
 """akshare数据提供商实现."""
 
-import asyncio
 from collections.abc import AsyncIterator
 from datetime import datetime
 from decimal import Decimal
 
-from core.exceptions.base import ProviderError
-from core.monitoring import StructuredLogger
-from core.models.market import AssetType, MarketType, TimeFrame
-from core.models.base import DataPoint
-from core.models.query import DataQuery
-from core.models.response import DataResponse
-
+from ...exceptions.base import ProviderError
+from ...models.base import DataPoint
+from ...models.market import AssetType, MarketType
+from ...models.query import DataQuery
+from ...models.response import DataResponse
+from ...monitoring import StructuredLogger
 from .base import (
     AuthConfig,
     AuthType,
@@ -202,27 +200,7 @@ class AkShare(DataProvider):
             for _, row in df.iterrows():
                 try:
                     # 处理列名映射
-                    if query.asset == AssetType.STOCK:
-                        date_col = "日期" if "日期" in df.columns else "date"
-                        open_col = "开盘" if "开盘" in df.columns else "open"
-                        high_col = "最高" if "最高" in df.columns else "high"
-                        low_col = "最低" if "最低" in df.columns else "low"
-                        close_col = "收盘" if "收盘" in df.columns else "close"
-                        vol_col = "成交量" if "成交量" in df.columns else "volume"
-
-                        timestamp = pd.to_datetime(str(row[date_col]))
-                        data_point = DataPoint(
-                            symbol=symbol,
-                            market=MarketType.CN,
-                            timestamp=timestamp,
-                            open_price=Decimal(str(row[open_col])),
-                            high_price=Decimal(str(row[high_col])),
-                            low_price=Decimal(str(row[low_col])),
-                            close_price=Decimal(str(row[close_col])),
-                            volume=Decimal(str(row[vol_col])),
-                            provider="akshare",
-                        )
-                    elif query.asset == AssetType.INDEX:
+                    if query.asset == AssetType.STOCK or query.asset == AssetType.INDEX:
                         date_col = "日期" if "日期" in df.columns else "date"
                         open_col = "开盘" if "开盘" in df.columns else "open"
                         high_col = "最高" if "最高" in df.columns else "high"

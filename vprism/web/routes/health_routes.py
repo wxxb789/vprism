@@ -8,9 +8,9 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Request
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
-from models import APIResponse, CacheStats, ProviderStatus
 
-from core.health import get_health_checker
+from ...core.health import get_health_checker
+from ..models import APIResponse, CacheStats, ProviderStatus
 
 router = APIRouter()
 

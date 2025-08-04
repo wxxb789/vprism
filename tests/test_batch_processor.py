@@ -60,14 +60,17 @@ class TestBatchProcessor:
     @pytest.fixture
     def sample_data(self):
         """创建示例数据."""
+        from vprism.core.models import MarketType
+
         return [
             DataPoint(
                 symbol="000001",
+                market=MarketType.CN,
                 timestamp=datetime.now(),
-                open=Decimal("10.0"),
-                high=Decimal("11.0"),
-                low=Decimal("9.0"),
-                close=Decimal("10.5"),
+                open_price=Decimal("10.0"),
+                high_price=Decimal("11.0"),
+                low_price=Decimal("9.0"),
+                close_price=Decimal("10.5"),
                 volume=Decimal("1000000"),
             )
         ]

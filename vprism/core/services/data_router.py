@@ -1,8 +1,8 @@
 """数据路由服务 - 负责将查询路由到合适的提供商"""
 
-from core.data.providers.base import DataProvider
-from core.data.providers.registry import ProviderRegistry
-from core.models.query import DataQuery
+from ..data.providers.base import DataProvider
+from ..data.providers.registry import ProviderRegistry
+from ..models.query import DataQuery
 
 
 class DataRouter:

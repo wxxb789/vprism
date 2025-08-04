@@ -6,12 +6,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from core.data.providers.registry import ProviderRegistry
-from core.models.market import AssetType
-from core.models.query import DataQuery
-from core.models.response import DataResponse, ProviderInfo, ResponseMetadata
-from core.services.data import DataService
-from core.services.routing import DataRouter
+from vprism.core.data.providers.registry import ProviderRegistry
+from vprism.core.models.market import AssetType
+from vprism.core.models.query import DataQuery
+from vprism.core.models.response import DataResponse, ProviderInfo, ResponseMetadata
+from vprism.core.services.routing import DataRouter
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +52,7 @@ class BatchProcessor:
 
     def __init__(
         self,
-        data_service: DataService,
+        data_service,
         router: DataRouter | None = None,
         registry: ProviderRegistry | None = None,
     ):

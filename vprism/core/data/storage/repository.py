@@ -8,9 +8,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from core.models.market import MarketType
-from core.models.market import TimeFrame
-from core.data.storage.schema import DatabaseSchema, initialize_database, setup_database
+from ...models.market import MarketType, TimeFrame
+from .schema import DatabaseSchema
 
 logger = logging.getLogger(__name__)
 

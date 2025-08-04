@@ -2,8 +2,8 @@
 
 import hashlib
 
-from core.models.query import DataQuery
-from core.models.market import TimeFrame
+from ...models.market import TimeFrame
+from ...models.query import DataQuery
 
 
 class CacheKey:

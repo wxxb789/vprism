@@ -8,9 +8,9 @@ from decimal import Decimal
 import numpy as np
 import pandas as pd
 
-from core.models import DataPoint
-from core.validation import DataQualityScorer, DataQualityValidator
-from core.validation.quality import DataCleaner, QualityLevel, QualityScore
+from vprism.core.models import DataPoint
+from vprism.core.validation import DataQualityScorer, DataQualityValidator
+from vprism.core.validation.quality import DataCleaner, QualityLevel, QualityScore
 
 
 class TestDataQualityValidator:
@@ -24,11 +24,12 @@ class TestDataQualityValidator:
         """Test validation of valid data point."""
         dp = DataPoint(
             symbol="AAPL",
+            market="us",
             timestamp=datetime.now(),
-            open=Decimal("100.0"),
-            high=Decimal("101.0"),
-            low=Decimal("99.0"),
-            close=Decimal("100.5"),
+            open_price=Decimal("100.0"),
+            high_price=Decimal("101.0"),
+            low_price=Decimal("99.0"),
+            close_price=Decimal("100.5"),
             volume=Decimal("1000000"),
         )
 
@@ -39,11 +40,12 @@ class TestDataQualityValidator:
         """Test validation of invalid data point."""
         dp = DataPoint(
             symbol="AAPL",
+            market="us",
             timestamp=datetime.now(),
-            open=Decimal("-100.0"),  # Negative price
-            high=Decimal("90.0"),  # High < low
-            low=Decimal("100.0"),
-            close=Decimal("100.5"),
+            open_price=Decimal("-100.0"),  # Negative price
+            high_price=Decimal("90.0"),  # High < low
+            low_price=Decimal("100.0"),
+            close_price=Decimal("100.5"),
             volume=Decimal("-1000"),  # Negative volume
         )
 

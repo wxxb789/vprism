@@ -4,27 +4,42 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 from pydantic import ConfigDict as PydanticConfigDict
+
+from .market import MarketType
 
 
 class DataPoint(BaseModel):
     """单个数据点模型."""
 
     symbol: str
+    market: MarketType
     timestamp: datetime
-    open: Decimal | None = None
-    high: Decimal | None = None
-    low: Decimal | None = None
-    close: Decimal | None = None
+    open_price: Decimal | None = None
+    high_price: Decimal | None = None
+    low_price: Decimal | None = None
+    close_price: Decimal | None = None
     volume: Decimal | None = None
     amount: Decimal | None = None
+    provider: str | None = None
     extra_fields: dict[str, Any] = Field(default_factory=dict)
 
     model_config = PydanticConfigDict(
         arbitrary_types_allowed=True,
-        json_encoders={Decimal: str, datetime: lambda v: v.isoformat()},
     )
+
+    @field_serializer("open_price", "high_price", "low_price", "close_price", "volume", "amount", when_used="json")
+    def serialize_decimal(self, value: Decimal | None) -> str | None:
+        """Serialize Decimal to string."""
+        if value is None:
+            return None
+        return str(value)
+
+    @field_serializer("timestamp", when_used="json")
+    def serialize_datetime(self, value: datetime) -> str:
+        """Serialize datetime to isoformat string."""
+        return value.isoformat()
 
 
 class Asset(BaseModel):

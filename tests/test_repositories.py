@@ -5,19 +5,19 @@ from decimal import Decimal
 
 import pytest
 
-from core.data.repositories import (
+from vprism.core.data.repositories import (
     CacheRepository,
     DataRepository,
     ProviderRepository,
     QueryRepository,
 )
-from core.data.storage import DatabaseManager
-from core.data.storage.models import (
+from vprism.core.data.storage import DatabaseManager
+from vprism.core.data.storage.models import (
     CacheRecord,
     DataRecord,
     ProviderRecord,
 )
-from core.models import AssetType, DataPoint, DataQuery, MarketType, TimeFrame
+from vprism.core.models import AssetType, DataPoint, DataQuery, MarketType, TimeFrame
 
 
 class TestDataRepository:
@@ -148,11 +148,12 @@ class TestDataRepository:
         """测试从DataPoint转换为DataRecord."""
         data_point = DataPoint(
             symbol="AAPL",
+            market="us",
             timestamp=datetime.now(UTC),
-            open=Decimal("100.0"),
-            high=Decimal("105.0"),
-            low=Decimal("99.0"),
-            close=Decimal("103.0"),
+            open_price=Decimal("100.0"),
+            high_price=Decimal("105.0"),
+            low_price=Decimal("99.0"),
+            close_price=Decimal("103.0"),
             volume=Decimal("1000000"),
         )
 

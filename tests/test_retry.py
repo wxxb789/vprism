@@ -2,15 +2,15 @@
 
 import pytest
 
-from core.exceptions import ProviderError, RateLimitError
-from core.patterns import (
+from vprism.core.exceptions import ProviderError, RateLimitError
+from vprism.core.patterns import (
     ExponentialBackoffRetry,
     ResilientExecutor,
     RetryConfig,
     RetryRegistry,
     retry,
 )
-from core.patterns.retry import RetryState
+from vprism.core.patterns.retry import RetryState
 
 
 class TestRetryConfig:

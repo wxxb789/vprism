@@ -1,13 +1,12 @@
 """查询仓储实现."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-from core.models import DataQuery
-from core.data.storage.database import DatabaseManager
-from core.data.storage.models import QueryRecord
-
+from ...models.query import DataQuery
+from ..storage.database import DatabaseManager
+from ..storage.models import QueryRecord
 from .base import Repository
 
 
@@ -76,12 +75,12 @@ class QueryRepository(Repository[QueryRecord]):
             request_time_ms=request_time_ms,
             response_size=response_size,
             cache_hit=cache_hit,
-            completed_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(UTC),
         )
 
     async def mark_failed(self, query_id: str, error_message: str) -> None:
         """标记查询为失败."""
-        self.db_manager.update_query_record(query_id, status="failed", completed_at=datetime.now(timezone.utc))
+        self.db_manager.update_query_record(query_id, status="failed", completed_at=datetime.now(UTC))
 
     async def get_query_stats(self) -> dict[str, Any]:
         """获取查询统计信息."""

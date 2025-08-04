@@ -5,10 +5,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from core.exceptions import NoCapableProviderError
-from core.models import DataQuery
 from core.data.providers.base import DataProvider
 from core.data.providers.registry import ProviderRegistry
+from core.exceptions import NoCapableProviderError
+from core.models import DataQuery
 
 
 @dataclass

@@ -1,7 +1,6 @@
 """数据库表结构和初始化."""
 
 import os
-from typing import Dict, Optional
 
 import duckdb
 
@@ -387,7 +386,7 @@ class DatabaseSchema:
                 # 如果分区表已存在则跳过
                 pass
 
-    def get_table_stats(self) -> Dict[str, int]:
+    def get_table_stats(self) -> dict[str, int]:
         """
         获取表统计信息。
 

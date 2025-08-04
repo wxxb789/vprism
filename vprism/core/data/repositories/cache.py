@@ -1,12 +1,11 @@
 """缓存仓储实现."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-from core.data.storage.models import CacheRecord
-from core.data.storage.database import DatabaseManager
-
+from ..storage.database import DatabaseManager
+from ..storage.models import CacheRecord
 from .base import Repository
 
 
@@ -50,7 +49,7 @@ class CacheRepository(Repository[CacheRecord]):
         record = await self.find_by_cache_key(cache_key)
         if record:
             record.hit_count += 1
-            record.last_access = datetime.now(timezone.utc)
+            record.last_access = datetime.now(UTC)
             await self.save(record)
             return True
         return False
@@ -59,7 +58,7 @@ class CacheRepository(Repository[CacheRecord]):
         """更新最后访问时间."""
         record = await self.find_by_cache_key(cache_key)
         if record:
-            record.last_access = datetime.now(timezone.utc)
+            record.last_access = datetime.now(UTC)
             await self.save(record)
             return True
         return False

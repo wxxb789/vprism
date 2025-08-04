@@ -26,12 +26,11 @@ class CustomJSONEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-from models import ErrorResponse
-from routes import data_router, health_router
-
 from vprism.core.client import VPrismClient
 from vprism.core.config import ConfigManager
 from vprism.core.exceptions import VPrismError
+from vprism.web.models import ErrorResponse
+from vprism.web.routes import data_router, health_router
 
 
 @asynccontextmanager

@@ -2,7 +2,7 @@
 
 import pytest
 
-from core.exceptions import (
+from vprism.core.exceptions import (
     AuthenticationError,
     CacheError,
     DataValidationError,

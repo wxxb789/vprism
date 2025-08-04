@@ -7,12 +7,11 @@ from typing import Any
 
 import aiohttp
 
-from core.exceptions.base import ProviderError
-from core.models.base import DataPoint
-from core.models.query import DataQuery
-from core.models.response import DataResponse
-from core.models.market import AssetType, TimeFrame
-
+from ...exceptions.base import ProviderError
+from ...models.base import DataPoint
+from ...models.market import AssetType, TimeFrame
+from ...models.query import DataQuery
+from ...models.response import DataResponse
 from .base import (
     AuthConfig,
     AuthType,

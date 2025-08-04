@@ -2,7 +2,7 @@
 
 import pytest
 
-from core.exceptions.base import (
+from vprism.core.exceptions.base import (
     CacheError,
     DataValidationError,
     NetworkError,
@@ -10,9 +10,9 @@ from core.exceptions.base import (
     RateLimitError,
     VPrismError,
 )
-from core.exceptions.codes import ErrorCode
-from core.exceptions.handler import ErrorContextManager, ErrorHandler, ErrorTracker
-from core.exceptions.messages import (
+from vprism.core.exceptions.codes import ErrorCode
+from vprism.core.exceptions.handler import ErrorContextManager, ErrorHandler, ErrorTracker
+from vprism.core.exceptions.messages import (
     ErrorContext,
     ErrorMessageTemplate,
     format_error_response,

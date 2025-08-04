@@ -13,7 +13,7 @@ from httpx import AsyncClient
 from httpx._transports.asgi import ASGITransport
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "web"))
-from web.app import create_app
+from vprism.web.app import create_app
 
 
 class TestWebService:
@@ -113,7 +113,7 @@ class TestWebService:
         # 设置模拟返回数据
         from decimal import Decimal
 
-        from core.models import (
+        from vprism.core.models import (
             DataPoint,
             DataResponse,
             ProviderInfo,
@@ -156,7 +156,7 @@ class TestWebService:
         """测试 POST 方式获取股票数据"""
         from decimal import Decimal
 
-        from core.models import (
+        from vprism.core.models import (
             DataPoint,
             DataResponse,
             ProviderInfo,
@@ -201,7 +201,7 @@ class TestWebService:
         from datetime import datetime
         from decimal import Decimal
 
-        from core.models import (
+        from vprism.core.models import (
             DataPoint,
             DataResponse,
             ProviderInfo,
@@ -244,7 +244,7 @@ class TestWebService:
         """测试批量数据端点"""
         from decimal import Decimal
 
-        from core.models import (
+        from vprism.core.models import (
             DataPoint,
             DataResponse,
             ProviderInfo,
