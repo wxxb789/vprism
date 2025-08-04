@@ -3,11 +3,11 @@
 from datetime import datetime
 from typing import Any
 
-from core.data.providers.base import DataProvider
-from core.data.providers.registry import ProviderRegistry
-from core.exceptions.base import NoCapableProviderError
-from core.models.query import DataQuery
-from core.monitoring import PerformanceLogger, StructuredLogger, bind
+from vprism.core.data.providers.base import DataProvider
+from vprism.core.data.providers.registry import ProviderRegistry
+from vprism.core.exceptions.base import NoCapableProviderError
+from vprism.core.models.query import DataQuery
+from vprism.core.monitoring import PerformanceLogger, StructuredLogger, bind
 
 logger = StructuredLogger().logger
 

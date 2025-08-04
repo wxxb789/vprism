@@ -7,33 +7,33 @@ version: '3.8'
 services:
   vprism-api:
     volumes:
-      - ../../../src:/app/src:ro
+      - ../../../vprism:/app/vprism:ro
       - ../../../tests:/app/tests:ro
     environment:
       - DEBUG=true
       - LOG_LEVEL=DEBUG
     ports:
       - "8000:8000"
-    command: ["python", "-m", "uvicorn", "vprism.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: ["python", "-m", "uvicorn", "vprism.web.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
   mcp:
     volumes:
-      - ../../../src:/app/src:ro
+      - ../../../vprism:/app/vprism:ro
     environment:
       - DEBUG=true
       - LOG_LEVEL=DEBUG
     ports:
       - "8001:8001"
-    command: ["python", "-m", "mcp", "--transport", "http", "--host", "0.0.0.0", "--port", "8001"]
+    command: ["python", "-m", "vprism.mcp", "--transport", "http", "--host", "0.0.0.0", "--port", "8001"]
 
   data-collector:
     volumes:
-      - ../../../src:/app/src:ro
+      - ../../../vprism:/app/vprism:ro
       - ../../../data:/app/data
     environment:
       - DEBUG=true
       - LOG_LEVEL=DEBUG
-    command: ["python", "-m", "vprism-data", "collect", "--interval", "60"]
+    command: ["python", "-m", "vprism.core.services.data_collection", "collect", "--interval", "60"]
 
   postgres:
     ports:
@@ -131,7 +131,7 @@ services:
   vprism-test:
     build: 
       context: ../..
-      dockerfile: src/vprism_docker/Dockerfile
+      dockerfile: vprism/docker/Dockerfile
     depends_on:
       - postgres-test
       - redis-test

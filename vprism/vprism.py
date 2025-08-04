@@ -4,9 +4,9 @@
 支持同步和异步操作，内置缓存和错误处理。
 """
 
-from core.client.client import VPrismClient
-from core.models.market import AssetType, MarketType, TimeFrame
-from core.models.query import DataQuery
+from vprism.core.client.client import VPrismClient
+from vprism.core.models.market import AssetType, MarketType, TimeFrame
+from vprism.core.models.query import DataQuery
 
 # 创建全局客户端实例
 _client = None

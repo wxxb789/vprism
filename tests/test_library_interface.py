@@ -6,16 +6,16 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from core.client.client import VPrismClient
-from core.models import AssetType, MarketType, TimeFrame
+from vprism.core.client.client import VPrismClient
+from vprism.core.models import AssetType, MarketType, TimeFrame
 
 # 导入vprism模块进行测试
 try:
-    import src.vprism as vprism
+    import vprism.vprism as vprism
 except ImportError:
     # 尝试相对导入
     try:
-        from src import vprism
+        from vprism import vprism
     except ImportError:
         # 创建模拟模块用于测试
         class MockVPrism:
@@ -94,8 +94,8 @@ class TestVPrismClient:
         assert query.symbols == ["000001"]
         assert query.timeframe == TimeFrame.DAY_1
 
-    @patch("core.services.data_router.DataRouter.route_query")
-    @patch("core.data.providers.base.DataProvider.get_data")
+    @patch("vprism.core.services.data_router.DataRouter.route_query")
+    @patch("vprism.core.data.providers.base.DataProvider.get_data")
     @pytest.mark.asyncio
     async def test_execute_query(self, mock_get_data, mock_route_query):
         """测试查询执行"""
@@ -113,8 +113,8 @@ class TestVPrismClient:
         mock_provider.get_data.assert_called_once_with(query)
         assert result == {"data": "test"}
 
-    @patch("core.services.data_router.DataRouter.route_query")
-    @patch("core.data.providers.base.DataProvider.get_data")
+    @patch("vprism.core.services.data_router.DataRouter.route_query")
+    @patch("vprism.core.data.providers.base.DataProvider.get_data")
     def test_get_sync(self, mock_get_data, mock_route_query):
         """测试同步获取数据"""
 
@@ -132,8 +132,8 @@ class TestVPrismClient:
 
         assert result == {"data": "sync_test"}
 
-    @patch("core.services.data_router.DataRouter.route_query")
-    @patch("core.data.providers.base.DataProvider.get_data")
+    @patch("vprism.core.services.data_router.DataRouter.route_query")
+    @patch("vprism.core.data.providers.base.DataProvider.get_data")
     @pytest.mark.asyncio
     async def test_get_async(self, mock_get_data, mock_route_query):
         """测试异步获取数据"""
@@ -151,8 +151,8 @@ class TestVPrismClient:
 class TestGlobalInterface:
     """测试全局接口"""
 
-    @patch("core.services.data_router.DataRouter.route_query")
-    @patch("core.data.providers.base.DataProvider.get_data")
+    @patch("vprism.core.services.data_router.DataRouter.route_query")
+    @patch("vprism.core.data.providers.base.DataProvider.get_data")
     def test_global_get(self, mock_get_data, mock_route_query):
         """测试全局get函数"""
 
@@ -167,8 +167,8 @@ class TestGlobalInterface:
 
         assert result == {"data": "mock_data"}
 
-    @patch("core.services.data_router.DataRouter.route_query")
-    @patch("core.data.providers.base.DataProvider.get_data")
+    @patch("vprism.core.services.data_router.DataRouter.route_query")
+    @patch("vprism.core.data.providers.base.DataProvider.get_data")
     @pytest.mark.asyncio
     async def test_global_get_async(self, mock_get_data, mock_route_query):
         """测试全局get_async函数"""
@@ -180,8 +180,8 @@ class TestGlobalInterface:
 
         assert result == {"data": "mock_async_data"}
 
-    @patch("core.services.data_router.DataRouter.route_query")
-    @patch("core.data.providers.base.DataProvider.get_data")
+    @patch("vprism.core.services.data_router.DataRouter.route_query")
+    @patch("vprism.core.data.providers.base.DataProvider.get_data")
     def test_global_query_and_execute(self, mock_get_data, mock_route_query):
         """测试全局query和execute函数"""
 

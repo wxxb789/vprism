@@ -15,8 +15,8 @@ import pytest
 # Set up Python path to prioritize local source
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from core.models import DataPoint, DataResponse, ProviderInfo, ResponseMetadata
-from vprism_mcp.server import VPrismMCPServer, create_mcp_server
+from vprism.core.models import DataPoint, DataResponse, ProviderInfo, ResponseMetadata
+from vprism.mcp.server import VPrismMCPServer, create_mcp_server
 
 
 class TestVPrismMCPServer:

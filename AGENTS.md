@@ -1,17 +1,19 @@
 # AGENTS.md - vprism Development Guidelines
 
 ## Commands
-- **Run all tests:** `pytest`
-- **Run a single test file:** `pytest tests/path/to/test_file.py`
-- **Run a single test:** `pytest tests/path/to/test_file.py::test_name`
-- **Lint:** `ruff check .`
-- **Format:** `ruff format .`
-- **Type Check:** `mypy src/vprism`
+
+- **Run all tests:** `uv run pytest`
+- **Run a single test file:** `uv run pytest tests/path/to/test_file.py`
+- **Run a single test:** `uv run pytest tests/path/to/test_file.py::test_name`
+- **Lint:** `uv run ruff check .`
+- **Format:** `uv run ruff format .`
+- **Type Check:** `uv run mypy src/vprism`
 
 ## Code Style
-- **Formatting:** Black style, 88-char line length (`ruff format .`).
+
+- **Formatting:** Black style, 196-char line length (`ruff format .`).
 - **Imports:** Sorted with `ruff --select I` (isort).
-- **Typing:** Fully type-hinted (`mypy --strict`). Use `from typing import ...`.
+- **Typing:** Fully type-hinted (`uv run mypy --strict`). Use `from typing import ...`.
 - **Naming:**
   - Classes: `PascalCase`
   - Functions/Variables: `snake_case`

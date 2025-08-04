@@ -6,7 +6,7 @@ This document defines the file organization and naming conventions for the vPris
 
 ```
 vprism/
-├── src/                     # Source code
+├── vprism/                  # Source code
 ├── tests/                   # Test files
 ├── docs/                    # Documentation
 ├── examples/                # Usage examples
@@ -19,13 +19,13 @@ vprism/
 └── README.md              # Project overview
 ```
 
-## Source Code Structure (`src/`)
+## Source Code Structure (`vprism/`)
 
-### Core Architecture (`src/core/`)
-All core business logic and shared components are organized under `src/core/`:
+### Core Architecture (`vprism/core/`)
+All core business logic and shared components are organized under `vprism/core/`:
 
 ```
-src/core/
+vprism/core/
 ├── __init__.py
 ├── client/                 # Client building and query execution
 ├── config/                 # Configuration management
@@ -41,13 +41,13 @@ src/core/
 ```
 
 ### Service Layer
-- **Web Service** (`src/web/`): FastAPI-based web service
-- **MCP Server** (`src/vprism_mcp/`): Model Context Protocol server
-- **Docker** (`src/docker/`): Docker configuration and deployment
+- **Web Service** (`vprism/web/`): FastAPI-based web service
+- **MCP Server** (`vprism/mcp/`): Model Context Protocol server
+- **Docker** (`vprism/docker/`): Docker configuration and deployment
 
 ## Detailed Component Structure
 
-### Client Layer (`src/core/client/`)
+### Client Layer (`vprism/core/client/`)
 ```
 client/
 ├── __init__.py
@@ -56,7 +56,7 @@ client/
 └── query.py               # Query execution and management
 ```
 
-### Configuration (`src/core/config/`)
+### Configuration (`vprism/core/config/`)
 ```
 config/
 ├── __init__.py
@@ -66,7 +66,7 @@ config/
 └── settings.py            # Main settings management
 ```
 
-### Data Layer (`src/core/data/`)
+### Data Layer (`vprism/core/data/`)
 ```
 data/
 ├── cache/                 # Multi-level caching system
@@ -76,7 +76,7 @@ data/
 └── storage/               # Database and storage abstraction
 ```
 
-### Exception System (`src/core/exceptions/`)
+### Exception System (`vprism/core/exceptions/`)
 ```
 exceptions/
 ├── __init__.py
@@ -85,7 +85,7 @@ exceptions/
 └── handler.py             # Centralized error handling
 ```
 
-### Models (`src/core/models/`)
+### Models (`vprism/core/models/`)
 ```
 models/
 ├── __init__.py
@@ -95,7 +95,7 @@ models/
 └── response.py            # Response and result models
 ```
 
-### Services (`src/core/services/`)
+### Services (`vprism/core/services/`)
 ```
 services/
 ├── __init__.py
@@ -127,9 +127,9 @@ services/
 
 ### Feature-Based Grouping
 Group related functionality together in dedicated directories:
-- All cache-related code in `src/core/data/cache/`
-- All provider-related code in `src/core/data/providers/`
-- All validation-related code in `src/core/validation/`
+- All cache-related code in `vprism/core/data/cache/`
+- All provider-related code in `vprism/core/data/providers/`
+- All validation-related code in `vprism/core/validation/`
 
 ### Layer Separation
 Maintain clear separation between:
@@ -142,7 +142,7 @@ Maintain clear separation between:
 Mirror the source structure in tests:
 ```
 tests/
-├── test_core/             # Tests for src/core/
+├── test_core/             # Tests for vprism/core/
 │   ├── test_data/
 │   ├── test_models/
 │   └── test_services/

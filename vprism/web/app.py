@@ -29,9 +29,9 @@ class CustomJSONEncoder(json.JSONEncoder):
 from models import ErrorResponse
 from routes import data_router, health_router
 
-from core.client import VPrismClient
-from core.config import ConfigManager
-from core.exceptions import VPrismError
+from vprism.core.client import VPrismClient
+from vprism.core.config import ConfigManager
+from vprism.core.exceptions import VPrismError
 
 
 @asynccontextmanager
@@ -100,7 +100,7 @@ def _setup_middleware(app: FastAPI) -> None:
                 return await call_next(request)
 
             start_time = time.time()
-            from core.logging import logger
+            from vprism.core.logging import logger
 
             logger.info(
                 "Request started",

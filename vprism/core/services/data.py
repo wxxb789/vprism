@@ -5,14 +5,14 @@ from datetime import date, datetime, timedelta
 
 from loguru import logger
 
-from core.data.cache.multilevel import MultiLevelCache
-from core.data.repositories.data import DataRepository
-from core.data.storage.database import DatabaseManager
-from core.models.market import AssetType, MarketType, TimeFrame
-from core.models.query import DataQuery
-from core.models.response import DataResponse, ProviderInfo, ResponseMetadata
-from core.monitoring import PerformanceLogger, bind
-from core.services.routing import DataRouter
+from vprism.core.data.cache.multilevel import MultiLevelCache
+from vprism.core.data.repositories.data import DataRepository
+from vprism.core.data.storage.database import DatabaseManager
+from vprism.core.models.market import AssetType, MarketType, TimeFrame
+from vprism.core.models.query import DataQuery
+from vprism.core.models.response import DataResponse, ProviderInfo, ResponseMetadata
+from vprism.core.monitoring import PerformanceLogger, bind
+from vprism.core.services.routing import DataRouter
 
 
 class DataService:

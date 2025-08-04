@@ -12,9 +12,9 @@ from typing import Any
 from fastmcp import FastMCP
 from loguru import logger
 
-from core.client import VPrismClient
-from core.exceptions import VPrismError
-from core.models import MarketType, TimeFrame
+from vprism.core.client import VPrismClient
+from vprism.core.exceptions import VPrismError
+from vprism.core.models import MarketType, TimeFrame
 
 
 class VPrismMCPServer:

@@ -7,7 +7,7 @@ from datetime import date, datetime
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import vprism
-from core.client.client import VPrismClient
+from vprism.core.client.client import VPrismClient
 
 
 def format_table(data_list, title):

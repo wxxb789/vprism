@@ -7,10 +7,10 @@ from datetime import date
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from core.data.providers.factory import ProviderFactory
-from core.data.providers.registry import ProviderRegistry
-from core.models.market import AssetType, MarketType, TimeFrame
-from core.models.query import DataQuery
+from vprism.core.data.providers.factory import ProviderFactory
+from vprism.core.data.providers.registry import ProviderRegistry
+from vprism.core.models.market import AssetType, MarketType, TimeFrame
+from vprism.core.models.query import DataQuery
 
 
 async def main():

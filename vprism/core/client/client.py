@@ -35,8 +35,8 @@ class VPrismClient:
             self.config_manager.update_config(**config)
 
         # 初始化核心组件
-        from core.data.providers.registry import ProviderRegistry
-        from core.services.data_router import DataRouter
+        from vprism.core.data.providers.registry import ProviderRegistry
+        from vprism.core.services.data_router import DataRouter
 
         self.registry = ProviderRegistry()
         self.router = DataRouter(self.registry)
@@ -66,7 +66,7 @@ class VPrismClient:
 
     def _apply_config(self) -> None:
         """应用配置到各个组件"""
-        from core.data.providers.factory import create_default_providers
+        from vprism.core.data.providers.factory import create_default_providers
 
         # 注册默认提供商（如果注册表为空）
         if len(self.registry) == 0:

@@ -5,8 +5,8 @@ import contextlib
 
 import pytest
 
-from core.exceptions import ProviderError
-from core.patterns.circuitbreaker import (
+from vprism.core.exceptions import ProviderError
+from vprism.core.patterns.circuitbreaker import (
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerRegistry,

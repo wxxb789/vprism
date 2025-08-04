@@ -4,13 +4,13 @@ import asyncio
 
 import pytest
 
-from core.data.cache import (
+from vprism.core.data.cache import (
     CacheKey,
     MultiLevelCache,
     SimpleDuckDBCache,
     ThreadSafeInMemoryCache,
 )
-from core.models import AssetType, DataQuery, MarketType, TimeFrame
+from vprism.core.models import AssetType, DataQuery, MarketType, TimeFrame
 
 
 class TestCacheKey:

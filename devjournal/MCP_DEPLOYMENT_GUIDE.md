@@ -36,7 +36,7 @@ pip install fastmcp>=2.10.6
 #### STDIO Mode (Default)
 ```bash
 # Run MCP server with stdio transport
-python -m mcp
+python -m vprism.mcp
 
 # Or using main.py
 python main.py mcp
@@ -45,16 +45,16 @@ python main.py mcp
 #### HTTP Mode
 ```bash
 # Run MCP server with HTTP transport
-python -m mcp --transport http --host 127.0.0.1 --port 8001
+python -m vprism.mcp --transport http --host 127.0.0.1 --port 8001
 
 # Or
-python -m mcp --transport http
+python -m vprism.mcp --transport http
 ```
 
 #### SSE Mode
 ```bash
 # Run MCP server with SSE transport
-python -m mcp --transport sse --host 127.0.0.1 --port 8001
+python -m vprism.mcp --transport sse --host 127.0.0.1 --port 8001
 ```
 
 ### 3. MCP Configuration
@@ -69,7 +69,7 @@ Create an `mcp_config.json` file:
   "transport": {
     "stdio": {
       "command": "python",
-      "args": ["-m", "mcp"]
+      "args": ["-m", "vprism.mcp"]
     }
   }
 }
@@ -86,7 +86,7 @@ Add to your Claude Desktop configuration:
   "mcpServers": {
     "vprism": {
       "command": "python",
-      "args": ["-m", "mcp"],
+      "args": ["-m", "vprism.mcp"],
       "env": {}
     }
   }
@@ -334,9 +334,9 @@ spec:
 Enable debug logging:
 
 ```bash
-python -m mcp --debug
+python -m vprism.mcp --debug
 # or
-VPRISM_LOG_LEVEL=DEBUG python -m mcp
+VPRISM_LOG_LEVEL=DEBUG python -m vprism.mcp
 ```
 
 ### Health Check
@@ -364,7 +364,7 @@ The server includes health check endpoints:
 
 When adding new MCP tools:
 
-1. Update `src/mcp/server.py`
+1. Update `vprism/mcp/server.py`
 2. Add comprehensive tests in `tests/test_mcp_server.py`
 3. Update this documentation
 4. Add configuration options if needed

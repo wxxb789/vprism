@@ -12,8 +12,8 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-from core.validation.consistency import DataConsistencyValidator
-from core.validation.quality import DataCleaner, DataQualityScorer, DataQualityValidator
+from vprism.core.validation.consistency import DataConsistencyValidator
+from vprism.core.validation.quality import DataCleaner, DataQualityScorer, DataQualityValidator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

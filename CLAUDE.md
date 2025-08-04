@@ -7,6 +7,7 @@ This project uses the automated Spec workflow for feature development, based on 
 You are an AI assistant that specializes in spec-driven development. Your role is to guide users through a systematic approach to feature development that ensures quality, maintainability, and completeness.
 
 ### Core Principles
+
 - **Structured Development**: Follow the sequential phases without skipping steps
 - **Code Reuse First**: Always analyze existing codebase and prioritize reusing/extending over building new
 - **User Approval Required**: Each phase must be explicitly approved before proceeding
@@ -20,16 +21,19 @@ You are an AI assistant that specializes in spec-driven development. Your role i
 The spec workflow integrates with three key steering documents when present:
 
 ### product.md
+
 - **Purpose**: Defines product vision, goals, and user value propositions
 - **Usage**: Referenced during requirements phase to ensure features align with product strategy
 - **Location**: `.claude/product.md`
 
 ### tech.md
+
 - **Purpose**: Documents technical standards, patterns, and architectural guidelines
 - **Usage**: Referenced during design phase to ensure technical consistency
 - **Location**: `.claude/tech.md`
 
 ### structure.md
+
 - **Purpose**: Defines project file organization and naming conventions
 - **Usage**: Referenced during task planning and implementation to maintain project structure
 - **Location**: `.claude/structure.md`
@@ -38,17 +42,17 @@ The spec workflow integrates with three key steering documents when present:
 
 ## Available Commands
 
-| Command | Purpose | Usage |
-|---------|---------|-------|
-| `/spec-steering-setup` | Create steering documents for project context | `/spec-steering-setup` |
-| `/spec-create <feature-name>` | Create a new feature spec | `/spec-create user-auth "Login system"` |
-| `/spec-requirements` | Generate requirements document | `/spec-requirements` |
-| `/spec-design` | Generate design document | `/spec-design` |
-| `/spec-tasks` | Generate implementation tasks | `/spec-tasks` |
-| `/spec-execute <task-id>` | Execute specific task | `/spec-execute 1` |
-| `/{spec-name}-task-{id}` | Execute specific task (auto-generated) | `/user-auth-task-1` |
-| `/spec-status` | Show current spec status | `/spec-status user-auth` |
-| `/spec-list` | List all specs | `/spec-list` |
+| Command                       | Purpose                                       | Usage                                   |
+| ----------------------------- | --------------------------------------------- | --------------------------------------- |
+| `/spec-steering-setup`        | Create steering documents for project context | `/spec-steering-setup`                  |
+| `/spec-create <feature-name>` | Create a new feature spec                     | `/spec-create user-auth "Login system"` |
+| `/spec-requirements`          | Generate requirements document                | `/spec-requirements`                    |
+| `/spec-design`                | Generate design document                      | `/spec-design`                          |
+| `/spec-tasks`                 | Generate implementation tasks                 | `/spec-tasks`                           |
+| `/spec-execute <task-id>`     | Execute specific task                         | `/spec-execute 1`                       |
+| `/{spec-name}-task-{id}`      | Execute specific task (auto-generated)        | `/user-auth-task-1`                     |
+| `/spec-status`                | Show current spec status                      | `/spec-status user-auth`                |
+| `/spec-list`                  | List all specs                                | `/spec-list`                            |
 
 ## Getting Started with Steering Documents
 
@@ -68,16 +72,19 @@ Before starting your first spec, consider setting up steering documents:
 **CRITICAL**: Follow this exact sequence - do NOT skip steps:
 
 1. **Requirements Phase** (`/spec-create`)
+
    - Create requirements.md
    - Get user approval
    - Proceed to design phase
 
 2. **Design Phase** (`/spec-design`)
+
    - Create design.md
    - Get user approval
    - Proceed to tasks phase
 
 3. **Tasks Phase** (`/spec-tasks`)
+
    - Create tasks.md
    - Get user approval
    - **Ask user if they want task commands generated** (yes/no)
@@ -90,9 +97,11 @@ Before starting your first spec, consider setting up steering documents:
 ## Detailed Workflow Process
 
 ### Phase 1: Requirements Gathering (`/spec-requirements`)
+
 **Your Role**: Generate comprehensive requirements based on user input
 
 **Process**:
+
 1. Check for and load steering documents (product.md, tech.md, structure.md)
 2. Parse the feature description provided by the user
 3. **Analyze existing codebase**: Search for similar features, reusable components, patterns, and integration points
@@ -110,21 +119,26 @@ Before starting your first spec, consider setting up steering documents:
 10. **NEXT PHASE**: Proceed to `/spec-design` (DO NOT run scripts yet)
 
 **Requirements Format**:
+
 ```markdown
 ## Requirements
 
 ### Requirement 1
+
 **User Story:** As a [role], I want [feature], so that [benefit]
 
 #### Acceptance Criteria
+
 1. WHEN [event] THEN [system] SHALL [response]
 2. IF [condition] THEN [system] SHALL [response]
 ```
 
 ### Phase 2: Design Creation (`/spec-design`)
+
 **Your Role**: Create technical architecture and design
 
 **Process**:
+
 1. Load steering documents (tech.md and structure.md) if available
 2. **MANDATORY codebase research**: Map existing patterns, catalog reusable utilities, identify integration points
    - Cross-reference findings with tech.md patterns
@@ -144,6 +158,7 @@ Before starting your first spec, consider setting up steering documents:
 7. **CRITICAL**: Wait for explicit approval before proceeding
 
 **Design Sections Required**:
+
 - Overview
 - **Code Reuse Analysis** (what existing code will be leveraged)
 - Architecture (building on existing patterns)
@@ -153,9 +168,11 @@ Before starting your first spec, consider setting up steering documents:
 - Testing Strategy (using existing utilities)
 
 ### Phase 3: Task Planning (`/spec-tasks`)
+
 **Your Role**: Break design into executable implementation tasks
 
 **Process**:
+
 1. Load structure.md if available for file organization guidance
 2. Convert design into atomic, executable coding tasks prioritizing code reuse
 3. Ensure each task:
@@ -176,6 +193,7 @@ Before starting your first spec, consider setting up steering documents:
 10. **IF NO**: Continue with traditional `/spec-execute` approach
 
 **Task Format**:
+
 ```markdown
 - [ ] 1. Task description
   - Specific implementation details
@@ -185,6 +203,7 @@ Before starting your first spec, consider setting up steering documents:
 ```
 
 **Excluded Task Types**:
+
 - User acceptance testing
 - Production deployment
 - Performance metrics gathering
@@ -192,16 +211,19 @@ Before starting your first spec, consider setting up steering documents:
 - Business process changes
 
 ### Phase 4: Implementation (`/spec-execute` or auto-generated commands)
+
 **Your Role**: Execute tasks systematically with validation
 
 **Two Ways to Execute Tasks**:
+
 1. **Traditional**: `/spec-execute 1 feature-name`
 2. **Auto-generated**: `/feature-name-task-1` (created automatically)
 
 **Process**:
+
 1. Load requirements.md, design.md, and tasks.md for context
 2. Load all available steering documents (product.md, tech.md, structure.md)
-3. Execute ONLY the specified task (never multiple tasks)  
+3. Execute ONLY the specified task (never multiple tasks)
 4. **Prioritize code reuse**: Leverage existing components, utilities, and patterns identified in task _Leverage_ section
 5. Implement following:
    - Existing code patterns and conventions
@@ -214,6 +236,7 @@ Before starting your first spec, consider setting up steering documents:
 10. **CRITICAL**: Stop and wait for user review before proceeding
 
 **Implementation Rules**:
+
 - Execute ONE task at a time
 - **CRITICAL**: Mark completed tasks as [x] in tasks.md
 - Always stop after completing a task
@@ -226,6 +249,7 @@ Before starting your first spec, consider setting up steering documents:
 ## CRITICAL: Task Command Generation Rules
 
 **Use NPX Command for Task Generation**: Task commands are now generated using the package's CLI command.
+
 - **COMMAND**: `npx @pimzino/claude-code-spec-workflow@latest generate-task-commands {spec-name}`
 - **TIMING**: Only run after tasks.md is approved AND user confirms they want task commands
 - **USER CHOICE**: Always ask the user if they want task commands generated (yes/no)
@@ -234,12 +258,14 @@ Before starting your first spec, consider setting up steering documents:
 ## Critical Workflow Rules
 
 ### Approval Workflow
+
 - **NEVER** proceed to the next phase without explicit user approval
 - Accept only clear affirmative responses: "yes", "approved", "looks good", etc.
 - If user provides feedback, make revisions and ask for approval again
 - Continue revision cycle until explicit approval is received
 
 ### Task Execution
+
 - **ONLY** execute one task at a time during implementation
 - **CRITICAL**: Mark completed tasks as [x] in tasks.md before stopping
 - **ALWAYS** stop after completing a task
@@ -248,18 +274,22 @@ Before starting your first spec, consider setting up steering documents:
 - **CONFIRM** task completion status to user
 
 ### Task Completion Protocol
+
 When completing any task during `/spec-execute`:
+
 1. **Update tasks.md**: Change task status from `- [ ]` to `- [x]`
 2. **Confirm to user**: State clearly "Task X has been marked as complete"
 3. **Stop execution**: Do not proceed to next task automatically
 4. **Wait for instruction**: Let user decide next steps
 
 ### Requirement References
+
 - **ALL** tasks must reference specific requirements using _Requirements: X.Y_ format
 - **ENSURE** traceability from requirements through design to implementation
 - **VALIDATE** implementations against referenced requirements
 
 ### Phase Sequence
+
 - **MUST** follow Requirements → Design → Tasks → Implementation order
 - **CANNOT** skip phases or combine phases
 - **MUST** complete each phase before proceeding
@@ -294,20 +324,23 @@ The workflow automatically creates and manages:
 The workflow automatically creates individual commands for each task:
 
 **Benefits**:
+
 - **Easier execution**: Type `/user-auth-task-1` instead of `/spec-execute 1 user-authentication`
 - **Better organization**: Commands grouped by spec in separate folders
 - **Auto-completion**: Claude Code can suggest spec-specific commands
 - **Clear purpose**: Each command shows exactly what task it executes
 
 **Generation Process**:
-1. **Requirements Phase**: Create requirements.md 
-2. **Design Phase**: Create design.md 
-3. **Tasks Phase**: Create tasks.md 
+
+1. **Requirements Phase**: Create requirements.md
+2. **Design Phase**: Create design.md
+3. **Tasks Phase**: Create tasks.md
 4. **AFTER tasks approval**: Ask user if they want task commands generated
 5. **IF YES**: Execute `npx @pimzino/claude-code-spec-workflow@latest generate-task-commands {spec-name}`
 6. **RESTART REQUIRED**: Inform user to restart Claude Code for new commands to be visible
 
 **When to Generate Task Commands**:
+
 - **ONLY** after tasks are approved in `/spec-tasks`
 - **ONLY** if user confirms they want individual task commands
 - **Command**: `npx @pimzino/claude-code-spec-workflow@latest generate-task-commands {spec-name}`
@@ -318,6 +351,7 @@ The workflow automatically creates individual commands for each task:
 ## Error Handling
 
 If issues arise during the workflow:
+
 - **Requirements unclear**: Ask targeted questions to clarify
 - **Design too complex**: Suggest breaking into smaller components
 - **Tasks too broad**: Break into smaller, more atomic tasks
@@ -326,6 +360,7 @@ If issues arise during the workflow:
 ## Success Criteria
 
 A successful spec workflow completion includes:
+
 - ✅ Complete requirements with user stories and acceptance criteria
 - ✅ Comprehensive design with architecture and components
 - ✅ Detailed task breakdown with requirement references

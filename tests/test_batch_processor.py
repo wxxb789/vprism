@@ -6,11 +6,11 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from core.models.base import DataPoint
-from core.models.market import AssetType, MarketType, TimeFrame
-from core.models.query import DataQuery
-from core.models.response import DataResponse, ProviderInfo, ResponseMetadata
-from core.services.batch import BatchProcessor, BatchRequest, BatchResult
+from vprism.core.models.base import DataPoint
+from vprism.core.models.market import AssetType, MarketType, TimeFrame
+from vprism.core.models.query import DataQuery
+from vprism.core.models.response import DataResponse, ProviderInfo, ResponseMetadata
+from vprism.core.services.batch import BatchProcessor, BatchRequest, BatchResult
 
 
 class TestBatchProcessor:

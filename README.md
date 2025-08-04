@@ -25,7 +25,7 @@ data = await client.get_stock_data("AAPL", period="1y")
 print(data.head())
 
 # Use MCP server
-# Start: python -m src.vprism_mcp
+# Start: python -m vprism.mcp
 ```
 
 ### Docker Deployment
@@ -39,17 +39,17 @@ vPrism is built with a modular, scalable architecture:
 
 ```
 vprism/
-├── src/core/              # Core business logic
-├── src/web/               # FastAPI web service
-├── src/vprism_mcp/        # MCP server
-├── src/docker/            # Docker configuration
-├── tests/                 # Comprehensive test suite
-└── docs/                  # Documentation
+├── vprism/core/              # Core business logic
+├── vprism/web/               # FastAPI web service
+├── vprism/mcp/               # MCP server
+├── vprism/docker/            # Docker configuration
+├── tests/                    # Comprehensive test suite
+└── docs/                     # Documentation
 ```
 
 ### Core Components
 
-#### 1. Data Layer (`src/core/data/`)
+#### 1. Data Layer (`vprism/core/data/`)
 - **Multi-level caching** (memory, DuckDB, file-based)
 - **Provider abstraction** (Yahoo Finance, Alpha Vantage, AkShare)
 - **Rate limiting** and **circuit breaker** patterns
@@ -91,7 +91,7 @@ vprism/
 ### 1. AI Financial Assistant
 ```python
 # MCP server provides data to AI chatbots
-python -m src.vprism_mcp
+python -m vprism.mcp
 ```
 
 ### 2. Algorithmic Trading
@@ -121,7 +121,7 @@ uvicorn src.web.main:app --reload
 
 ```
 vprism/
-├── src/
+├── vprism/
 │   ├── core/                    # Core business logic
 │   │   ├── client/              # Client implementation
 │   │   ├── config/              # Configuration management
@@ -135,7 +135,7 @@ vprism/
 │   │   ├── services/            # Business services
 │   │   └── validation/          # Data validation
 │   ├── web/                     # FastAPI web service
-│   ├── vprism_mcp/              # MCP server
+│   ├── mcp/                     # MCP server
 │   └── docker/                  # Docker configuration
 ├── tests/                       # Test suite
 ├── docs/                        # Documentation
