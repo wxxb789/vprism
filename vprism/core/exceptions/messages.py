@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from .codes import ErrorCode
+from vprism.core.exceptions.codes import ErrorCode
 
 
 class ErrorMessageTemplate:

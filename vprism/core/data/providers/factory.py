@@ -2,16 +2,16 @@
 
 from typing import Any
 
-from ...models.market import MarketType
-from .akshare import AkShare
-from .base import AuthConfig, AuthType, RateLimitConfig
-from .yfinance import YFinance
+from vprism.core.data.providers.akshare import AkShare
+from vprism.core.data.providers.base import AuthConfig, AuthType, DataProvider, RateLimitConfig
+from vprism.core.data.providers.yfinance import YFinance
+from vprism.core.models.market import MarketType
 
 
 class ProviderFactory:
     """数据提供商工厂类，用于创建各种数据提供商实例."""
 
-    _providers: dict[str, Any] = {}
+    _providers: dict[str, DataProvider] = {}
 
     @classmethod
     def create_yahoo_provider(cls, rate_limit: RateLimitConfig | None = None) -> YFinance:
@@ -62,7 +62,7 @@ class ProviderFactory:
         return AkShare(auth_config, rate_limit)
 
     @classmethod
-    def create_provider_by_market(cls, market: MarketType, api_key: str | None = None) -> Any:
+    def create_provider_by_market(cls, market: MarketType, api_key: str | None = None) -> DataProvider:
         """根据市场类型创建合适的提供商.
 
         Args:
@@ -86,13 +86,13 @@ class ProviderFactory:
             return cls.create_yahoo_provider()
 
     @classmethod
-    def create_all_providers(cls) -> dict[str, Any]:
+    def create_all_providers(cls) -> dict[str, DataProvider]:
         """创建所有可用的提供商实例.
 
         Returns:
             包含所有提供商实例的字典
         """
-        providers = {}
+        providers: dict[str, DataProvider] = {}
 
         # 创建Yahoo Finance提供商
         providers["yahoo"] = cls.create_yahoo_provider()
@@ -103,7 +103,7 @@ class ProviderFactory:
         return providers
 
     @classmethod
-    def get_provider_by_name(cls, provider_name: str, **kwargs) -> Any:
+    def get_provider_by_name(cls, provider_name: str, **kwargs: Any) -> DataProvider:
         """根据名称获取提供商实例.
 
         Args:
@@ -124,7 +124,7 @@ class ProviderFactory:
 
 
 # 便捷函数
-def get_provider(provider_name: str, **kwargs) -> Any:
+def get_provider(provider_name: str, **kwargs: Any) -> DataProvider:
     """根据名称获取提供商实例的便捷函数.
 
     Args:
@@ -137,7 +137,7 @@ def get_provider(provider_name: str, **kwargs) -> Any:
     return ProviderFactory.get_provider_by_name(provider_name, **kwargs)
 
 
-def create_default_providers() -> dict[str, Any]:
+def create_default_providers() -> dict[str, DataProvider]:
     """创建默认的提供商集合.
 
     Returns:

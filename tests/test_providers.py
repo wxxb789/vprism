@@ -281,48 +281,5 @@ class TestIntegration:
         assert "health_percentage" in summary
 
 
-class TestIntegration:
-    """集成测试."""
-
-    @pytest.mark.asyncio
-    async def test_multiple_providers_query(self):
-        """测试多个提供商查询."""
-        registry = ProviderRegistry()
-
-        akshare = AkShare()
-        yfinance = YFinance()
-        # vprism = VPrism()  # vprism provider no longer exists
-
-        registry.register(akshare)
-        registry.register(yfinance)
-        # registry.register(vprism)  # vprism provider no longer exists
-
-        # 中国股票查询
-        cn_query = DataQuery(
-            asset=AssetType.STOCK,
-            market=MarketType.CN,
-            symbols=["000001"],
-            timeframe=TimeFrame.DAY_1,
-        )
-
-        # 美国股票查询
-        us_query = DataQuery(
-            asset=AssetType.STOCK,
-            market=MarketType.US,
-            symbols=["AAPL"],
-            timeframe=TimeFrame.DAY_1,
-        )
-
-        cn_providers = registry.find_capable_providers(cn_query)
-        us_providers = registry.find_capable_providers(us_query)
-
-        # akshare应该能处理中国股票 (vprism provider no longer exists)
-        assert any(p.name == "akshare" for p in cn_providers)
-        # vprism provider no longer exists
-
-        # yfinance应该能处理美国股票
-        assert any(p.name == "yfinance" for p in us_providers)
-
-
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

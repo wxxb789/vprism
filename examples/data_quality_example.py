@@ -207,9 +207,8 @@ async def demonstrate_consistency_validation():
     # Simulate consistency validation
     from unittest.mock import patch
 
-    with patch.object(validator, "_get_vprism_data", return_value=identical_data):
-        with patch.object(validator, "_get_akshare_data", return_value=identical_data):
-            report = validator.validate_consistency("000001", start_date, end_date)
+    with patch.object(validator, "_get_vprism_data", return_value=identical_data), patch.object(validator, "_get_akshare_data", return_value=identical_data):
+        report = validator.validate_consistency("000001", start_date, end_date)
 
     print("\nConsistency Validation Results for 000001:")
     print(f"  Total Records: {report.total_records}")

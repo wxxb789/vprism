@@ -2,13 +2,13 @@
 
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any
+from datetime import UTC, datetime
+from typing import Any, TypedDict
 
-from core.data.providers.base import DataProvider
-from core.data.providers.registry import ProviderRegistry
-from core.exceptions import NoCapableProviderError
-from core.models import DataQuery
+from vprism.core.data.providers.base import DataProvider
+from vprism.core.data.providers.registry import ProviderRegistry
+from vprism.core.exceptions import NoCapableProviderError
+from vprism.core.models import DataQuery
 
 
 @dataclass
@@ -20,6 +20,16 @@ class ProviderScore:
     latency_ms: int
     success_rate: float
     last_updated: datetime
+
+
+class DecisionLog(TypedDict):
+    """路由决策日志条目."""
+
+    provider_name: str
+    score: float
+    capability: dict[str, Any]
+    stats: dict[str, Any] | None
+    selected: bool
 
 
 class DataRouter:
@@ -162,7 +172,7 @@ class DataRouter:
         if success:
             stats["successful_requests"] += 1
             stats["total_latency"] += latency_ms
-        stats["last_request_time"] = datetime.now(timezone.utc)
+        stats["last_request_time"] = datetime.now(UTC)
 
     def get_provider_stats(self, provider_name: str) -> dict[str, Any] | None:
         """获取提供商统计信息.
@@ -220,7 +230,7 @@ class DataRouter:
         """
         capable_providers = self.registry.find_capable_providers(query)
 
-        decisions = []
+        decisions: list[DecisionLog] = []
         for provider in capable_providers:
             score = self._calculate_provider_score(provider, query)
             stats = self.get_provider_stats(provider.name)
@@ -242,7 +252,7 @@ class DataRouter:
 
         # 标记选中的提供商
         if decisions:
-            best_score = max(d["score"] for d in decisions)
+            best_score = max((d["score"] for d in decisions), default=0.0)
             for d in decisions:
                 if d["score"] == best_score:
                     d["selected"] = True
@@ -256,5 +266,5 @@ class DataRouter:
             },
             "total_providers": len(capable_providers),
             "decisions": decisions,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }

@@ -2,16 +2,16 @@
 
 import os
 
-from .repository import DataRepository, DuckDBRepository
+from vprism.core.data.storage.repository import DataRepository, DuckDBRepository
 
 
 class RepositoryFactory:
     """数据仓储工厂类"""
 
-    _instance: DuckDBRepository | None = None
+    _instance: "DataRepository | None" = None
 
     @classmethod
-    def create_repository(cls, db_path: str = None, use_memory: bool = False) -> DataRepository:
+    def create_repository(cls, db_path: str | None = None, use_memory: bool = False) -> "DataRepository":
         """
         创建数据仓储实例
 
@@ -32,14 +32,14 @@ class RepositoryFactory:
         return DuckDBRepository(db_path)
 
     @classmethod
-    def get_default_repository(cls) -> DataRepository:
+    def get_default_repository(cls) -> "DataRepository":
         """获取默认仓储实例（单例模式）"""
         if cls._instance is None:
             cls._instance = cls.create_repository()
         return cls._instance
 
     @classmethod
-    def reset_instance(cls):
+    def reset_instance(cls) -> None:
         """重置单例实例（主要用于测试）"""
         if cls._instance:
             cls._instance.close()

@@ -5,9 +5,11 @@ import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, TypeVar
 
-from ..exceptions import ProviderError
+from vprism.core.exceptions import ProviderError
+
+T = TypeVar("T")
 
 
 class CircuitState(Enum):
@@ -32,7 +34,7 @@ class CircuitBreakerConfig:
 class CircuitBreaker:
     """熔断器实现."""
 
-    def __init__(self, config: CircuitBreakerConfig):
+    def __init__(self, config: CircuitBreakerConfig) -> None:
         self.config = config
         self.state = CircuitState.CLOSED
         self.failure_count = 0
@@ -40,7 +42,7 @@ class CircuitBreaker:
         self.success_count = 0
         self._lock = asyncio.Lock()
 
-    async def call(self, func: Callable[..., Awaitable], *args, **kwargs) -> Any:
+    async def call(self, func: Callable[..., Awaitable[T]], *args: Any, **kwargs: Any) -> T:
         """调用函数，应用熔断器逻辑.
 
         Args:
@@ -132,7 +134,7 @@ class CircuitBreaker:
 class CircuitBreakerRegistry:
     """熔断器注册表."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._breakers: dict[str, CircuitBreaker] = {}
         self._lock = asyncio.Lock()
 
@@ -187,14 +189,14 @@ circuit_breaker_registry = CircuitBreakerRegistry()
 class CircuitBreakerDecorator:
     """熔断器装饰器."""
 
-    def __init__(self, name: str, config: CircuitBreakerConfig | None = None):
+    def __init__(self, name: str, config: CircuitBreakerConfig | None = None) -> None:
         self.name = name
         self.config = config or CircuitBreakerConfig(name=name)
 
-    def __call__(self, func: Callable[..., Awaitable]) -> Callable[..., Awaitable]:
+    def __call__(self, func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
         """装饰器实现."""
 
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args: Any, **kwargs: Any) -> T:
             breaker = await circuit_breaker_registry.get_or_create(self.name, self.config)
             return await breaker.call(func, *args, **kwargs)
 

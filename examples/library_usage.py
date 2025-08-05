@@ -145,10 +145,10 @@ def configuration_usage():
     print("\n=== 配置用法示例 ===")
 
     # 使用默认配置
-    client1 = VPrismClient()
+    VPrismClient()
 
     # 使用自定义配置
-    client2 = VPrismClient(
+    VPrismClient(
         {
             "cache": {
                 "enabled": False,  # 禁用缓存
@@ -172,11 +172,9 @@ def error_handling_example():
 
     try:
         # 尝试获取不存在的股票代码
-        data = vprism.get(asset="stock", market="cn", symbols=["INVALID_CODE"], timeframe="1d")
+        vprism.get(asset="stock", market="cn", symbols=["INVALID_CODE"], timeframe="1d")
     except Exception as e:
         print(f"捕获vprism异常: {e}")
-    except Exception as e:
-        print(f"捕获其他异常: {e}")
 
 
 def batch_usage():

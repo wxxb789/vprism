@@ -1,7 +1,7 @@
 """Data validation module."""
 
-from .consistency import ConsistencyReport, DataConsistencyValidator
-from .quality import DataQualityScorer, DataQualityValidator
+from vprism.core.validation.consistency import ConsistencyReport, DataConsistencyValidator
+from vprism.core.validation.quality import DataQualityScorer, DataQualityValidator
 
 __all__ = [
     "DataQualityValidator",

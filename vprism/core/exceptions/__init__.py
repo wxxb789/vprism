@@ -1,6 +1,6 @@
 """Exception handling module."""
 
-from .base import (
+from vprism.core.exceptions.base import (
     AuthenticationError,
     CacheError,
     DataValidationError,
@@ -11,8 +11,8 @@ from .base import (
     RateLimitError,
     VPrismError,
 )
-from .codes import ErrorCode
-from .handler import (
+from vprism.core.exceptions.codes import ErrorCode
+from vprism.core.exceptions.handler import (
     ErrorContextManager,
     ErrorHandler,
     ErrorTracker,
@@ -20,7 +20,7 @@ from .handler import (
     error_handler,
     error_tracker,
 )
-from .messages import ErrorMessageTemplate, format_error_response
+from vprism.core.exceptions.messages import ErrorMessageTemplate, format_error_response
 
 __all__ = [
     "VPrismError",

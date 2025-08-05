@@ -4,10 +4,10 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from ...models import DataPoint, DataQuery
-from ..storage.database import DatabaseManager
-from ..storage.models import DataRecord
-from .base import Repository
+from vprism.core.data.repositories.base import Repository
+from vprism.core.data.storage.database import DatabaseManager
+from vprism.core.data.storage.models import DataRecord
+from vprism.core.models import DataPoint, DataQuery
 
 
 class DataRepository(Repository[DataRecord]):
@@ -106,6 +106,14 @@ class DataRepository(Repository[DataRecord]):
             "max_close": max(closes) if closes else None,
             "total_volume": sum(volumes) if volumes else None,
         }
+
+    def health_check(self) -> bool:
+        """检查数据库连接是否正常"""
+        return self.db_manager.connection is not None
+
+    async def close(self) -> None:
+        """关闭数据库连接"""
+        self.db_manager.close()
 
     def from_data_point(self, data_point: DataPoint, provider: str) -> DataRecord:
         """从DataPoint转换为DataRecord."""

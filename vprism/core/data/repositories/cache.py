@@ -4,9 +4,9 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from ..storage.database import DatabaseManager
-from ..storage.models import CacheRecord
-from .base import Repository
+from vprism.core.data.repositories.base import Repository
+from vprism.core.data.storage.database import DatabaseManager
+from vprism.core.data.storage.models import CacheRecord
 
 
 class CacheRepository(Repository[CacheRecord]):
@@ -92,7 +92,7 @@ class CacheRepository(Repository[CacheRecord]):
         query_hash: str,
         data_source: str,
         expires_at: datetime,
-        **kwargs,
+        **kwargs: Any,
     ) -> CacheRecord:
         """创建新的缓存记录."""
         return CacheRecord(

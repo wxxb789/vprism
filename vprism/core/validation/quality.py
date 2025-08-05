@@ -14,7 +14,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from ..models import DataPoint
+from vprism.core.models import DataPoint
 
 
 class QualityLevel(Enum):
@@ -166,11 +166,11 @@ class DataQualityValidator:
                 col_series = pd.to_numeric(df[col], errors="coerce")
 
                 if method == "iqr":
-                    Q1 = col_series.quantile(0.25)
-                    Q3 = col_series.quantile(0.75)
-                    IQR = Q3 - Q1
-                    lower_bound = Q1 - threshold * IQR
-                    upper_bound = Q3 + threshold * IQR
+                    q1 = col_series.quantile(0.25)
+                    q3 = col_series.quantile(0.75)
+                    iqr = q3 - q1
+                    lower_bound = q1 - threshold * iqr
+                    upper_bound = q3 + threshold * iqr
 
                     col_outliers = (col_series < lower_bound) | (col_series > upper_bound)
                     outlier_mask |= col_outliers
@@ -188,11 +188,11 @@ class DataQualityValidator:
             volume_series = pd.to_numeric(df["volume"], errors="coerce")
 
             if method == "iqr":
-                Q1 = volume_series.quantile(0.25)
-                Q3 = volume_series.quantile(0.75)
-                IQR = Q3 - Q1
-                lower_bound = Q1 - threshold * IQR
-                upper_bound = Q3 + threshold * IQR
+                q1 = volume_series.quantile(0.25)
+                q3 = volume_series.quantile(0.75)
+                iqr = q3 - q1
+                lower_bound = q1 - threshold * iqr
+                upper_bound = q3 + threshold * iqr
 
                 volume_outliers = (volume_series < lower_bound) | (volume_series > upper_bound)
                 outlier_mask |= volume_outliers
@@ -201,7 +201,7 @@ class DataQualityValidator:
 
     def check_consistency(self, df: pd.DataFrame) -> list[str]:
         """Check data consistency across related fields."""
-        issues = []
+        issues: list[str] = []
 
         if df.empty:
             return issues
@@ -233,7 +233,7 @@ class DataQualityValidator:
 class DataQualityScorer:
     """Calculates comprehensive data quality scores."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
 
     def calculate_completeness_score(self, df: pd.DataFrame) -> float:
@@ -241,8 +241,11 @@ class DataQualityScorer:
         if df.empty:
             return 0.0
 
-        total_cells = df.size
-        missing_cells = df.isna().sum().sum()
+        total_cells = float(df.size)
+        missing_cells = float(df.isna().sum().sum())
+
+        if total_cells == 0:
+            return 0.0
 
         return max(0.0, 1.0 - (missing_cells / total_cells))
 
@@ -344,7 +347,7 @@ class DataQualityScorer:
 class DataCleaner:
     """Cleans and normalizes financial data."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
 
     def clean_missing_values(self, df: pd.DataFrame, method: str = "interpolate") -> pd.DataFrame:

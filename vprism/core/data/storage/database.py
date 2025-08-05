@@ -1,12 +1,20 @@
 """数据库管理器."""
 
 import uuid
+from collections.abc import Generator
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from .models import CacheRecord, DataRecord, ProviderRecord, QueryRecord
-from .schema import setup_database
+from duckdb import DuckDBPyConnection
+
+from vprism.core.data.storage.models import (
+    CacheRecord,
+    DataRecord,
+    ProviderRecord,
+    QueryRecord,
+)
+from vprism.core.data.storage.schema import setup_database
 
 
 class DatabaseManager:
@@ -15,7 +23,7 @@ class DatabaseManager:
     def __init__(self, db_path: str = "data/vprism.db"):
         """初始化数据库管理器."""
         self.db_path = db_path
-        self.connection = None
+        self.connection: DuckDBPyConnection
         self._setup()
 
     def _setup(self) -> None:
@@ -113,8 +121,8 @@ class DatabaseManager:
     ) -> list[dict[str, Any]]:
         """查询数据记录."""
 
-        where_conditions = []
-        params = []
+        where_conditions: list[str] = []
+        params: list[Any] = []
 
         if symbol:
             where_conditions.append("symbol = ?")
@@ -130,16 +138,15 @@ class DatabaseManager:
 
         if start_date:
             where_conditions.append("timestamp >= ?")
-            params.append(start_date)
+            params.append(start_date.isoformat())
 
         if end_date:
             where_conditions.append("timestamp <= ?")
-            params.append(end_date)
+            params.append(end_date.isoformat())
 
         if timeframe:
             where_conditions.append("timeframe = ?")
             params.append(timeframe)
-
         where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
 
         query = f"""
@@ -154,7 +161,7 @@ class DatabaseManager:
         result = self.connection.execute(query, params).fetchall()
 
         # 转换为字典列表
-        columns = [desc[0] for desc in self.connection.description]
+        columns = [desc[0] for desc in self.connection.description] if self.connection.description else []
         return [dict(zip(columns, row, strict=False)) for row in result]
 
     # 提供商记录操作
@@ -190,7 +197,7 @@ class DatabaseManager:
         result = self.connection.execute("SELECT * FROM provider_records WHERE name = ?", [name]).fetchone()
 
         if result:
-            columns = [desc[0] for desc in self.connection.description]
+            columns = [desc[0] for desc in self.connection.description] if self.connection.description else []
             return dict(zip(columns, result, strict=False))
         return None
 
@@ -200,7 +207,7 @@ class DatabaseManager:
             "UPDATE provider_records SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE name = ?",
             [status, name],
         )
-        return result.rowcount > 0
+        return result.rowcount > 0 if result else False
 
     # 缓存记录操作
     def upsert_cache_record(self, record: CacheRecord) -> str:
@@ -233,7 +240,7 @@ class DatabaseManager:
         result = self.connection.execute("SELECT * FROM cache_records WHERE cache_key = ?", [cache_key]).fetchone()
 
         if result:
-            columns = [desc[0] for desc in self.connection.description]
+            columns = [desc[0] for desc in self.connection.description] if self.connection.description else []
             return dict(zip(columns, result, strict=False))
         return None
 
@@ -270,10 +277,10 @@ class DatabaseManager:
 
         return record_id
 
-    def update_query_record(self, record_id: str, **kwargs) -> None:
+    def update_query_record(self, record_id: str, **kwargs: Any) -> None:
         """更新查询记录."""
         set_clauses = []
-        params = []
+        params: list[Any] = []
 
         for key, value in kwargs.items():
             set_clauses.append(f"{key} = ?")
@@ -311,15 +318,15 @@ class DatabaseManager:
         """清理过期的缓存记录."""
         try:
             result = self.connection.execute("DELETE FROM cache_records WHERE expires_at <= CURRENT_TIMESTAMP")
-            return max(0, result.rowcount)  # Ensure non-negative
+            return max(0, result.rowcount) if result and result.rowcount is not None else 0
         except Exception:
             return 0
 
     def cleanup_old_data(self, days_to_keep: int = 90) -> int:
         """清理旧数据记录."""
-        cutoff_date = datetime.now(timezone.utc).replace(days=-days_to_keep)
-        result = self.connection.execute("DELETE FROM data_records WHERE timestamp < ?", [cutoff_date])
-        return result.rowcount
+        cutoff_date = datetime.now(UTC) - timedelta(days=days_to_keep)
+        result = self.connection.execute("DELETE FROM data_records WHERE timestamp < ?", [cutoff_date.isoformat()])
+        return result.rowcount if result and result.rowcount is not None else 0
 
     # 数据库维护
     def vacuum(self) -> None:
@@ -331,7 +338,7 @@ class DatabaseManager:
         self.connection.execute("ANALYZE")
 
     @contextmanager
-    def transaction(self):
+    def transaction(self) -> Generator[None, None, None]:
         """事务上下文管理器."""
         try:
             self.connection.execute("BEGIN")
@@ -341,10 +348,10 @@ class DatabaseManager:
             self.connection.execute("ROLLBACK")
             raise
 
-    def __enter__(self):
+    def __enter__(self) -> "DatabaseManager":
         """上下文管理器入口."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any | None) -> None:
         """上下文管理器出口."""
         self.close()

@@ -93,7 +93,7 @@ class NoAvailableProviderError(VPrismError):
     def __init__(
         self,
         message: str,
-        failed_providers: list | None = None,
+        failed_providers: list[dict[str, Any]] | None = None,
         details: dict[str, Any] | None = None,
     ):
         super_details = details or {}

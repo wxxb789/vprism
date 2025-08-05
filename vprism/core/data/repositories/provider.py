@@ -4,9 +4,9 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from ..storage.database import DatabaseManager
-from ..storage.models import ProviderRecord
-from .base import Repository
+from vprism.core.data.repositories.base import Repository
+from vprism.core.data.storage.database import DatabaseManager
+from vprism.core.data.storage.models import ProviderRecord
 
 
 class ProviderRepository(Repository[ProviderRecord]):
@@ -111,7 +111,7 @@ class ProviderRepository(Repository[ProviderRecord]):
         """获取所有提供商."""
         return []
 
-    def create_provider_record(self, name: str, **kwargs) -> ProviderRecord:
+    def create_provider_record(self, name: str, **kwargs: Any) -> ProviderRecord:
         """创建新的提供商记录."""
         return ProviderRecord(
             name=name,

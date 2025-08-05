@@ -1,8 +1,8 @@
 """Services module - business logic layer."""
 
-from .batch import BatchProcessor
-from .data import DataService
-from .routing import DataRouter
+from vprism.core.services.batch import BatchProcessor
+from vprism.core.services.data import DataService
+from vprism.core.services.routing import DataRouter
 
 __all__ = [
     "BatchProcessor",

@@ -1,9 +1,14 @@
 """Data models module."""
 
-from .base import Asset, DataPoint
-from .market import AssetType, MarketType, TimeFrame
-from .query import DataQuery, QueryBuilder
-from .response import DataResponse, ErrorResponse, ProviderInfo, ResponseMetadata
+from vprism.core.models.base import Asset, DataPoint
+from vprism.core.models.market import AssetType, MarketType, TimeFrame
+from vprism.core.models.query import DataQuery, QueryBuilder
+from vprism.core.models.response import (
+    DataResponse,
+    ErrorResponse,
+    ProviderInfo,
+    ResponseMetadata,
+)
 
 __all__ = [
     "DataPoint",

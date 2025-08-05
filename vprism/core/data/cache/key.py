@@ -2,8 +2,8 @@
 
 import hashlib
 
-from ...models.market import TimeFrame
-from ...models.query import DataQuery
+from vprism.core.models.market import TimeFrame
+from vprism.core.models.query import DataQuery
 
 
 class CacheKey:

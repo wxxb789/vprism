@@ -7,18 +7,18 @@ from typing import Any
 
 import aiohttp
 
-from ...exceptions.base import ProviderError
-from ...models.base import DataPoint
-from ...models.market import AssetType, TimeFrame
-from ...models.query import DataQuery
-from ...models.response import DataResponse
-from .base import (
+from vprism.core.data.providers.base import (
     AuthConfig,
     AuthType,
     DataProvider,
     ProviderCapability,
     RateLimitConfig,
 )
+from vprism.core.exceptions.base import ProviderError
+from vprism.core.models.base import DataPoint
+from vprism.core.models.market import AssetType, MarketType, TimeFrame
+from vprism.core.models.query import DataQuery
+from vprism.core.models.response import DataResponse, ProviderInfo, ResponseMetadata
 
 
 class AlphaVantage(DataProvider):
@@ -26,7 +26,7 @@ class AlphaVantage(DataProvider):
 
     BASE_URL = "https://www.alphavantage.co/query"
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str) -> None:
         """初始化AlphaVantage提供商."""
         auth_config = AuthConfig(
             auth_type=AuthType.API_KEY,
@@ -46,6 +46,7 @@ class AlphaVantage(DataProvider):
 
         super().__init__("alpha_vantage", auth_config, rate_limit)
         self.api_key = api_key
+        self.client: Any = None  # 客户端将在认证时初始化
 
     def _discover_capability(self) -> ProviderCapability:
         """发现AlphaVantage能力."""
@@ -93,34 +94,30 @@ class AlphaVantage(DataProvider):
     async def get_data(self, query: DataQuery) -> DataResponse:
         """获取数据."""
         if not self.can_handle_query(query):
-            raise ProviderError(f"AlphaVantage cannot handle query: {query}")
+            raise ProviderError(f"AlphaVantage cannot handle query: {query}", "AlphaVantage")
 
         if not self.is_authenticated:
             await self.authenticate()
             if not self.is_authenticated:
-                raise ProviderError("AlphaVantage authentication failed")
+                raise ProviderError("AlphaVantage authentication failed", "AlphaVantage")
 
         try:
             data_points = await self._fetch_data(query)
 
             return DataResponse(
                 data=data_points,
-                metadata={
-                    "total_records": len(data_points),
-                    "query_time_ms": 0,
-                    "data_source": "alpha_vantage",
-                    "cache_hit": False,
-                },
-                source={
-                    "name": "alpha_vantage",
-                    "version": "latest",
-                    "endpoint": self.BASE_URL,
-                },
+                metadata=ResponseMetadata(
+                    total_records=len(data_points),
+                    query_time_ms=0.0,
+                    data_source="alpha_vantage",
+                    cache_hit=False,
+                ),
+                source=ProviderInfo(name="alpha_vantage", endpoint=self.BASE_URL),
                 cached=False,
             )
 
         except Exception as e:
-            raise ProviderError(f"Failed to fetch data from AlphaVantage: {e}") from e
+            raise ProviderError(f"Failed to fetch data from AlphaVantage: {e}", "AlphaVantage") from e
 
     async def stream_data(self, query: DataQuery) -> AsyncIterator[DataPoint]:
         """流式获取数据."""
@@ -130,7 +127,7 @@ class AlphaVantage(DataProvider):
 
     async def _fetch_data(self, query: DataQuery) -> list[DataPoint]:
         """从AlphaVantage获取数据."""
-        data_points = []
+        data_points: list[DataPoint] = []
 
         if not query.symbols:
             return data_points
@@ -201,12 +198,12 @@ class AlphaVantage(DataProvider):
             data = await response.json()
 
             if "Error Message" in data:
-                raise ProviderError(f"AlphaVantage API error: {data['Error Message']}")
+                raise ProviderError(f"AlphaVantage API error: {data['Error Message']}", "AlphaVantage")
 
-                if "Note" in data:
-                    raise ProviderError(f"AlphaVantage rate limit: {data['Note']}")
+            if "Note" in data:
+                raise ProviderError(f"AlphaVantage rate limit: {data['Note']}", "AlphaVantage")
 
-                data_points = self._parse_alpha_vantage_response(data, symbol, function)
+            data_points = self._parse_alpha_vantage_response(data, symbol, function, query.market or "us")
 
         return data_points
 
@@ -252,9 +249,9 @@ class AlphaVantage(DataProvider):
             data = await response.json()
 
             if "Error Message" in data:
-                raise ProviderError(f"AlphaVantage API error: {data['Error Message']}")
+                raise ProviderError(f"AlphaVantage API error: {data['Error Message']}", "AlphaVantage")
 
-            data_points = self._parse_alpha_vantage_response(data, symbol, function)
+            data_points = self._parse_alpha_vantage_response(data, symbol, function, query.market or "global")
 
         return data_points
 
@@ -300,13 +297,13 @@ class AlphaVantage(DataProvider):
             data = await response.json()
 
             if "Error Message" in data:
-                raise ProviderError(f"AlphaVantage API error: {data['Error Message']}")
+                raise ProviderError(f"AlphaVantage API error: {data['Error Message']}", "AlphaVantage")
 
-            data_points = self._parse_alpha_vantage_response(data, symbol, function)
+            data_points = self._parse_alpha_vantage_response(data, symbol, function, market)
 
         return data_points
 
-    def _get_interval_param(self, timeframe: TimeFrame) -> str:
+    def _get_interval_param(self, timeframe: TimeFrame) -> str | None:
         """将时间框架转换为AlphaVantage间隔参数."""
         mapping = {
             TimeFrame.MINUTE_1: "1min",
@@ -315,11 +312,11 @@ class AlphaVantage(DataProvider):
             TimeFrame.MINUTE_30: "30min",
             TimeFrame.HOUR_1: "60min",
         }
-        return mapping.get(timeframe, "1min")
+        return mapping.get(timeframe)
 
-    def _parse_alpha_vantage_response(self, data: dict[str, Any], symbol: str, function: str) -> list[DataPoint]:
+    def _parse_alpha_vantage_response(self, data: dict[str, Any], symbol: str, function: str, market: str) -> list[DataPoint]:
         """解析AlphaVantage响应."""
-        data_points = []
+        data_points: list[DataPoint] = []
 
         # 根据函数类型选择正确的数据键
         data_key_mapping = {
@@ -351,30 +348,28 @@ class AlphaVantage(DataProvider):
         for date_str, values in time_series.items():
             try:
                 # 解析日期
-                if " " in date_str:
-                    timestamp = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-                else:
-                    timestamp = datetime.strptime(date_str, "%Y-%m-%d")
+                timestamp = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S") if " " in date_str else datetime.strptime(date_str, "%Y-%m-%d")
 
                 # 解析数值
-                open_price = Decimal(str(values.get("1. open", values.get("open", 0))))
-                high_price = Decimal(str(values.get("2. high", values.get("high", 0))))
-                low_price = Decimal(str(values.get("3. low", values.get("low", 0))))
-                close_price = Decimal(str(values.get("4. close", values.get("close", 0))))
-                volume = Decimal(str(values.get("5. volume", values.get("volume", 0))))
+                # 解析数值
+                open_price = Decimal(str(values.get("1. open", values.get("1. open", 0))))
+                high_price = Decimal(str(values.get("2. high", values.get("2. high", 0))))
+                low_price = Decimal(str(values.get("3. low", values.get("3. low", 0))))
+                close_price = Decimal(str(values.get("4. close", values.get("4. close", 0))))
+                volume = Decimal(str(values.get("5. volume", values.get("5. volume", 0))))
 
                 data_point = DataPoint(
                     symbol=symbol,
                     timestamp=timestamp,
-                    open=open_price,
-                    high=high_price,
-                    low=low_price,
-                    close=close_price,
+                    open_price=open_price,
+                    high_price=high_price,
+                    low_price=low_price,
+                    close_price=close_price,
                     volume=volume,
                     amount=close_price * volume,
+                    market=MarketType(market),
                 )
                 data_points.append(data_point)
-
             except Exception as e:
                 print(f"Error parsing AlphaVantage data: {e}")
                 continue
@@ -383,3 +378,7 @@ class AlphaVantage(DataProvider):
         data_points.sort(key=lambda x: x.timestamp)
 
         return data_points
+
+    async def health_check(self) -> bool:
+        """检查提供商健康状况."""
+        return await self.authenticate()

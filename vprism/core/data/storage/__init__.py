@@ -1,9 +1,18 @@
 """数据库存储模块."""
 
-from .database import DatabaseManager
-from .factory import RepositoryFactory, create_test_repository, get_repository
-from .models import CacheRecord, DataRecord, ProviderRecord, QueryRecord
-from .repository import (
+from vprism.core.data.storage.database import DatabaseManager
+from vprism.core.data.storage.factory import (
+    RepositoryFactory,
+    create_test_repository,
+    get_repository,
+)
+from vprism.core.data.storage.models import (
+    CacheRecord,
+    DataRecord,
+    ProviderRecord,
+    QueryRecord,
+)
+from vprism.core.data.storage.repository import (
     AssetInfo,
     DataQualityMetrics,
     DataRepository,
@@ -11,7 +20,11 @@ from .repository import (
     OHLCVData,
     RealTimeQuote,
 )
-from .schema import DatabaseSchema, initialize_database, setup_database
+from vprism.core.data.storage.schema import (
+    DatabaseSchema,
+    initialize_database,
+    setup_database,
+)
 
 __all__ = [
     "DatabaseManager",

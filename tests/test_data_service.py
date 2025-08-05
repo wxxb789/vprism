@@ -352,7 +352,7 @@ class TestQueryBuilder:
 
         from vprism.core.data.providers.registry import ProviderRegistry
 
-        registry = ProviderRegistry()
+        ProviderRegistry()
         router = AsyncMock()
         cache = AsyncMock()
         repository = AsyncMock()
@@ -426,7 +426,7 @@ class TestQueryBuilder:
         builder = service.query()
         builder.symbols(["000001"])
 
-        repr_str = str(builder)
+        str(builder)
         assert "QueryBuilder" in str(type(builder))
         assert builder.query.symbols == ["000001"]
 
@@ -440,7 +440,7 @@ class TestDataServiceIntegration:
 
         from vprism.core.data.providers.registry import ProviderRegistry
 
-        registry = ProviderRegistry()
+        ProviderRegistry()
         router = AsyncMock()
         cache = AsyncMock()
         repository = AsyncMock()
@@ -455,7 +455,7 @@ class TestDataServiceIntegration:
 
         from vprism.core.data.providers.registry import ProviderRegistry
 
-        registry = ProviderRegistry()
+        ProviderRegistry()
         router = AsyncMock()
         cache = AsyncMock()
         repository = AsyncMock()
@@ -471,7 +471,7 @@ class TestDataServiceIntegration:
 
         from vprism.core.data.providers.registry import ProviderRegistry
 
-        registry = ProviderRegistry()
+        ProviderRegistry()
         router = AsyncMock()
         cache = AsyncMock()
         repository = AsyncMock()

@@ -4,10 +4,11 @@ FastAPI 应用工厂和配置
 
 import json
 import uuid
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
@@ -15,22 +16,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
-
-# Custom JSON encoder for datetime and Decimal
-class CustomJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            return obj.isoformat()
-        elif isinstance(obj, Decimal):
-            return float(obj)
-        return super().default(obj)
-
-
 from vprism.core.client import VPrismClient
 from vprism.core.config import ConfigManager
 from vprism.core.exceptions import VPrismError
 from vprism.web.models import ErrorResponse
 from vprism.web.routes import data_router, health_router
+
+
+# Custom JSON encoder for datetime and Decimal
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj: Any) -> Any:
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
 
 
 @asynccontextmanager
@@ -87,15 +87,17 @@ def _setup_middleware(app: FastAPI) -> None:
 
     from starlette.middleware.base import BaseHTTPMiddleware
     from starlette.requests import Request
+    from starlette.responses import Response
+    from starlette.types import ASGIApp
 
     class HTTPRequestLogger(BaseHTTPMiddleware):
-        def __init__(self, app, exclude_paths=None):
+        def __init__(self, app: ASGIApp, exclude_paths: list[str] | None = None) -> None:
             super().__init__(app)
-            self.exclude_paths = exclude_paths or ["/health", "/docs", "/openapi.json"]
+            self.exclude_paths: list[str] = exclude_paths or ["/health", "/docs", "/openapi.json"]
 
-        async def dispatch(self, request: Request, call_next):
+        async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
             path = request.url.path
-            if any(exclude in path for exclude in self.exclude_paths):
+            if any(path.startswith(exclude) for exclude in self.exclude_paths):
                 return await call_next(request)
 
             start_time = time.time()
@@ -114,15 +116,17 @@ def _setup_middleware(app: FastAPI) -> None:
             try:
                 response = await call_next(request)
                 duration = (time.time() - start_time) * 1000
-                logger.success(
-                    "Request completed",
-                    extra={
-                        "method": request.method,
-                        "url": str(request.url),
-                        "status_code": response.status_code,
-                        "duration_ms": round(duration, 2),
-                    },
-                )
+                # hasattr check to satisfy mypy
+                if hasattr(logger, "success"):
+                    logger.success(
+                        "Request completed",
+                        extra={
+                            "method": request.method,
+                            "url": str(request.url),
+                            "status_code": response.status_code,
+                            "duration_ms": round(duration, 2),
+                        },
+                    )
                 return response
             except Exception as e:
                 duration = (time.time() - start_time) * 1000
@@ -169,6 +173,7 @@ def _setup_exception_handlers(app: FastAPI) -> None:
             status_code=400,
             content=jsonable_encoder(
                 ErrorResponse(
+                    success=False,
                     error=exc.__class__.__name__,
                     message=str(exc),
                     details={
@@ -187,6 +192,7 @@ def _setup_exception_handlers(app: FastAPI) -> None:
             status_code=exc.status_code,
             content=jsonable_encoder(
                 ErrorResponse(
+                    success=False,
                     error="HTTPException",
                     message=exc.detail,
                     details={"status_code": exc.status_code},
@@ -202,6 +208,7 @@ def _setup_exception_handlers(app: FastAPI) -> None:
             status_code=500,
             content=jsonable_encoder(
                 ErrorResponse(
+                    success=False,
                     error="InternalServerError",
                     message="服务器内部错误",
                     details={"type": type(exc).__name__},

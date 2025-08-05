@@ -4,10 +4,10 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from ...models.query import DataQuery
-from ..storage.database import DatabaseManager
-from ..storage.models import QueryRecord
-from .base import Repository
+from vprism.core.data.repositories.base import Repository
+from vprism.core.data.storage.database import DatabaseManager
+from vprism.core.data.storage.models import QueryRecord
+from vprism.core.models.query import DataQuery
 
 
 class QueryRepository(Repository[QueryRecord]):

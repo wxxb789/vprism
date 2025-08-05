@@ -11,19 +11,20 @@ class TestDatabaseSchema:
     """测试数据库表结构设计"""
 
     @pytest.fixture
-    def temp_db(self):
+    def temp_db(self) -> str:
         """创建临时内存数据库"""
         return ":memory:"
 
-    def test_database_connection(self, temp_db):
+    def test_database_connection(self, temp_db: str) -> None:
         """测试数据库连接"""
         schema = DatabaseSchema(temp_db)
         assert schema.conn is not None
         schema.close()
 
-    def test_table_creation(self, temp_db):
+    def test_table_creation(self, temp_db: str) -> None:
         """测试表结构创建"""
         schema = DatabaseSchema(temp_db)
+        assert schema.conn is not None
 
         # 验证表存在
         tables = schema.conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'").fetchall()
@@ -44,9 +45,10 @@ class TestDatabaseSchema:
 
         schema.close()
 
-    def test_indexes_creation(self, temp_db):
+    def test_indexes_creation(self, temp_db: str) -> None:
         """测试索引创建"""
         schema = DatabaseSchema(temp_db)
+        assert schema.conn is not None
 
         # 验证索引创建 - 检查表结构
         indexes = schema.conn.execute("""
@@ -60,9 +62,10 @@ class TestDatabaseSchema:
 
         schema.close()
 
-    def test_table_stats(self, temp_db):
+    def test_table_stats(self, temp_db: str) -> None:
         """测试表统计信息"""
         schema = DatabaseSchema(temp_db)
+        assert schema.conn is not None
 
         stats = schema.get_table_stats()
         expected_tables = [
@@ -80,9 +83,10 @@ class TestDatabaseSchema:
 
         schema.close()
 
-    def test_insert_and_query_asset_info(self, temp_db):
+    def test_insert_and_query_asset_info(self, temp_db: str) -> None:
         """测试资产信息表的插入和查询"""
         schema = DatabaseSchema(temp_db)
+        assert schema.conn is not None
 
         # 插入测试数据
         schema.conn.execute("""
@@ -102,9 +106,10 @@ class TestDatabaseSchema:
 
         schema.close()
 
-    def test_insert_and_query_daily_ohlcv(self, temp_db):
+    def test_insert_and_query_daily_ohlcv(self, temp_db: str) -> None:
         """测试日线OHLCV数据的插入和查询"""
         schema = DatabaseSchema(temp_db)
+        assert schema.conn is not None
 
         # 插入测试数据
         test_date = date(2024, 1, 1)
@@ -134,9 +139,10 @@ class TestDatabaseSchema:
 
         schema.close()
 
-    def test_insert_and_query_intraday_ohlcv(self, temp_db):
+    def test_insert_and_query_intraday_ohlcv(self, temp_db: str) -> None:
         """测试分钟级OHLCV数据的插入和查询"""
         schema = DatabaseSchema(temp_db)
+        assert schema.conn is not None
 
         # 插入测试数据
         test_timestamp = datetime(2024, 1, 1, 9, 30, 0)
@@ -165,9 +171,10 @@ class TestDatabaseSchema:
 
         schema.close()
 
-    def test_insert_and_query_real_time_quotes(self, temp_db):
+    def test_insert_and_query_real_time_quotes(self, temp_db: str) -> None:
         """测试实时报价数据的插入和查询"""
         schema = DatabaseSchema(temp_db)
+        assert schema.conn is not None
 
         # 插入测试数据
         test_timestamp = datetime.now()
@@ -191,9 +198,10 @@ class TestDatabaseSchema:
 
         schema.close()
 
-    def test_primary_key_constraints(self, temp_db):
+    def test_primary_key_constraints(self, temp_db: str) -> None:
         """测试主键约束"""
         schema = DatabaseSchema(temp_db)
+        assert schema.conn is not None
 
         # 测试资产信息表的主键约束
         schema.conn.execute("""
@@ -215,9 +223,10 @@ class TestDatabaseSchema:
 
         schema.close()
 
-    def test_foreign_key_like_behavior(self, temp_db):
+    def test_foreign_key_like_behavior(self, temp_db: str) -> None:
         """测试类似外键的行为（通过应用层实现）"""
         schema = DatabaseSchema(temp_db)
+        assert schema.conn is not None
 
         # 先插入资产信息
         schema.conn.execute("""
@@ -252,9 +261,10 @@ class TestDatabaseSchema:
 
         schema.close()
 
-    def test_materialized_views(self, temp_db):
+    def test_materialized_views(self, temp_db: str) -> None:
         """测试物化视图创建"""
         schema = DatabaseSchema(temp_db)
+        assert schema.conn is not None
 
         # 直接创建物化视图
         schema.create_materialized_views()
@@ -271,9 +281,10 @@ class TestDatabaseSchema:
 
         schema.close()
 
-    def test_partitioned_views(self, temp_db):
+    def test_partitioned_views(self, temp_db: str) -> None:
         """测试分区视图创建"""
         schema = DatabaseSchema(temp_db)
+        assert schema.conn is not None
 
         # 创建分区视图
         schema.create_partitioned_tables()
@@ -281,7 +292,7 @@ class TestDatabaseSchema:
         # 验证视图存在
         views = schema.conn.execute("SELECT table_name FROM information_schema.tables WHERE table_type = 'VIEW'").fetchall()
 
-        view_names = [v[0] for v in views]
+        [v[0] for v in views]
 
         # 检查是否创建了分区表（注意：这些是表，不是视图）
         tables = schema.conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'").fetchall()
@@ -293,9 +304,10 @@ class TestDatabaseSchema:
 
         schema.close()
 
-    def test_data_quality_table(self, temp_db):
+    def test_data_quality_table(self, temp_db: str) -> None:
         """测试数据质量表"""
         schema = DatabaseSchema(temp_db)
+        assert schema.conn is not None
 
         # 插入测试数据质量记录
         schema.conn.execute("""
@@ -320,9 +332,10 @@ class TestDatabaseSchema:
 
         schema.close()
 
-    def test_provider_status_table(self, temp_db):
+    def test_provider_status_table(self, temp_db: str) -> None:
         """测试提供商状态表"""
         schema = DatabaseSchema(temp_db)
+        assert schema.conn is not None
 
         # 插入测试提供商状态
         schema.conn.execute("""
@@ -342,9 +355,10 @@ class TestDatabaseSchema:
 
         schema.close()
 
-    def test_optimization_functions(self, temp_db):
+    def test_optimization_functions(self, temp_db: str) -> None:
         """测试优化功能"""
         schema = DatabaseSchema(temp_db)
+        assert schema.conn is not None
 
         # 测试优化函数不会崩溃
         try:
@@ -358,7 +372,7 @@ class TestDatabaseSchema:
 
         schema.close()
 
-    def test_migration_tool(self, temp_db):
+    def test_migration_tool(self, temp_db: str) -> None:
         """测试迁移工具"""
         from vprism.core.data.storage.database_schema import DatabaseMigration
 
@@ -374,9 +388,10 @@ class TestDatabaseSchema:
 
         assert migration_success
 
-    def test_setup_test_data(self, temp_db):
+    def test_setup_test_data(self, temp_db: str) -> None:
         """测试测试数据设置"""
         schema = DatabaseSchema(temp_db)
+        assert schema.conn is not None
 
         # 直接插入测试数据
         from vprism.core.data.storage.database_schema import DatabaseMigration

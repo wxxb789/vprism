@@ -2,27 +2,56 @@
 
 import asyncio
 import functools
+import logging
 import time
-from collections.abc import Callable
-from typing import Any
+from collections.abc import Awaitable, Callable
+from typing import Any, ParamSpec, TypeAlias, TypeVar, cast, overload
+
+from vprism.core.logging.config import LogConfig
 
 try:
-    from loguru import logger
+    from loguru import Logger as _LoguruLogger
+    from loguru import logger as _logger
 except ImportError:
-    import logging
 
-    logger = logging.getLogger("vprism")
+    class _LoguruLogger:  # type: ignore
+        """A mock Loguru logger class."""
+
+        def bind(self, **kwargs: Any) -> "Any":
+            return self
+
+        def info(self, message: str, **kwargs: Any) -> None:
+            logging.info(message, **kwargs)
+
+        def error(self, message: str, **kwargs: Any) -> None:
+            logging.error(message, **kwargs)
+
+        def warning(self, message: str, **kwargs: Any) -> None:
+            logging.warning(message, **kwargs)
+
+        def debug(self, message: str, **kwargs: Any) -> None:
+            logging.debug(message, **kwargs)
+
+    _logger = _LoguruLogger()
 
 
-def bind(**kwargs: Any) -> Any:
+P = ParamSpec("P")
+T = TypeVar("T")
+
+# Define a union type for the logger to handle both loguru and standard logging
+AnyLogger: TypeAlias = logging.Logger | _LoguruLogger
+logger: AnyLogger = _logger
+LoguruLogger: TypeAlias = _LoguruLogger
+
+
+def bind(**kwargs: Any) -> AnyLogger:
     """Bind context to logger."""
-    try:
+    if hasattr(logger, "bind"):
         return logger.bind(**kwargs)
-    except AttributeError:
-        return logger
+    return logger
 
 
-def get_logger(name: str = None) -> Any:
+def get_logger(name: str | None = None) -> AnyLogger:
     """Get logger instance."""
     if name:
         try:
@@ -38,8 +67,6 @@ def configure_logging(level: str = "INFO", **kwargs: Any) -> None:
     """Configure logging."""
     try:
         from loguru import logger as loguru_logger
-
-        from .config import LogConfig
 
         # 创建配置对象
         config = LogConfig(level=level, **kwargs)
@@ -90,15 +117,14 @@ def configure_logging(level: str = "INFO", **kwargs: Any) -> None:
 class StructuredLogger:
     """Structured logger wrapper."""
 
-    def __init__(self, config=None):
+    def __init__(self, config: "LogConfig | None" = None) -> None:
         """Initialize structured logger."""
-        from .config import LogConfig
 
         self.config = config or LogConfig()
-        self.logger = get_logger()
+        self.logger: AnyLogger = get_logger()
         self._setup_logger()
 
-    def _setup_logger(self):
+    def _setup_logger(self) -> None:
         """Setup logger with configuration."""
         try:
             import sys
@@ -138,7 +164,7 @@ class StructuredLogger:
         except ImportError:
             pass
 
-    def configure(self, **kwargs):
+    def configure(self, **kwargs: Any) -> None:
         """Update configuration."""
         for key, value in kwargs.items():
             if hasattr(self.config, key):
@@ -149,28 +175,28 @@ class StructuredLogger:
         """Log info message."""
         try:
             self.logger.info(message, **kwargs)
-        except:
+        except Exception:
             self.logger.info(f"{message} {kwargs}")
 
     def error(self, message: str, **kwargs: Any) -> None:
         """Log error message."""
         try:
             self.logger.error(message, **kwargs)
-        except:
+        except Exception:
             self.logger.error(f"{message} {kwargs}")
 
     def warning(self, message: str, **kwargs: Any) -> None:
         """Log warning message."""
         try:
             self.logger.warning(message, **kwargs)
-        except:
+        except Exception:
             self.logger.warning(f"{message} {kwargs}")
 
     def debug(self, message: str, **kwargs: Any) -> None:
         """Log debug message."""
         try:
             self.logger.debug(message, **kwargs)
-        except:
+        except Exception:
             self.logger.debug(f"{message} {kwargs}")
 
 
@@ -185,65 +211,72 @@ class PerformanceLogger:
         """
         self.operation = operation
 
-    def __call__(self, func: Callable) -> Callable:
+    @overload
+    def __call__(self, func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]: ...
+
+    @overload
+    def __call__(self, func: Callable[P, T]) -> Callable[P, T]: ...
+
+    def __call__(self, func: Callable[P, T]) -> Callable[P, T]:
         """Decorator function."""
 
         @functools.wraps(func)
-        async def async_wrapper(*args, **kwargs):
-            start_time = time.time()
-            try:
-                result = await func(*args, **kwargs)
-                duration = time.time() - start_time
-                logger.info(
-                    f"{self.operation} completed",
-                    extra={
-                        "operation": self.operation,
-                        "duration_ms": round(duration * 1000, 2),
-                        "status": "success",
-                    },
-                )
-                return result
-            except Exception as e:
-                duration = time.time() - start_time
-                logger.error(
-                    f"{self.operation} failed",
-                    extra={
-                        "operation": self.operation,
-                        "duration_ms": round(duration * 1000, 2),
-                        "status": "error",
-                        "error": str(e),
-                    },
-                )
-                raise
-
-        @functools.wraps(func)
-        def sync_wrapper(*args, **kwargs):
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             start_time = time.time()
             try:
                 result = func(*args, **kwargs)
                 duration = time.time() - start_time
-                logger.info(
-                    f"{self.operation} completed",
-                    extra={
-                        "operation": self.operation,
-                        "duration_ms": round(duration * 1000, 2),
-                        "status": "success",
-                    },
-                )
+                bind(
+                    operation=self.operation,
+                    duration_ms=round(duration * 1000, 2),
+                    status="success",
+                ).info(f"{self.operation} completed")
                 return result
             except Exception as e:
                 duration = time.time() - start_time
-                logger.error(
-                    f"{self.operation} failed",
-                    extra={
-                        "operation": self.operation,
-                        "duration_ms": round(duration * 1000, 2),
-                        "status": "error",
-                        "error": str(e),
-                    },
-                )
+                bind(
+                    operation=self.operation,
+                    duration_ms=round(duration * 1000, 2),
+                    status="error",
+                    error=str(e),
+                ).error(f"{self.operation} failed")
+                raise
+
+        @functools.wraps(func)
+        async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            start_time = time.time()
+            try:
+                # We need to cast to Awaitable[T] here to satisfy mypy
+                result = await cast("Awaitable[T]", func(*args, **kwargs))
+                duration = time.time() - start_time
+                bind(
+                    operation=self.operation,
+                    duration_ms=round(duration * 1000, 2),
+                    status="success",
+                ).info(f"{self.operation} completed")
+                return result
+            except Exception as e:
+                duration = time.time() - start_time
+                bind(
+                    operation=self.operation,
+                    duration_ms=round(duration * 1000, 2),
+                    status="error",
+                    error=str(e),
+                ).error(f"{self.operation} failed")
                 raise
 
         if asyncio.iscoroutinefunction(func):
-            return async_wrapper
-        return sync_wrapper
+            return cast("Callable[P, T]", async_wrapper)
+        return wrapper
+
+
+__all__ = [
+    "logger",
+    "LoguruLogger",
+    "bind",
+    "get_logger",
+    "configure_logging",
+    "StructuredLogger",
+    "PerformanceLogger",
+    "AnyLogger",
+]

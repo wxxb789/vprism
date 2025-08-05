@@ -2,14 +2,14 @@
 
 from datetime import datetime
 
-from ..models.market import AssetType, MarketType, TimeFrame
-from ..models.query import DataQuery
+from vprism.core.models.market import AssetType, MarketType, TimeFrame
+from vprism.core.models.query import DataQuery
 
 
 class QueryBuilder:
     """构建器模式API - 支持复杂查询构建"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._asset: AssetType | None = None
         self._market: MarketType | None = None
         self._symbols: list[str] | None = None
@@ -38,6 +38,16 @@ class QueryBuilder:
         self._timeframe = TimeFrame(timeframe)
         return self
 
+    def start(self, start: str) -> "QueryBuilder":
+        """设置开始日期"""
+        self._start = start
+        return self
+
+    def end(self, end: str) -> "QueryBuilder":
+        """设置结束日期"""
+        self._end = end
+        return self
+
     def date_range(self, start: str, end: str) -> "QueryBuilder":
         """设置日期范围"""
         self._start = start
@@ -51,6 +61,9 @@ class QueryBuilder:
 
     def build(self) -> DataQuery:
         """构建最终的查询对象"""
+        if not self._asset:
+            raise ValueError("Asset type must be set before building the query.")
+
         start_dt = None
         end_dt = None
         if self._start:
@@ -62,7 +75,7 @@ class QueryBuilder:
             asset=self._asset,
             market=self._market,
             symbols=self._symbols,
-            timeframe=self._timeframe,
+            timeframe=self._timeframe or TimeFrame.DAY_1,
             start=start_dt,
             end=end_dt,
             provider=self._provider,

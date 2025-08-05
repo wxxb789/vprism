@@ -13,8 +13,8 @@ class HealthStatus:
     def __init__(
         self,
         status: str,
-        timestamp: datetime = None,
-        checks: dict[str, Any] = None,
+        timestamp: datetime | None = None,
+        checks: dict[str, Any] | None = None,
         uptime_seconds: float = 0.0,
     ):
         self.status = status
@@ -35,25 +35,25 @@ class HealthChecker:
         """
         self.name = name
         self.start_time = time.time()
-        self.checks: dict[str, Callable] = {}
+        self.checks: dict[str, Callable[[], dict[str, Any]]] = {}
         self._status = "healthy"
 
         # Add default checks to match test expectations
         self._add_default_checks()
 
-    def _add_default_checks(self):
+    def _add_default_checks(self) -> None:
         """Add default health checks."""
 
-        def system_check():
+        def system_check() -> dict[str, Any]:
             return {"status": "healthy", "details": {}}
 
-        def memory_check():
+        def memory_check() -> dict[str, Any]:
             return {"status": "healthy", "details": {}}
 
         self.register_check("system", system_check)
         self.register_check("memory", memory_check)
 
-    def register_check(self, name: str, check_func: Callable) -> None:
+    def register_check(self, name: str, check_func: Callable[[], dict[str, Any]]) -> None:
         """Register a health check function.
 
         Args:

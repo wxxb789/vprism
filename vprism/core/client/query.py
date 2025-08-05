@@ -1,6 +1,7 @@
 """查询构建器模块."""
 
 from datetime import date, datetime, timedelta
+from typing import Any
 
 from vprism.core.models import AssetType, DataQuery, MarketType, TimeFrame
 
@@ -8,7 +9,7 @@ from vprism.core.models import AssetType, DataQuery, MarketType, TimeFrame
 class QueryBuilder:
     """链式查询构建器，支持流畅的API调用."""
 
-    def __init__(self, service=None):
+    def __init__(self, service: Any = None) -> None:
         """初始化查询构建器.
 
         Args:
@@ -66,7 +67,7 @@ class QueryBuilder:
         self._query.symbols = symbols
         return self
 
-    def start(self, start_date: str | date) -> "QueryBuilder":
+    def start_date(self, start_date: str | date) -> "QueryBuilder":
         """设置开始日期.
 
         Args:
@@ -77,10 +78,10 @@ class QueryBuilder:
         """
         if isinstance(start_date, str):
             start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-        self._query.start = start_date
+        self._query.start = datetime.combine(start_date, datetime.min.time())
         return self
 
-    def end(self, end_date: str | date) -> "QueryBuilder":
+    def end_date(self, end_date: str | date) -> "QueryBuilder":
         """设置结束日期.
 
         Args:
@@ -91,7 +92,7 @@ class QueryBuilder:
         """
         if isinstance(end_date, str):
             end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
-        self._query.end = end_date
+        self._query.end = datetime.combine(end_date, datetime.max.time())
         return self
 
     def timeframe(self, timeframe: str | TimeFrame) -> "QueryBuilder":
@@ -128,8 +129,8 @@ class QueryBuilder:
         }
 
         start_date = end_date - period_mapping.get(period, timedelta(days=30))
-        self._query.start = start_date
-        self._query.end = end_date
+        self._query.start = datetime.combine(start_date, datetime.min.time())
+        self._query.end = datetime.combine(end_date, datetime.max.time())
         return self
 
     def build(self) -> DataQuery:

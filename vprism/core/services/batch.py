@@ -6,11 +6,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from vprism.core.data.providers.base import DataProvider
 from vprism.core.data.providers.registry import ProviderRegistry
-from vprism.core.models.market import AssetType
+from vprism.core.models.market import AssetType, MarketType, TimeFrame
 from vprism.core.models.query import DataQuery
-from vprism.core.models.response import DataResponse, ProviderInfo, ResponseMetadata
-from vprism.core.services.routing import DataRouter
+from vprism.core.models.response import DataResponse
+from vprism.core.services.data import DataService
+from vprism.core.services.data_router import DataRouter
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ class BatchRequest:
     retry_count: int = 3
     retry_delay: float = 1.0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """初始化后验证."""
         if self.concurrent_limit <= 0:
             self.concurrent_limit = 10
@@ -39,7 +41,7 @@ class BatchRequest:
 class BatchResult:
     """批量处理结果."""
 
-    results: dict[str, DataResponse]
+    results: dict[str, DataResponse | BaseException]
     success_count: int
     failure_count: int
     total_time_seconds: float
@@ -52,7 +54,7 @@ class BatchProcessor:
 
     def __init__(
         self,
-        data_service,
+        data_service: DataService,
         router: DataRouter | None = None,
         registry: ProviderRegistry | None = None,
     ):
@@ -64,8 +66,8 @@ class BatchProcessor:
             registry: 提供商注册表实例
         """
         self.data_service = data_service
-        self.router = router
-        self.registry = registry
+        self.router = router or data_service.router
+        self.registry = registry or getattr(self.router, "registry", None)
 
     async def process_batch(self, batch_request: BatchRequest) -> BatchResult:
         """处理批量数据请求.
@@ -99,33 +101,32 @@ class BatchProcessor:
         group_results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # 合并结果
-        final_results = {}
-        errors = {}
+        final_results: dict[str, DataResponse | BaseException] = {}
+        errors: dict[str, str] = {}
         success_count = 0
         failure_count = 0
 
         for i, (provider_name, queries) in enumerate(provider_groups.items()):
             result = group_results[i]
-            if isinstance(result, Exception):
-                # 处理异常
+            if isinstance(result, BaseException):
+                # Handle exceptions from gather
                 for j, _query in enumerate(queries):
                     query_id = f"{provider_name}_{j}"
                     errors[query_id] = str(result)
-                    final_results[query_id] = DataResponse(
-                        data=[],
-                        metadata={"error": str(result), "provider": provider_name},
-                        source=ProviderInfo(name=provider_name, endpoint=provider_name),
-                    )
+                    final_results[query_id] = result
                 failure_count += len(queries)
-            else:
-                # 处理成功结果
+            elif isinstance(result, dict):
+                # Handle successful results from a provider group
                 final_results.update(result)
-                success_count += len([r for r in result.values() if not getattr(r.metadata, "error", None)])
-                failure_count += len([r for r in result.values() if getattr(r.metadata, "error", None)])
+                for res in result.values():
+                    if isinstance(res, DataResponse):
+                        success_count += 1
+                    else:
+                        failure_count += 1
 
         total_time = (datetime.now() - start_time).total_seconds()
 
-        result = BatchResult(
+        batch_result = BatchResult(
             results=final_results,
             success_count=success_count,
             failure_count=failure_count,
@@ -136,7 +137,7 @@ class BatchProcessor:
 
         logger.info(f"Batch processing completed: {success_count} successful, {failure_count} failed in {total_time:.2f} seconds")
 
-        return result
+        return batch_result
 
     def _group_queries_by_provider(self, queries: list[DataQuery]) -> dict[str, list[DataQuery]]:
         """按提供商分组查询.
@@ -147,7 +148,7 @@ class BatchProcessor:
         Returns:
             Dict[str, List[DataQuery]]: 按提供商分组的查询
         """
-        groups = {}
+        groups: dict[str, list[DataQuery]] = {}
 
         for query in queries:
             # 找到能处理此查询的提供商
@@ -168,7 +169,7 @@ class BatchProcessor:
 
         return groups
 
-    def _find_capable_providers(self, query: DataQuery) -> list[Any]:
+    def _find_capable_providers(self, query: DataQuery) -> list[DataProvider]:
         """找到能处理查询的提供商.
 
         Args:
@@ -182,7 +183,7 @@ class BatchProcessor:
 
         return self.registry.find_capable_providers(query)
 
-    def _select_best_provider(self, providers: list[Any]) -> Any | None:
+    def _select_best_provider(self, providers: list[DataProvider]) -> DataProvider | None:
         """选择最佳提供商.
 
         Args:
@@ -196,13 +197,13 @@ class BatchProcessor:
 
         # 简单的选择策略：选择健康的第一个提供商
         for provider in providers:
-            if hasattr(self.registry, "is_healthy") and self.registry.is_healthy(provider.name):
+            if self.registry and hasattr(self.registry, "is_healthy") and self.registry.is_healthy(provider.name):
                 return provider
 
         # 如果没有健康的，返回第一个
         return providers[0]
 
-    async def _process_provider_group(self, provider_name: str, queries: list[DataQuery], batch_request: BatchRequest) -> dict[str, DataResponse]:
+    async def _process_provider_group(self, provider_name: str, queries: list[DataQuery], batch_request: BatchRequest) -> dict[str, DataResponse | Exception]:
         """处理单个提供商的查询组.
 
         Args:
@@ -215,7 +216,7 @@ class BatchProcessor:
         """
         semaphore = asyncio.Semaphore(batch_request.concurrent_limit)
 
-        async def process_single_query(query: DataQuery, index: int) -> tuple[str, DataResponse]:
+        async def process_single_query(query: DataQuery, index: int) -> tuple[str, DataResponse | Exception]:
             """处理单个查询."""
             async with semaphore:
                 query_id = f"{provider_name}_{index}"
@@ -228,58 +229,44 @@ class BatchProcessor:
                         )
                         return query_id, response
 
-                    except TimeoutError:
-                        if attempt == batch_request.retry_count:
-                            error_msg = f"Query timeout after {batch_request.retry_count} retries"
+                    except TimeoutError as e:
+                        if attempt >= batch_request.retry_count:
+                            error_msg = f"Query timeout after {batch_request.retry_count + 1} attempts"
                             logger.error(f"{query_id}: {error_msg}")
-                            return query_id, DataResponse(
-                                data=[],
-                                metadata=ResponseMetadata(
-                                    total_records=0,
-                                    query_time_ms=0.0,
-                                    data_source=provider_name,
-                                ),
-                                source=ProviderInfo(name=provider_name, endpoint=provider_name),
-                            )
-                        else:
-                            await asyncio.sleep(batch_request.retry_delay * (2**attempt))
-
+                            return query_id, e
+                        await asyncio.sleep(batch_request.retry_delay * (2**attempt))
                     except Exception as e:
-                        if attempt == batch_request.retry_count:
+                        if attempt >= batch_request.retry_count:
                             logger.error(f"{query_id}: Query failed - {e}")
-                            return query_id, DataResponse(
-                                data=[],
-                                metadata=ResponseMetadata(
-                                    total_records=0,
-                                    query_time_ms=0.0,
-                                    data_source=provider_name,
-                                ),
-                                source=ProviderInfo(name=provider_name, endpoint=provider_name),
-                            )
-                        else:
-                            await asyncio.sleep(batch_request.retry_delay * (2**attempt))
+                            return query_id, e
+                        await asyncio.sleep(batch_request.retry_delay * (2**attempt))
+            # Fallback return, should not be reached
+            return (
+                f"{provider_name}_{index}",
+                Exception("Max retries reached without success or failure"),
+            )
 
         # 并发处理所有查询
         tasks = [process_single_query(query, i) for i, query in enumerate(queries)]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # 处理结果
-        final_results = {}
+        final_results: dict[str, DataResponse | Exception] = {}
         for result in results:
-            if isinstance(result, Exception):
-                # 处理异常
-                logger.error(f"Unexpected error in batch processing: {result}")
-            else:
+            if isinstance(result, tuple):
                 query_id, response = result
                 final_results[query_id] = response
+            elif isinstance(result, Exception):
+                # This case should be rare due to gather's return_exceptions
+                logger.error(f"Unexpected error during gather: {result}")
 
         return final_results
 
     async def process_optimized_batch(
         self,
         symbols: list[str],
-        market: Any,
-        timeframe: Any,
+        market: MarketType,
+        timeframe: TimeFrame,
         start: datetime,
         end: datetime,
         concurrent_limit: int = 10,
@@ -317,7 +304,7 @@ class BatchProcessor:
     async def get_market_data_batch(
         self,
         symbols: list[str],
-        market: Any,
+        market: MarketType,
         period: str = "1m",
         concurrent_limit: int = 10,
     ) -> BatchResult:
@@ -349,7 +336,7 @@ class BatchProcessor:
         return await self.process_optimized_batch(
             symbols=symbols,
             market=market,
-            timeframe="1d",
+            timeframe=TimeFrame.DAY_1,
             start=start,
             end=end,
             concurrent_limit=concurrent_limit,

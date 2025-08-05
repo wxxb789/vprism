@@ -3,20 +3,21 @@
 from collections.abc import AsyncIterator
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
-from ...exceptions.base import ProviderError
-from ...models.base import DataPoint
-from ...models.market import AssetType, MarketType
-from ...models.query import DataQuery
-from ...models.response import DataResponse
-from ...monitoring import StructuredLogger
-from .base import (
+from vprism.core.data.providers.base import (
     AuthConfig,
     AuthType,
     DataProvider,
     ProviderCapability,
     RateLimitConfig,
 )
+from vprism.core.exceptions.base import ProviderError
+from vprism.core.models.base import DataPoint
+from vprism.core.models.market import AssetType, MarketType
+from vprism.core.models.query import DataQuery
+from vprism.core.models.response import DataResponse, ProviderInfo, ResponseMetadata
+from vprism.core.monitoring import StructuredLogger
 
 logger = StructuredLogger().logger
 
@@ -24,7 +25,7 @@ logger = StructuredLogger().logger
 class AkShare(DataProvider):
     """akshare数据提供商实现."""
 
-    def __init__(self, auth_config: AuthConfig = None, rate_limit: RateLimitConfig = None):
+    def __init__(self, auth_config: AuthConfig | None = None, rate_limit: RateLimitConfig | None = None) -> None:
         """初始化akshare提供商."""
         if auth_config is None:
             auth_config = AuthConfig(auth_type=AuthType.NONE, credentials={}, required_fields=[])
@@ -85,7 +86,7 @@ class AkShare(DataProvider):
         AkShare不需要身份验证，只需要检查依赖是否可用。
         """
         try:
-            import akshare as ak
+            import akshare as ak  # type: ignore
 
             # 测试连接
             test_data = ak.stock_zh_a_spot()
@@ -121,7 +122,11 @@ class AkShare(DataProvider):
 
         except Exception as e:
             logger.error(f"Error getting data from AkShare: {e}")
-            return DataResponse(data=[], metadata={"error": str(e)})
+            return DataResponse(
+                data=[],
+                metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
+                source=ProviderInfo(name="akshare"),
+            )
 
     async def stream_data(self, query: DataQuery) -> AsyncIterator[DataPoint]:
         """流式获取数据."""
@@ -132,7 +137,11 @@ class AkShare(DataProvider):
     async def _fetch_data(self, query: DataQuery) -> DataResponse:
         """获取数据的核心方法."""
         if not query.symbols:
-            return DataResponse(data=[], metadata={"error": "No symbols provided"})
+            return DataResponse(
+                data=[],
+                metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
+                source=ProviderInfo(name="akshare"),
+            )
 
         symbol = query.symbols[0]
         market = query.market.value if query.market else "cn"
@@ -145,11 +154,19 @@ class AkShare(DataProvider):
             elif market == "hk":
                 return await self._get_hk_data(symbol, query)
             else:
-                return DataResponse(data=[], metadata={"error": f"Unsupported market: {market}"})
+                return DataResponse(
+                    data=[],
+                    metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
+                    source=ProviderInfo(name="akshare"),
+                )
 
         except Exception as e:
             logger.error(f"Error fetching data from AkShare: {e}")
-            return DataResponse(data=[], metadata={"error": str(e)})
+            return DataResponse(
+                data=[],
+                metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
+                source=ProviderInfo(name="akshare"),
+            )
 
     async def _get_cn_data(self, symbol: str, query: DataQuery) -> DataResponse:
         """获取中国市场数据."""
@@ -157,7 +174,7 @@ class AkShare(DataProvider):
             import akshare as ak
             import pandas as pd
         except ImportError as e:
-            raise RuntimeError(f"Required dependencies not available: {e}")
+            raise RuntimeError(f"Required dependencies not available: {e}") from e
 
         # 转换时间框架
         timeframe_map = {
@@ -190,11 +207,16 @@ class AkShare(DataProvider):
             else:
                 return DataResponse(
                     data=[],
-                    metadata={"error": f"Unsupported asset type: {query.asset}"},
+                    metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
+                    source=ProviderInfo(name="akshare"),
                 )
 
             if df is None or df.empty:
-                return DataResponse(data=[], metadata={"message": "No data found"})
+                return DataResponse(
+                    data=[],
+                    metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
+                    source=ProviderInfo(name="akshare"),
+                )
 
             data_points = []
             for _, row in df.iterrows():
@@ -240,17 +262,17 @@ class AkShare(DataProvider):
 
             return DataResponse(
                 data=data_points,
-                metadata={
-                    "total_records": len(data_points),
-                    "source": "akshare",
-                    "symbol": symbol,
-                    "market": "cn",
-                },
+                metadata=ResponseMetadata(total_records=len(data_points), query_time_ms=0, data_source="akshare", cache_hit=False),
+                source=ProviderInfo(name="akshare"),
             )
 
         except Exception as e:
             logger.error(f"Error getting Chinese data: {e}")
-            return DataResponse(data=[], metadata={"error": str(e)})
+            return DataResponse(
+                data=[],
+                metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
+                source=ProviderInfo(name="akshare"),
+            )
 
     async def _get_us_data(self, symbol: str, query: DataQuery) -> DataResponse:
         """获取美国市场数据."""
@@ -258,7 +280,7 @@ class AkShare(DataProvider):
             import akshare as ak
             import pandas as pd
         except ImportError as e:
-            raise RuntimeError(f"Required dependencies not available: {e}")
+            raise RuntimeError(f"Required dependencies not available: {e}") from e
 
         try:
             if query.asset == AssetType.STOCK:
@@ -268,11 +290,16 @@ class AkShare(DataProvider):
             else:
                 return DataResponse(
                     data=[],
-                    metadata={"error": f"Unsupported asset type: {query.asset}"},
+                    metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
+                    source=ProviderInfo(name="akshare"),
                 )
 
             if df is None or df.empty:
-                return DataResponse(data=[], metadata={"message": "No data found"})
+                return DataResponse(
+                    data=[],
+                    metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
+                    source=ProviderInfo(name="akshare"),
+                )
 
             # 过滤日期范围
             if "date" in df.columns:
@@ -283,7 +310,11 @@ class AkShare(DataProvider):
                     df = df[df["date"] <= pd.to_datetime(query.end)]
 
             if df.empty:
-                return DataResponse(data=[], metadata={"message": "No data in date range"})
+                return DataResponse(
+                    data=[],
+                    metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
+                    source=ProviderInfo(name="akshare"),
+                )
 
             data_points = []
             for _, row in df.iterrows():
@@ -307,17 +338,17 @@ class AkShare(DataProvider):
 
             return DataResponse(
                 data=data_points,
-                metadata={
-                    "total_records": len(data_points),
-                    "source": "akshare",
-                    "symbol": symbol,
-                    "market": "us",
-                },
+                metadata=ResponseMetadata(total_records=len(data_points), query_time_ms=0, data_source="akshare", cache_hit=False),
+                source=ProviderInfo(name="akshare"),
             )
 
         except Exception as e:
             logger.error(f"Error getting US data: {e}")
-            return DataResponse(data=[], metadata={"error": str(e)})
+            return DataResponse(
+                data=[],
+                metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
+                source=ProviderInfo(name="akshare"),
+            )
 
     async def _get_hk_data(self, symbol: str, query: DataQuery) -> DataResponse:
         """获取香港市场数据."""
@@ -325,7 +356,7 @@ class AkShare(DataProvider):
             import akshare as ak
             import pandas as pd
         except ImportError as e:
-            raise RuntimeError(f"Required dependencies not available: {e}")
+            raise RuntimeError(f"Required dependencies not available: {e}") from e
 
         try:
             if query.asset == AssetType.STOCK:
@@ -333,11 +364,16 @@ class AkShare(DataProvider):
             else:
                 return DataResponse(
                     data=[],
-                    metadata={"error": f"Unsupported asset type: {query.asset}"},
+                    metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
+                    source=ProviderInfo(name="akshare"),
                 )
 
             if df is None or df.empty:
-                return DataResponse(data=[], metadata={"message": "No data found"})
+                return DataResponse(
+                    data=[],
+                    metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
+                    source=ProviderInfo(name="akshare"),
+                )
 
             # 过滤日期范围
             if "date" in df.columns:
@@ -348,7 +384,11 @@ class AkShare(DataProvider):
                     df = df[df["date"] <= pd.to_datetime(query.end)]
 
             if df.empty:
-                return DataResponse(data=[], metadata={"message": "No data in date range"})
+                return DataResponse(
+                    data=[],
+                    metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
+                    source=ProviderInfo(name="akshare"),
+                )
 
             data_points = []
             for _, row in df.iterrows():
@@ -372,19 +412,19 @@ class AkShare(DataProvider):
 
             return DataResponse(
                 data=data_points,
-                metadata={
-                    "total_records": len(data_points),
-                    "source": "akshare",
-                    "symbol": symbol,
-                    "market": "hk",
-                },
+                metadata=ResponseMetadata(total_records=len(data_points), query_time_ms=0, data_source="akshare", cache_hit=False),
+                source=ProviderInfo(name="akshare"),
             )
 
         except Exception as e:
             logger.error(f"Error getting Hong Kong data: {e}")
-            return DataResponse(data=[], metadata={"error": str(e)})
+            return DataResponse(
+                data=[],
+                metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
+                source=ProviderInfo(name="akshare"),
+            )
 
-    async def get_real_time_quote(self, symbol: str, market: str = "cn") -> dict | None:
+    async def get_real_time_quote(self, symbol: str, market: str = "cn") -> dict[str, Any] | None:
         """获取实时报价."""
         if not self._initialized:
             await self.authenticate()

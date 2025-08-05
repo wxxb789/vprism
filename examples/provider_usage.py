@@ -13,7 +13,7 @@ from vprism.core.models.market import AssetType, MarketType, TimeFrame
 from vprism.core.models.query import DataQuery
 
 
-async def main():
+async def main() -> None:
     """主函数演示提供商使用."""
     print("=== vprism 数据提供商框架演示 ===\n")
 

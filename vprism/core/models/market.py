@@ -26,6 +26,8 @@ class MarketType(str, Enum):
     HK = "hk"  # 香港
     EU = "eu"  # 欧洲
     JP = "jp"  # 日本
+    UK = "uk"  # 英国
+    AU = "au"  # 澳大利亚
     GLOBAL = "global"
 
 

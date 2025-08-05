@@ -16,7 +16,7 @@ from vprism.core.patterns.retry import RetryState
 class TestRetryConfig:
     """测试重试配置."""
 
-    def test_default_config(self):
+    def test_default_config(self) -> None:
         """测试默认配置."""
         config = RetryConfig()
 
@@ -29,7 +29,7 @@ class TestRetryConfig:
         assert ProviderError in config.retry_on_exceptions
         assert RateLimitError in config.skip_on_exceptions
 
-    def test_custom_config(self):
+    def test_custom_config(self) -> None:
         """测试自定义配置."""
         config = RetryConfig(
             max_attempts=5,
@@ -54,16 +54,16 @@ class TestExponentialBackoffRetry:
     """测试指数退避重试."""
 
     @pytest.fixture
-    def retry_instance(self):
+    def retry_instance(self) -> ExponentialBackoffRetry:
         """创建重试实例."""
         config = RetryConfig(max_attempts=3, base_delay=0.1, max_delay=1.0, multiplier=2.0)
         return ExponentialBackoffRetry(config)
 
     @pytest.mark.asyncio
-    async def test_successful_execution(self, retry_instance):
+    async def test_successful_execution(self, retry_instance: ExponentialBackoffRetry) -> None:
         """测试成功执行."""
 
-        async def success_func():
+        async def success_func() -> str:
             return "success"
 
         result = await retry_instance.execute(success_func)
@@ -72,11 +72,11 @@ class TestExponentialBackoffRetry:
         assert retry_instance.attempt_count == 1
 
     @pytest.mark.asyncio
-    async def test_immediate_success_no_retry(self, retry_instance):
+    async def test_immediate_success_no_retry(self, retry_instance: ExponentialBackoffRetry) -> None:
         """测试立即成功，不重试."""
         call_count = 0
 
-        async def success_func():
+        async def success_func() -> str:
             nonlocal call_count
             call_count += 1
             return "success"
@@ -87,11 +87,11 @@ class TestExponentialBackoffRetry:
         assert retry_instance.attempt_count == 1
 
     @pytest.mark.asyncio
-    async def test_retry_with_failure(self, retry_instance):
+    async def test_retry_with_failure(self, retry_instance: ExponentialBackoffRetry) -> None:
         """测试失败后的重试."""
         call_count = 0
 
-        async def failure_func():
+        async def failure_func() -> str:
             nonlocal call_count
             call_count += 1
             if call_count < 3:
@@ -104,11 +104,11 @@ class TestExponentialBackoffRetry:
         assert retry_instance.attempt_count == 3
 
     @pytest.mark.asyncio
-    async def test_all_attempts_fail(self, retry_instance):
+    async def test_all_attempts_fail(self, retry_instance: ExponentialBackoffRetry) -> None:
         """测试所有重试都失败."""
         call_count = 0
 
-        async def always_fail_func():
+        async def always_fail_func() -> None:
             nonlocal call_count
             call_count += 1
             raise ProviderError(f"失败 {call_count}", "test_provider")
@@ -121,14 +121,14 @@ class TestExponentialBackoffRetry:
         assert "失败 3" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_skip_retry_on_specific_exception(self):
+    async def test_skip_retry_on_specific_exception(self) -> None:
         """测试特定异常跳过重试."""
         config = RetryConfig(max_attempts=3, base_delay=0.1, skip_on_exceptions=[ValueError])
         retry_instance = ExponentialBackoffRetry(config)
 
         call_count = 0
 
-        async def skip_func():
+        async def skip_func() -> None:
             nonlocal call_count
             call_count += 1
             raise ValueError("跳过重试")
@@ -138,7 +138,7 @@ class TestExponentialBackoffRetry:
 
         assert call_count == 1  # 只调用一次，不重试
 
-    def test_calculate_delay(self):
+    def test_calculate_delay(self) -> None:
         """测试延迟计算."""
         config = RetryConfig(base_delay=1.0, max_delay=10.0, multiplier=2.0, jitter=False)
         retry_instance = ExponentialBackoffRetry(config)
@@ -149,7 +149,7 @@ class TestExponentialBackoffRetry:
         assert retry_instance._calculate_delay(3) == 8.0
         assert retry_instance._calculate_delay(4) == 10.0  # 达到最大值
 
-    def test_calculate_delay_with_jitter(self):
+    def test_calculate_delay_with_jitter(self) -> None:
         """测试带抖动的延迟计算."""
         config = RetryConfig(base_delay=1.0, max_delay=10.0, multiplier=2.0, jitter=True)
         retry_instance = ExponentialBackoffRetry(config)
@@ -158,7 +158,7 @@ class TestExponentialBackoffRetry:
         delays = [retry_instance._calculate_delay(1) for _ in range(10)]
         assert all(1.8 <= d <= 2.2 for d in delays)
 
-    def test_get_stats(self, retry_instance):
+    def test_get_stats(self, retry_instance: ExponentialBackoffRetry) -> None:
         """测试获取统计信息."""
         stats = retry_instance.get_stats()
 
@@ -168,7 +168,7 @@ class TestExponentialBackoffRetry:
         assert "state" in stats
         assert "last_exception" in stats
 
-    def test_reset(self, retry_instance):
+    def test_reset(self, retry_instance: ExponentialBackoffRetry) -> None:
         """测试重置."""
         retry_instance.attempt_count = 5
         retry_instance.total_delay = 10.0
@@ -186,12 +186,12 @@ class TestRetryRegistry:
     """测试重试注册表."""
 
     @pytest.fixture
-    def registry(self):
+    def registry(self) -> RetryRegistry:
         """创建注册表实例."""
         return RetryRegistry()
 
     @pytest.mark.asyncio
-    async def test_get_or_create(self, registry):
+    async def test_get_or_create(self, registry: RetryRegistry) -> None:
         """测试获取或创建重试实例."""
         retry1 = await registry.get_or_create("test_retry")
         retry2 = await registry.get_or_create("test_retry")
@@ -199,19 +199,19 @@ class TestRetryRegistry:
         assert retry1 is retry2
 
     @pytest.mark.asyncio
-    async def test_get_or_create_with_config(self, registry):
+    async def test_get_or_create_with_config(self, registry: RetryRegistry) -> None:
         """测试获取或创建带配置的重试实例."""
         config = RetryConfig(max_attempts=5)
         retry_instance = await registry.get_or_create("custom_retry", config)
 
         assert retry_instance.config.max_attempts == 5
 
-    def test_get_retry(self, registry):
+    def test_get_retry(self, registry: RetryRegistry) -> None:
         """测试获取指定重试实例."""
         assert registry.get_retry("non_existent") is None
 
     @pytest.mark.asyncio
-    async def test_get_all_stats(self, registry):
+    async def test_get_all_stats(self, registry: RetryRegistry) -> None:
         """测试获取所有重试实例的统计信息."""
         await registry.get_or_create("retry1")
         await registry.get_or_create("retry2")
@@ -227,12 +227,12 @@ class TestRetryDecorator:
     """测试重试装饰器."""
 
     @pytest.mark.asyncio
-    async def test_decorator_success(self):
+    async def test_decorator_success(self) -> None:
         """测试装饰器成功."""
         call_count = 0
 
         @retry("decorator_test", max_attempts=3, base_delay=0.1)
-        async def success_func():
+        async def success_func() -> str:
             nonlocal call_count
             call_count += 1
             return f"success_{call_count}"
@@ -242,12 +242,12 @@ class TestRetryDecorator:
         assert call_count == 1
 
     @pytest.mark.asyncio
-    async def test_decorator_retry(self):
+    async def test_decorator_retry(self) -> None:
         """测试装饰器重试."""
         call_count = 0
 
         @retry("decorator_retry_test", max_attempts=3, base_delay=0.1)
-        async def retry_func():
+        async def retry_func() -> str:
             nonlocal call_count
             call_count += 1
             if call_count < 2:
@@ -263,7 +263,7 @@ class TestResilientExecutor:
     """测试弹性执行器."""
 
     @pytest.mark.asyncio
-    async def test_resilient_execution_success(self):
+    async def test_resilient_execution_success(self) -> None:
         """测试弹性执行成功."""
         executor = ResilientExecutor(
             "test_circuit",
@@ -272,18 +272,18 @@ class TestResilientExecutor:
             retry_config={"max_attempts": 2, "base_delay": 0.1},
         )
 
-        async def success_func():
+        async def success_func() -> str:
             return "success"
 
         result = await executor.execute(success_func)
         assert result == "success"
 
     @pytest.mark.asyncio
-    async def test_resilient_execution_with_retry_and_circuit_breaker(self):
+    async def test_resilient_execution_with_retry_and_circuit_breaker(self) -> None:
         """测试带重试和熔断器的弹性执行."""
         call_count = 0
 
-        async def sometimes_fail_func():
+        async def sometimes_fail_func() -> str:
             nonlocal call_count
             call_count += 1
             if call_count <= 2:
@@ -302,11 +302,11 @@ class TestResilientExecutor:
         assert call_count == 3
 
     @pytest.mark.asyncio
-    async def test_resilient_execution_with_circuit_breaker_open(self):
+    async def test_resilient_execution_with_circuit_breaker_open(self) -> None:
         """测试熔断器打开的弹性执行."""
         call_count = 0
 
-        async def always_fail_func():
+        async def always_fail_func() -> None:
             nonlocal call_count
             call_count += 1
             raise ProviderError(f"总是失败 {call_count}", "test_provider")
@@ -331,7 +331,7 @@ class TestIntegration:
     """集成测试."""
 
     @pytest.mark.asyncio
-    async def test_retry_with_different_providers(self):
+    async def test_retry_with_different_providers(self) -> None:
         """测试不同提供商的重试."""
         registry = RetryRegistry()
 
@@ -340,7 +340,7 @@ class TestIntegration:
         yahoo_retry = await registry.get_or_create("yahoo", RetryConfig(max_attempts=2, base_delay=0.2))
 
         # 测试成功的akshare调用
-        async def akshare_success():
+        async def akshare_success() -> str:
             return "akshare数据"
 
         result = await akshare_retry.execute(akshare_success)
@@ -349,7 +349,7 @@ class TestIntegration:
         # 测试需要重试的yahoo调用
         call_count = 0
 
-        async def yahoo_retry_func():
+        async def yahoo_retry_func() -> str:
             nonlocal call_count
             call_count += 1
             if call_count == 1:

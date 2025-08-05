@@ -3,22 +3,23 @@
 from collections.abc import AsyncIterator
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
-import yfinance as yf
+import yfinance as yf  # type: ignore
 
-from ...exceptions.base import ProviderError
-from ...models.base import DataPoint
-from ...models.market import MarketType
-from ...models.query import DataQuery
-from ...models.response import DataResponse, ResponseMetadata
-from ...monitoring import StructuredLogger
-from .base import (
+from vprism.core.data.providers.base import (
     AuthConfig,
     AuthType,
     DataProvider,
     ProviderCapability,
     RateLimitConfig,
 )
+from vprism.core.exceptions.base import ProviderError
+from vprism.core.models.base import DataPoint
+from vprism.core.models.market import MarketType
+from vprism.core.models.query import DataQuery
+from vprism.core.models.response import DataResponse, ProviderInfo, ResponseMetadata
+from vprism.core.monitoring import StructuredLogger
 
 logger = StructuredLogger().logger
 
@@ -26,7 +27,7 @@ logger = StructuredLogger().logger
 class YFinance(DataProvider):
     """Yahoo Finance数据提供商实现."""
 
-    def __init__(self, auth_config=None, rate_limit=None):
+    def __init__(self, auth_config: AuthConfig | None = None, rate_limit: RateLimitConfig | None = None) -> None:
         """初始化YFinance提供商.
 
         Args:
@@ -123,7 +124,7 @@ class YFinance(DataProvider):
             return DataResponse(
                 data=[],
                 metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="error"),
-                source={"name": "yfinance", "endpoint": "error"},
+                source=ProviderInfo(name="yfinance", endpoint="error"),
             )
 
     async def stream_data(self, query: DataQuery) -> AsyncIterator[DataPoint]:
@@ -131,6 +132,9 @@ class YFinance(DataProvider):
         data_response = await self.get_data(query)
         for data_point in data_response.data:
             yield data_point
+        # mypy needs this to recognize it as an async generator
+        if False:
+            yield
 
     def _get_market_type(self, symbol: str) -> MarketType:
         """根据股票代码确定市场类型."""
@@ -153,7 +157,7 @@ class YFinance(DataProvider):
             return DataResponse(
                 data=[],
                 metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="error"),
-                source={"name": "yfinance", "endpoint": "error"},
+                source=ProviderInfo(name="yfinance", endpoint="error"),
             )
 
         symbol = query.symbols[0]  # 暂时只处理第一个符号
@@ -186,10 +190,7 @@ class YFinance(DataProvider):
                 return DataResponse(
                     data=[],
                     metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="yfinance"),
-                    source={
-                        "name": "yfinance",
-                        "endpoint": "https://finance.yahoo.com/",
-                    },
+                    source=ProviderInfo(name="yfinance", endpoint="https://finance.yahoo.com/"),
                 )
 
             data_points = []
@@ -216,7 +217,7 @@ class YFinance(DataProvider):
                     query_time_ms=0.0,
                     data_source="yfinance",
                 ),
-                source={"name": "yfinance", "endpoint": "https://finance.yahoo.com/"},
+                source=ProviderInfo(name="yfinance", endpoint="https://finance.yahoo.com/"),
             )
 
         except Exception as e:
@@ -224,10 +225,10 @@ class YFinance(DataProvider):
             return DataResponse(
                 data=[],
                 metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="error"),
-                source={"name": "yfinance", "endpoint": "error"},
+                source=ProviderInfo(name="yfinance", endpoint="error"),
             )
 
-    async def get_real_time_quote(self, symbol: str) -> dict | None:
+    async def get_real_time_quote(self, symbol: str) -> dict[str, Any] | None:
         """获取实时报价."""
         if not self._is_authenticated:
             return None
@@ -255,7 +256,7 @@ class YFinance(DataProvider):
 
         return None
 
-    async def get_company_info(self, symbol: str) -> dict | None:
+    async def get_company_info(self, symbol: str) -> dict[str, Any] | None:
         """获取公司信息."""
         if not self._is_authenticated:
             return None

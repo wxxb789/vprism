@@ -59,7 +59,7 @@ class DataRouter:
             component="DataRouter",
             action="route_query",
             symbols=query.symbols,
-            market=query.market.value,
+            market=query.market.value if query.market else None,
             asset_type=query.asset.value,
         )
         logger.info("Starting routing decision")

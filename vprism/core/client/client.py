@@ -1,22 +1,21 @@
 """vprism主客户端 - 提供同步和异步接口"""
 
 import asyncio
+from collections.abc import Coroutine
+from datetime import datetime
 from typing import Any
 
-from ..config.settings import ConfigManager, load_config_from_env
-from ..models.market import AssetType, MarketType, TimeFrame
-from ..models.query import DataQuery
-from .builder import QueryBuilder
-
-# Note: These imports need to be updated to new structure
-# from vprism.core.services.data_router import DataRouter
-# from core.data.providers.registry import ProviderRegistry
+from vprism.core.client.builder import QueryBuilder
+from vprism.core.config.settings import ConfigManager, load_config_from_env
+from vprism.core.models.market import AssetType, MarketType, TimeFrame
+from vprism.core.models.query import DataQuery
+from vprism.core.models.response import DataResponse
 
 
 class VPrismClient:
     """vprism主客户端 - 提供同步和异步接口"""
 
-    def __init__(self, config: dict[str, Any] | None = None):
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
         """初始化客户端
 
         Args:
@@ -71,7 +70,7 @@ class VPrismClient:
         # 注册默认提供商（如果注册表为空）
         if len(self.registry) == 0:
             providers = create_default_providers()
-            for name, provider in providers.items():
+            for _name, provider in providers.items():
                 self.registry.register(provider)
             self.router.refresh_scores()
 
@@ -79,24 +78,24 @@ class VPrismClient:
         """获取查询构建器"""
         return QueryBuilder()
 
-    async def execute(self, query: DataQuery) -> Any:
+    async def execute(self, query: DataQuery) -> DataResponse:
         """执行查询"""
         if not self._configured:
             self._apply_config()
 
-        provider = await self.router.route_query(query)
+        provider = self.router.route_query(query)
         return await provider.get_data(query)
 
     def get(
         self,
-        asset: str = None,
-        market: str = None,
-        symbols: list[str] = None,
-        timeframe: str = None,
-        start: str = None,
-        end: str = None,
-        provider: str = None,
-        **kwargs,
+        asset: str,
+        market: str | None = None,
+        symbols: list[str] | None = None,
+        timeframe: str | None = None,
+        start: str | None = None,
+        end: str | None = None,
+        provider: str | None = None,
+        **kwargs: Any,
     ) -> Any:
         """简单API - 同步获取数据
 
@@ -126,13 +125,15 @@ class VPrismClient:
             ... )
             >>> print(data)
         """
+        start_dt = datetime.fromisoformat(start) if start else None
+        end_dt = datetime.fromisoformat(end) if end else None
         query = DataQuery(
-            asset=AssetType(asset) if asset else None,
+            asset=AssetType(asset) if asset else AssetType.STOCK,
             market=MarketType(market) if market else None,
             symbols=symbols,
-            timeframe=TimeFrame(timeframe) if timeframe else None,
-            start=start,
-            end=end,
+            timeframe=TimeFrame(timeframe) if timeframe else TimeFrame.DAY_1,
+            start=start_dt,
+            end=end_dt,
             provider=provider,
         )
 
@@ -140,14 +141,14 @@ class VPrismClient:
 
     async def get_async(
         self,
-        asset: str = None,
-        market: str = None,
-        symbols: list[str] = None,
-        timeframe: str = None,
-        start: str = None,
-        end: str = None,
-        provider: str = None,
-        **kwargs,
+        asset: str,
+        market: str | None = None,
+        symbols: list[str] | None = None,
+        timeframe: str | None = None,
+        start: str | None = None,
+        end: str | None = None,
+        provider: str | None = None,
+        **kwargs: Any,
     ) -> Any:
         """异步简单API - 异步获取数据
 
@@ -179,25 +180,27 @@ class VPrismClient:
             >>>
             >>> asyncio.run(main())
         """
+        start_dt = datetime.fromisoformat(start) if start else None
+        end_dt = datetime.fromisoformat(end) if end else None
         query = DataQuery(
-            asset=AssetType(asset) if asset else None,
+            asset=AssetType(asset) if asset else AssetType.STOCK,
             market=MarketType(market) if market else None,
             symbols=symbols,
-            timeframe=TimeFrame(timeframe) if timeframe else None,
-            start=start,
-            end=end,
+            timeframe=TimeFrame(timeframe) if timeframe else TimeFrame.DAY_1,
+            start=start_dt,
+            end=end_dt,
             provider=provider,
         )
 
         return await self.execute(query)
 
-    def _run_sync(self, coro) -> Any:
+    def _run_sync(self, coro: Coroutine[Any, Any, Any]) -> Any:
         """运行异步协程的同步包装器"""
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 # 在已有事件循环中运行
-                import nest_asyncio
+                import nest_asyncio  # type: ignore
 
                 nest_asyncio.apply()
                 return loop.run_until_complete(coro)

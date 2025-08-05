@@ -2,12 +2,13 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
-from ...models.base import DataPoint
-from ...models.query import DataQuery
-from ...models.response import DataResponse
+from vprism.core.models.base import DataPoint
+from vprism.core.models.market import AssetType
+from vprism.core.models.query import DataQuery
+from vprism.core.models.response import DataResponse
 
 
 class AuthType(str, Enum):
@@ -31,7 +32,7 @@ class ProviderCapability:
     supports_real_time: bool
     supports_historical: bool
     data_delay_seconds: int
-    rate_limits: dict[str, int] = None
+    rate_limits: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass
@@ -53,7 +54,7 @@ class AuthConfig:
 
     auth_type: AuthType
     credentials: dict[str, str]
-    required_fields: list[str] = None
+    required_fields: list[str] = field(default_factory=list)
 
 
 class DataProvider(ABC):
@@ -111,7 +112,8 @@ class DataProvider(ABC):
         Yields:
             单个数据点
         """
-        pass
+        if False:
+            yield
 
     def can_handle_query(self, query: DataQuery) -> bool:
         """检查提供商是否能处理查询.
@@ -186,7 +188,7 @@ class DataProvider(ABC):
                 await self.authenticate()
 
             # 执行简单的健康检查查询
-            test_query = DataQuery(asset="stock", symbols=["TEST"], limit=1)
+            test_query = DataQuery(asset=AssetType("stock"), symbols=["TEST"])
 
             if self.can_handle_query(test_query):
                 result = await self.get_data(test_query)

@@ -1,9 +1,9 @@
 """Configuration management module."""
 
-from .cache import CacheConfig
-from .logging import LoggingConfig
-from .provider import ProviderConfig
-from .settings import ConfigManager, VPrismConfig, load_config_from_env
+from vprism.core.config.cache import CacheConfig
+from vprism.core.config.logging import LoggingConfig
+from vprism.core.config.provider import ProviderConfig
+from vprism.core.config.settings import ConfigManager, VPrismConfig, load_config_from_env
 
 __all__ = [
     "ConfigManager",

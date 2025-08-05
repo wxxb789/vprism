@@ -1,10 +1,10 @@
 """数据存储仓储模式实现."""
 
-from .base import Repository
-from .cache import CacheRepository
-from .data import DataRepository
-from .provider import ProviderRepository
-from .query import QueryRepository
+from vprism.core.data.repositories.base import Repository
+from vprism.core.data.repositories.cache import CacheRepository
+from vprism.core.data.repositories.data import DataRepository
+from vprism.core.data.repositories.provider import ProviderRepository
+from vprism.core.data.repositories.query import QueryRepository
 
 __all__ = [
     "Repository",

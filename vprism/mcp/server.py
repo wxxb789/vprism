@@ -7,7 +7,7 @@ for vPrism, providing financial data access through standardized MCP tools.
 
 import asyncio
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Literal
 
 from fastmcp import FastMCP
 from loguru import logger
@@ -33,9 +33,9 @@ class VPrismMCPServer:
         Args:
             config: Optional configuration dictionary for vPrism client
         """
-        self.config = config or {}
-        self.mcp = FastMCP("vprism-financial-data")
-        self.client = VPrismClient(config=self.config)
+        self.config: dict[str, Any] = config or {}
+        self.mcp: FastMCP[Any] = FastMCP("vprism-financial-data")
+        self.client: VPrismClient = VPrismClient(config=self.config)
         self._setup_tools()
 
     def _setup_tools(self) -> None:
@@ -71,11 +71,12 @@ class VPrismMCPServer:
 
                 # Get data using vPrism client
                 data = await self.client.get_async(
-                    symbol=symbol.upper(),
-                    start_date=start_date,
-                    end_date=end_date,
-                    timeframe=time_frame,
-                    market=market_type,
+                    asset="stock",
+                    symbols=[symbol.upper()],
+                    start=start_date,
+                    end=end_date,
+                    timeframe=timeframe,
+                    market=market,
                 )
 
                 # Convert to MCP-friendly format
@@ -90,8 +91,9 @@ class VPrismMCPServer:
                 }
 
                 if data.data:
+                    data_list: list[dict[str, Any]] = []
                     for point in data.data:
-                        result["data"].append(
+                        data_list.append(
                             {
                                 "date": point.timestamp.isoformat() if hasattr(point.timestamp, "isoformat") else str(point.timestamp),
                                 "open": float(point.open_price) if point.open_price else None,
@@ -101,6 +103,7 @@ class VPrismMCPServer:
                                 "volume": int(point.volume) if point.volume else None,
                             }
                         )
+                    result["data"] = data_list
 
                 return result
 
@@ -145,11 +148,12 @@ class VPrismMCPServer:
                 for symbol in symbols:
                     try:
                         data = await self.client.get_async(
-                            symbol=symbol,
-                            start_date=target_date,
-                            end_date=target_date,
-                            timeframe=TimeFrame.DAY_1,
-                            market=market_type,
+                            asset="stock",
+                            symbols=[symbol],
+                            start=target_date,
+                            end=target_date,
+                            timeframe="1d",
+                            market=market,
                         )
 
                         if data.data and len(data.data) > 0:
@@ -280,13 +284,13 @@ class VPrismMCPServer:
                 # Get latest data
                 end_date = datetime.now().strftime("%Y-%m-%d")
                 start_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-
                 data = await self.client.get_async(
-                    symbol=symbol.upper(),
-                    start_date=start_date,
-                    end_date=end_date,
-                    timeframe=TimeFrame.DAY_1,
-                    market=market_type,
+                    asset="stock",
+                    symbols=[symbol.upper()],
+                    start=start_date,
+                    end=end_date,
+                    timeframe="1d",
+                    market=market,
                 )
 
                 if data.data and len(data.data) > 0:
@@ -338,11 +342,12 @@ class VPrismMCPServer:
                 for symbol in symbols:
                     try:
                         data = await self.client.get_async(
-                            symbol=symbol.upper(),
-                            start_date=start_date,
-                            end_date=end_date,
-                            timeframe=TimeFrame.DAY_1,
-                            market=market_type,
+                            asset="stock",
+                            symbols=[symbol.upper()],
+                            start=start_date,
+                            end=end_date,
+                            timeframe="1d",
+                            market=market,
                         )
 
                         if data.data and len(data.data) > 0:
@@ -438,19 +443,20 @@ Focus on:
 Use the available financial data tools to gather relevant information and provide actionable insights.
 """
 
-    async def start(self, transport: str = "stdio") -> None:
+    async def start(self, transport: Literal["stdio", "http", "sse", "streamable-http"] | None = "stdio", **kwargs: Any) -> None:
         """
         Start the MCP server.
 
         Args:
             transport: Transport method ("stdio", "http", or "sse")
+            **kwargs: Additional arguments for the transport
         """
         logger.info(f"Starting vPrism MCP server with {transport} transport")
 
         try:
             if hasattr(self.client, "initialize"):
                 await self.client.initialize()
-            await self.mcp.run(transport=transport)
+            self.mcp.run(transport=transport, **kwargs)
         except Exception as e:
             logger.error(f"Failed to start MCP server: {e}")
             raise
@@ -458,9 +464,9 @@ Use the available financial data tools to gather relevant information and provid
             if hasattr(self.client, "close"):
                 await self.client.close()
 
-    def run(self, transport: str = "stdio") -> None:
+    def run(self, transport: Literal["stdio", "http", "sse", "streamable-http"] = "stdio", **kwargs: Any) -> None:
         """Run the MCP server synchronously."""
-        asyncio.run(self.start(transport))
+        asyncio.run(self.start(transport, **kwargs))
 
 
 def create_mcp_server(config: dict[str, Any] | None = None) -> VPrismMCPServer:

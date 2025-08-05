@@ -5,7 +5,7 @@ from collections import OrderedDict
 from threading import Lock
 from typing import Any
 
-from .base import CacheStrategy
+from vprism.core.data.cache.base import CacheStrategy
 
 
 class ThreadSafeInMemoryCache(CacheStrategy):

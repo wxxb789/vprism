@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from .market import AssetType, MarketType, TimeFrame
+from vprism.core.models.market import AssetType, MarketType, TimeFrame
 
 
 class DataQuery(BaseModel):
@@ -25,7 +25,7 @@ class DataQuery(BaseModel):
 class QueryBuilder:
     """查询构建器 - 简化版."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._query: dict[str, Any] = {}
 
     def asset_type(self, asset_type: AssetType) -> "QueryBuilder":

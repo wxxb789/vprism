@@ -1,8 +1,11 @@
 """数据库表结构和初始化."""
 
 import os
+from contextlib import suppress
+from typing import Any
 
 import duckdb
+from duckdb import DuckDBPyConnection
 
 
 class DatabaseSchema:
@@ -16,10 +19,10 @@ class DatabaseSchema:
             db_path: 数据库文件路径
         """
         self.db_path = db_path
-        self.conn = None
+        self.conn: DuckDBPyConnection
         self._initialize()
 
-    def _initialize(self):
+    def _initialize(self) -> None:
         """初始化数据库连接和表结构。"""
         # 确保数据目录存在
         db_dir = os.path.dirname(self.db_path)
@@ -34,7 +37,7 @@ class DatabaseSchema:
         self._create_indexes()
         self._create_views()
 
-    def _create_tables(self):
+    def _create_tables(self) -> None:
         """创建所有数据表。"""
         # 创建数据记录表（兼容旧表名）
         self.conn.execute("""
@@ -243,7 +246,7 @@ class DatabaseSchema:
             )
         """)
 
-    def _create_indexes(self):
+    def _create_indexes(self) -> None:
         """创建数据库索引。"""
         # 资产信息表索引
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_asset_symbol ON asset_info(symbol)")
@@ -294,12 +297,12 @@ class DatabaseSchema:
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_query_records_status ON query_records(status)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_query_records_created ON query_records(created_at)")
 
-    def _create_views(self):
+    def _create_views(self) -> None:
         """创建数据库视图。"""
         # 最新价格视图
         self.conn.execute("""
             CREATE OR REPLACE VIEW latest_prices AS
-            SELECT 
+            SELECT
                 a.symbol,
                 a.market,
                 a.name,
@@ -315,7 +318,7 @@ class DatabaseSchema:
         # 月度统计视图
         self.conn.execute("""
             CREATE OR REPLACE VIEW monthly_stats AS
-            SELECT 
+            SELECT
                 symbol,
                 market,
                 DATE_TRUNC('month', trade_date) as month,
@@ -334,7 +337,7 @@ class DatabaseSchema:
         # 缓存统计视图
         self.conn.execute("""
             CREATE OR REPLACE VIEW cache_statistics AS
-            SELECT 
+            SELECT
                 data_source,
                 COUNT(*) as total_entries,
                 SUM(hit_count) as total_hits,
@@ -348,7 +351,7 @@ class DatabaseSchema:
         # 数据质量统计视图
         self.conn.execute("""
             CREATE OR REPLACE VIEW data_quality_summary AS
-            SELECT 
+            SELECT
                 provider,
                 AVG(completeness_score) as avg_completeness,
                 AVG(accuracy_score) as avg_accuracy,
@@ -359,32 +362,26 @@ class DatabaseSchema:
             GROUP BY provider
         """)
 
-    def create_materialized_views(self):
+    def create_materialized_views(self) -> None:
         """创建物化视图。"""
         # 创建物化视图以提高查询性能
-        try:
+        with suppress(Exception):
             self.conn.execute("""
                 CREATE OR REPLACE TABLE latest_prices_materialized AS
                 SELECT * FROM latest_prices
             """)
-        except Exception:
-            # 如果物化视图已存在则跳过
-            pass
 
-    def create_partitioned_tables(self):
+    def create_partitioned_tables(self) -> None:
         """创建分区表。"""
         # 创建按年份分区的表
         current_year = 2024
         for year in [current_year, current_year - 1]:
-            try:
+            with suppress(Exception):
                 self.conn.execute(f"""
                     CREATE OR REPLACE TABLE daily_ohlcv_{year} AS
-                    SELECT * FROM daily_ohlcv 
-                    WHERE EXTRACT(YEAR FROM trade_date) = {year}
+                    SELECT * FROM daily_ohlcv
+                    WHERE EXTRACT(YEAR FROM trade_ade) = {year}
                 """)
-            except Exception:
-                # 如果分区表已存在则跳过
-                pass
 
     def get_table_stats(self) -> dict[str, int]:
         """
@@ -405,7 +402,7 @@ class DatabaseSchema:
 
         return stats
 
-    def optimize_tables(self):
+    def optimize_tables(self) -> None:
         """优化表性能。"""
         try:
             # 执行VACUUM操作
@@ -418,33 +415,34 @@ class DatabaseSchema:
             # 如果优化失败，不影响主要功能
             pass
 
-    def close(self):
+    def close(self) -> None:
         """关闭数据库连接。"""
-        if self.conn:
+        if hasattr(self, "conn") and self.conn:
             self.conn.close()
-            self.conn = None
 
-    def __enter__(self):
+    def __enter__(self) -> "DatabaseSchema":
         """上下文管理器入口。"""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any | None) -> None:
         """上下文管理器出口。"""
         self.close()
 
 
-def initialize_database(db_path: str = "data/vprism.db") -> duckdb.DuckDBPyConnection:
+def initialize_database(db_path: str = "data/vprism.db") -> DuckDBPyConnection:
     """初始化数据库表结构（向后兼容）。"""
     schema = DatabaseSchema(db_path)
     return schema.conn
 
 
-def create_views(conn: duckdb.DuckDBPyConnection) -> None:
+def create_views(conn: DuckDBPyConnection) -> None:
     """创建数据库视图（向后兼容）。"""
     schema = DatabaseSchema()
+    schema.conn.close()  # 关闭默认连接
     schema.conn = conn
+    schema._create_views()
 
 
-def setup_database(db_path: str = "data/vprism.db") -> duckdb.DuckDBPyConnection:
+def setup_database(db_path: str = "data/vprism.db") -> DuckDBPyConnection:
     """完整设置数据库（向后兼容）。"""
     return initialize_database(db_path)

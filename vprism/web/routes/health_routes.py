@@ -9,8 +9,9 @@ from fastapi import APIRouter, Request
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
 
-from ...core.health import get_health_checker
-from ..models import APIResponse, CacheStats, ProviderStatus
+from vprism.core.health import get_health_checker
+from vprism.web.models import APIResponse, CacheStats, ProviderStatus
+from vprism.web.utils import get_request_id
 
 router = APIRouter()
 
@@ -45,6 +46,7 @@ async def health_check(request: Request) -> APIResponse:
                 "checks": health.checks,
             },
             message="系统健康检查完成",
+            request_id=get_request_id(request),
         )
 
     except Exception as e:
@@ -56,7 +58,12 @@ async def health_check(request: Request) -> APIResponse:
                 "error_message": str(e),
             },
         )
-        return APIResponse(success=False, data=None, message=f"健康检查失败: {str(e)}")
+        return APIResponse(
+            success=False,
+            data=None,
+            message=f"健康检查失败: {str(e)}",
+            request_id=get_request_id(request),
+        )
 
 
 @router.get("/health/ready", response_model=APIResponse)
@@ -71,12 +78,27 @@ async def readiness_check(request: Request) -> APIResponse:
 
         # 检查是否可以执行基本查询
         if client and hasattr(client, "router") and client.router:
-            return APIResponse(success=True, data={"ready": True}, message="应用已就绪")
+            return APIResponse(
+                success=True,
+                data={"ready": True},
+                message="应用已就绪",
+                request_id=get_request_id(request),
+            )
         else:
-            return APIResponse(success=False, data={"ready": False}, message="应用未就绪")
+            return APIResponse(
+                success=False,
+                data={"ready": False},
+                message="应用未就绪",
+                request_id=get_request_id(request),
+            )
 
     except Exception as e:
-        return APIResponse(success=False, data={"ready": False}, message=f"就绪检查失败: {str(e)}")
+        return APIResponse(
+            success=False,
+            data={"ready": False},
+            message=f"就绪检查失败: {str(e)}",
+            request_id=get_request_id(request),
+        )
 
 
 @router.get("/health/live", response_model=APIResponse)
@@ -86,7 +108,12 @@ async def liveness_check(request: Request) -> APIResponse:
 
     检查应用是否存活
     """
-    return APIResponse(success=True, data={"alive": True}, message="应用存活")
+    return APIResponse(
+        success=True,
+        data={"alive": True},
+        message="应用存活",
+        request_id=get_request_id(request),
+    )
 
 
 @router.get("/health/providers", response_model=APIResponse)
@@ -119,10 +146,16 @@ async def provider_health_check(request: Request) -> APIResponse:
             success=True,
             data=[jsonable_encoder(p) for p in providers],
             message="提供商健康检查完成",
+            request_id=get_request_id(request),
         )
 
     except Exception as e:
-        return APIResponse(success=False, data=None, message=f"提供商检查失败: {str(e)}")
+        return APIResponse(
+            success=False,
+            data=None,
+            message=f"提供商检查失败: {str(e)}",
+            request_id=get_request_id(request),
+        )
 
 
 @router.get("/health/cache", response_model=APIResponse)
@@ -136,10 +169,20 @@ async def cache_health_check(request: Request) -> APIResponse:
         # 获取缓存统计（简化实现）
         cache_stats = CacheStats(hits=1000, misses=200, hit_rate=0.833, size=500, memory_usage="50MB")
 
-        return APIResponse(success=True, data=jsonable_encoder(cache_stats), message="缓存系统状态正常")
+        return APIResponse(
+            success=True,
+            data=jsonable_encoder(cache_stats),
+            message="缓存系统状态正常",
+            request_id=get_request_id(request),
+        )
 
     except Exception as e:
-        return APIResponse(success=False, data=None, message=f"缓存检查失败: {str(e)}")
+        return APIResponse(
+            success=False,
+            data=None,
+            message=f"缓存检查失败: {str(e)}",
+            request_id=get_request_id(request),
+        )
 
 
 @router.get("/metrics", response_model=APIResponse)
@@ -159,7 +202,17 @@ async def get_metrics(request: Request) -> APIResponse:
             "data_sources": {"total": 2, "healthy": 2, "degraded": 0, "unavailable": 0},
         }
 
-        return APIResponse(success=True, data=metrics, message="系统指标获取成功")
+        return APIResponse(
+            success=True,
+            data=metrics,
+            message="系统指标获取成功",
+            request_id=get_request_id(request),
+        )
 
     except Exception as e:
-        return APIResponse(success=False, data=None, message=f"指标获取失败: {str(e)}")
+        return APIResponse(
+            success=False,
+            data=None,
+            message=f"指标获取失败: {str(e)}",
+            request_id=get_request_id(request),
+        )

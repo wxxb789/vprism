@@ -1,10 +1,10 @@
 """缓存系统实现模块."""
 
-from .base import CacheStrategy
-from .duckdb import SimpleDuckDBCache
-from .key import CacheKey
-from .memory import ThreadSafeInMemoryCache
-from .multilevel import MultiLevelCache
+from vprism.core.data.cache.base import CacheStrategy
+from vprism.core.data.cache.duckdb import SimpleDuckDBCache
+from vprism.core.data.cache.key import CacheKey
+from vprism.core.data.cache.memory import ThreadSafeInMemoryCache
+from vprism.core.data.cache.multilevel import MultiLevelCache
 
 __all__ = [
     "CacheStrategy",

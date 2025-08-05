@@ -7,13 +7,13 @@
 - **Run a single test:** `uv run pytest tests/path/to/test_file.py::test_name`
 - **Lint:** `uv run ruff check .`
 - **Format:** `uv run ruff format .`
-- **Type Check:** `uv run mypy src/vprism`
+- **Type Check:** `uv run mypy ./vprism`
 
 ## Code Style
 
-- **Formatting:** Black style, 196-char line length (`ruff format .`).
-- **Imports:** Sorted with `ruff --select I` (isort).
-- **Typing:** Fully type-hinted (`uv run mypy --strict`). Use `from typing import ...`.
+- **Formatting:** Black style, 196-char line length (`uv run ruff format .`).
+- **Imports:** Sorted with `uv run ruff check --fix .` (isort).
+- **Typing:** Fully type-hinted (`uv run mypy --strict ./vprism`). Use `from typing import ...`.
 - **Naming:**
   - Classes: `PascalCase`
   - Functions/Variables: `snake_case`

@@ -1,6 +1,7 @@
 """健康检查系统测试"""
 
 from datetime import UTC, datetime
+from typing import Any, dict
 
 import pytest
 
@@ -10,24 +11,24 @@ from vprism.core.health import HealthChecker, HealthStatus, get_health_checker
 class TestHealthChecker:
     """测试健康检查器"""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """测试健康检查器初始化"""
         checker = HealthChecker()
         assert checker.start_time > 0
         assert len(checker.checks) > 0  # 应该有默认检查
 
-    def test_register_custom_check(self):
+    def test_register_custom_check(self) -> None:
         """测试注册自定义健康检查"""
         checker = HealthChecker()
 
-        async def custom_check():
+        async def custom_check() -> dict[str, Any]:
             return {"status": "healthy", "details": {"custom": True}}
 
         checker.register_check("custom", custom_check)
         assert "custom" in checker.checks
 
     @pytest.mark.asyncio
-    async def test_check_health_success(self):
+    async def test_check_health_success(self) -> None:
         """测试健康检查成功场景"""
         import time
 
@@ -42,11 +43,11 @@ class TestHealthChecker:
         assert isinstance(health.checks, dict)
 
     @pytest.mark.asyncio
-    async def test_check_health_with_failing_check(self):
+    async def test_check_health_with_failing_check(self) -> None:
         """测试包含失败检查的健康检查"""
         checker = HealthChecker()
 
-        async def failing_check():
+        async def failing_check() -> dict[str, Any]:
             raise Exception("Test failure")
 
         checker.register_check("failing", failing_check)
@@ -57,7 +58,7 @@ class TestHealthChecker:
         assert health.checks["failing"]["status"] == "unhealthy"
 
     @pytest.mark.asyncio
-    async def test_check_providers(self):
+    async def test_check_providers(self) -> None:
         """测试提供商状态检查"""
         checker = HealthChecker()
         providers = ["akshare", "yahoo_finance"]
@@ -73,7 +74,7 @@ class TestHealthChecker:
             assert "last_check" in provider_status
 
     @pytest.mark.asyncio
-    async def test_system_health_check(self):
+    async def test_system_health_check(self) -> None:
         """测试系统健康检查"""
         checker = HealthChecker()
         health_status = await checker._check_system_health()
@@ -83,14 +84,14 @@ class TestHealthChecker:
         assert health_status["status"] in ["healthy", "degraded"]
         assert "details" in health_status
 
-    def test_global_instance(self):
+    def test_global_instance(self) -> None:
         """测试全局健康检查器实例"""
         checker1 = get_health_checker()
         checker2 = get_health_checker()
         assert checker1 is checker2  # 应该是同一个实例
 
     @pytest.mark.asyncio
-    async def test_health_status_model(self):
+    async def test_health_status_model(self) -> None:
         """测试健康状态数据模型"""
         checks = {
             "system": {"status": "healthy", "details": {}},
@@ -114,7 +115,7 @@ class TestHealthEndpoints:
     """测试健康检查端点"""
 
     @pytest.mark.asyncio
-    async def test_health_check_response_structure(self):
+    async def test_health_check_response_structure(self) -> None:
         """测试健康检查响应结构"""
         checker = HealthChecker()
         health = await checker.check_health()
@@ -133,7 +134,7 @@ class TestHealthEndpoints:
         assert isinstance(response_data["checks"], dict)
 
     @pytest.mark.asyncio
-    async def test_uptime_calculation(self):
+    async def test_uptime_calculation(self) -> None:
         """测试运行时间计算"""
         import time
 
@@ -147,11 +148,11 @@ class TestHealthIntegration:
     """测试健康检查集成"""
 
     @pytest.mark.asyncio
-    async def test_custom_check_integration(self):
+    async def test_custom_check_integration(self) -> None:
         """测试自定义检查集成"""
         checker = HealthChecker()
 
-        async def mock_check():
+        async def mock_check() -> dict[str, Any]:
             return {"status": "healthy", "details": {"mock": True, "value": 42}}
 
         checker.register_check("mock_check", mock_check)

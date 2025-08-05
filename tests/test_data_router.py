@@ -12,7 +12,7 @@ from vprism.core.services.routing import DataRouter
 
 
 class MockProvider(DataProvider):
-    def __init__(self, name: str, capability):
+    def __init__(self, name: str, capability: Any) -> None:
         from vprism.core.data.providers.base import (
             AuthConfig,
             AuthType,
@@ -32,7 +32,7 @@ class MockProvider(DataProvider):
         self.name = name  # 确保name属性被正确设置
         self._capability = capability
 
-    def _discover_capability(self):
+    def _discover_capability(self) -> Any:
         return self._capability
 
     async def get_data(self, query: DataQuery) -> Any:
@@ -49,7 +49,7 @@ class TestDataRouter:
     """测试数据路由器功能."""
 
     @pytest.fixture
-    def mock_registry(self, sample_providers):
+    def mock_registry(self, sample_providers: list[MockProvider]) -> Mock:
         """创建模拟的提供商注册表."""
         registry = Mock()
         registry.find_capable_providers = Mock()
@@ -60,7 +60,7 @@ class TestDataRouter:
         return registry
 
     @pytest.fixture
-    def sample_providers(self):
+    def sample_providers(self) -> list[MockProvider]:
         """创建示例提供商."""
         from vprism.core.data.providers.base import ProviderCapability
 
@@ -104,7 +104,7 @@ class TestDataRouter:
         ]
 
     @pytest.mark.asyncio
-    async def test_route_single_provider(self, mock_registry, sample_providers):
+    async def test_route_single_provider(self, mock_registry: Mock, sample_providers: list[MockProvider]) -> None:
         """测试单个提供商的路由."""
         mock_registry.find_capable_providers.return_value = [sample_providers[0]]
 
@@ -117,7 +117,7 @@ class TestDataRouter:
         mock_registry.find_capable_providers.assert_called_once_with(query)
 
     @pytest.mark.asyncio
-    async def test_route_multiple_providers_select_best(self, mock_registry, sample_providers):
+    async def test_route_multiple_providers_select_best(self, mock_registry: Mock, sample_providers: list[MockProvider]) -> None:
         """测试多个提供商中选择最佳提供商."""
         # 设置mock注册表的providers属性
         mock_registry.providers = {p.name: p for p in sample_providers}
@@ -135,7 +135,7 @@ class TestDataRouter:
         assert provider.name == "yahoo"
 
     @pytest.mark.asyncio
-    async def test_route_no_capable_provider(self, mock_registry):
+    async def test_route_no_capable_provider(self, mock_registry: Mock) -> None:
         """测试没有可用提供商的情况."""
         mock_registry.find_capable_providers.return_value = []
 
@@ -147,7 +147,7 @@ class TestDataRouter:
 
         assert "No provider can handle query" in str(exc_info.value)
 
-    def test_update_provider_score_success(self, mock_registry):
+    def test_update_provider_score_success(self, mock_registry: Mock) -> None:
         """测试更新提供商性能评分 - 成功情况."""
         router = DataRouter(mock_registry)
 
@@ -159,7 +159,7 @@ class TestDataRouter:
 
         assert router.provider_scores["tushare"] > 1.0
 
-    def test_update_provider_score_failure(self, mock_registry):
+    def test_update_provider_score_failure(self, mock_registry: Mock) -> None:
         """测试更新提供商性能评分 - 失败情况."""
         router = DataRouter(mock_registry)
 
@@ -172,7 +172,7 @@ class TestDataRouter:
         assert router.provider_scores["tushare"] < 1.0
         assert router.provider_scores["tushare"] >= 0.1
 
-    def test_update_provider_score_bounds(self, mock_registry):
+    def test_update_provider_score_bounds(self, mock_registry: Mock) -> None:
         """测试评分边界限制."""
         router = DataRouter(mock_registry)
 
@@ -187,7 +187,7 @@ class TestDataRouter:
         assert router.provider_scores["tushare"] >= 0.1
 
     @pytest.mark.asyncio
-    async def test_route_with_provider_scores(self, mock_registry, sample_providers):
+    async def test_route_with_provider_scores(self, mock_registry: Mock, sample_providers: list[MockProvider]) -> None:
         """测试使用提供商评分进行路由选择."""
         mock_registry.find_capable_providers.return_value = sample_providers[:2]
 
@@ -206,7 +206,7 @@ class TestDataRouter:
         assert provider.name in ["tushare", "yahoo"]
 
     @pytest.mark.asyncio
-    async def test_health_check_integration(self, mock_registry, sample_providers):
+    async def test_health_check_integration(self, mock_registry: Mock, sample_providers: list[MockProvider]) -> None:
         """测试健康检查集成."""
         mock_registry.find_capable_providers.return_value = [sample_providers[0]]
 
@@ -220,7 +220,7 @@ class TestDataRouter:
         mock_registry.find_capable_providers.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_complex_query_routing(self, mock_registry, sample_providers):
+    async def test_complex_query_routing(self, mock_registry: Mock, sample_providers: list[MockProvider]) -> None:
         """测试复杂查询的路由."""
         # 使用alpha_vantage提供商，它支持所有需要的条件
         capable_providers = [sample_providers[2]]  # alpha_vantage

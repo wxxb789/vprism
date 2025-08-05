@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from vprism.core.client.client import VPrismClient
+from vprism.core.exceptions import VPrismError
 from vprism.core.models import AssetType, MarketType, TimeFrame
 
 # 导入vprism模块进行测试
@@ -231,8 +232,8 @@ class TestErrorHandling:
         """测试空股票代码列表"""
         client = VPrismClient()
         # 不应该抛出异常，但可能返回空结果
-        with pytest.raises(Exception):
-            client.get(asset="stock", market="cn", symbols=["000001"])
+        with pytest.raises(VPrismError):
+            client.get(asset="stock", market="cn", symbols=["0000001"])
 
 
 class TestConfiguration:

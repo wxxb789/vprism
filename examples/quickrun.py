@@ -19,12 +19,12 @@ from rich.panel import Panel
 from rich.table import Table
 
 try:
-    import yfinance as yf
+    import yfinance as yf  # type: ignore
 except ImportError:
     yf = None
 
 try:
-    import akshare as ak
+    import akshare as ak  # type: ignore
 except ImportError:
     ak = None
 
@@ -56,7 +56,7 @@ def get_data_yfinance(symbol: str, days: int = 10) -> pd.DataFrame:
         data = data.reset_index()
         data["Date"] = pd.to_datetime(data["Date"]).dt.strftime("%Y-%m-%d")
 
-        return data[["Date", "Open", "High", "Low", "Close", "Volume"]]
+        return data[["Date", "Open", "High", "Low", "Close", "Volume"]]  # type: ignore[no-any-return]
 
     except Exception as e:
         console.print(f"[red]Error fetching from yfinance: {e}[/red]")
@@ -93,14 +93,14 @@ def get_data_akshare(symbol: str, days: int = 10) -> pd.DataFrame:
         # Rename columns to match standard format
         data = data.rename(columns={"日期": "Date", "开盘": "Open", "收盘": "Close", "最高": "High", "最低": "Low", "成交量": "Volume"})
 
-        return data[["Date", "Open", "High", "Low", "Close", "Volume"]]
+        return data[["Date", "Open", "High", "Low", "Close", "Volume"]]  # type: ignore[no-any-return]
 
     except Exception as e:
         console.print(f"[red]Error fetching from akshare: {e}[/red]")
         return pd.DataFrame()
 
 
-def display_ohlcv_table(symbol: str, data: pd.DataFrame, provider: str):
+def display_ohlcv_table(symbol: str, data: pd.DataFrame, provider: str) -> None:
     """Display OHLCV data in a rich table."""
     if data.empty:
         console.print(f"[red]No data to display for {symbol}[/red]")
@@ -126,7 +126,7 @@ def main(
     symbol: str = typer.Argument(..., help="Stock symbol (e.g., AAPL, 000001.SZ)"),
     days: int = typer.Option(10, help="Number of days to display"),
     provider: str = typer.Option("yfinance", help="Data provider: yfinance, akshare, or both"),
-):
+) -> None:
     """Get OHLCV data for a given symbol using multiple data providers."""
 
     console.print(

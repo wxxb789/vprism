@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from .base import DataPoint
+from vprism.core.models.base import DataPoint
 
 
 class ResponseMetadata(BaseModel):

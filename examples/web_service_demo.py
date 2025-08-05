@@ -4,10 +4,10 @@ Web 服务演示脚本
 展示如何使用 vprism 的 FastAPI Web 服务
 """
 
-import requests
+import requests  # type: ignore
 
 
-def demo_web_service():
+def demo_web_service() -> None:
     """演示 Web 服务功能"""
 
     base_url = "http://localhost:8000/api/v1"

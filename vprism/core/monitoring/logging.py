@@ -17,7 +17,7 @@ def bind(**kwargs: Any) -> Any:
 class StructuredLogger:
     """Structured logger wrapper."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logger
 
 
@@ -27,9 +27,9 @@ class PerformanceLogger:
     def __init__(self, operation: str):
         self.operation = operation
 
-    def __call__(self, func: Callable) -> Callable:
+    def __call__(self, func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        async def async_wrapper(*args, **kwargs):
+        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             start_time = time.time()
             try:
                 result = await func(*args, **kwargs)
@@ -57,7 +57,7 @@ class PerformanceLogger:
                 raise
 
         @functools.wraps(func)
-        def sync_wrapper(*args, **kwargs):
+        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             start_time = time.time()
             try:
                 result = func(*args, **kwargs)

@@ -2,7 +2,7 @@
 
 import os
 import tomllib
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -47,17 +47,12 @@ class LoggingConfig:
 class VPrismConfig:
     """vprism主配置"""
 
-    cache: CacheConfig = None
-    providers: ProviderConfig = None
-    logging: LoggingConfig = None
+    cache: CacheConfig = field(default_factory=CacheConfig)
+    providers: ProviderConfig = field(default_factory=ProviderConfig)
+    logging: LoggingConfig = field(default_factory=LoggingConfig)
 
-    def __post_init__(self):
-        if self.cache is None:
-            self.cache = CacheConfig()
-        if self.providers is None:
-            self.providers = ProviderConfig()
-        if self.logging is None:
-            self.logging = LoggingConfig()
+    def __post_init__(self) -> None:
+        pass
 
     @classmethod
     def from_dict(cls, config_dict: dict[str, Any]) -> "VPrismConfig":
@@ -111,7 +106,7 @@ class ConfigManager:
         """更新配置"""
         config_dict = self.config.to_dict()
 
-        def deep_update(d: dict, u: dict) -> dict:
+        def deep_update(d: dict[str, Any], u: dict[str, Any]) -> dict[str, Any]:
             """深度更新字典"""
             for k, v in u.items():
                 if isinstance(v, dict):
@@ -128,10 +123,10 @@ class ConfigManager:
         try:
             self.config_path.parent.mkdir(parents=True, exist_ok=True)
 
-            import tomli
+            import tomli_w
 
             with open(self.config_path, "wb") as f:
-                tomli.dump(self.config.to_dict(), f)
+                tomli_w.dump(self.config.to_dict(), f)
         except Exception as e:
             print(f"Warning: Failed to save config to {self.config_path}: {e}")
 
@@ -146,11 +141,13 @@ def load_config_from_env() -> dict[str, Any]:
     config = {}
 
     # 缓存配置
-    cache_config = {}
-    if os.getenv("VPRISM_CACHE_ENABLED"):
-        cache_config["enabled"] = os.getenv("VPRISM_CACHE_ENABLED").lower() == "true"
-    if os.getenv("VPRISM_CACHE_MEMORY_SIZE"):
-        cache_config["memory_size"] = int(os.getenv("VPRISM_CACHE_MEMORY_SIZE"))
+    cache_config: dict[str, Any] = {}
+    vprism_cache_enabled = os.getenv("VPRISM_CACHE_ENABLED")
+    if vprism_cache_enabled is not None:
+        cache_config["enabled"] = vprism_cache_enabled.lower() == "true"
+    vprism_cache_memory_size = os.getenv("VPRISM_CACHE_MEMORY_SIZE")
+    if vprism_cache_memory_size is not None:
+        cache_config["memory_size"] = int(vprism_cache_memory_size)
     if os.getenv("VPRISM_CACHE_DISK_PATH"):
         cache_config["disk_path"] = os.getenv("VPRISM_CACHE_DISK_PATH")
 
@@ -158,23 +155,28 @@ def load_config_from_env() -> dict[str, Any]:
         config["cache"] = cache_config
 
     # 提供商配置
-    provider_config = {}
-    if os.getenv("VPRISM_PROVIDER_TIMEOUT"):
-        provider_config["timeout"] = int(os.getenv("VPRISM_PROVIDER_TIMEOUT"))
-    if os.getenv("VPRISM_PROVIDER_MAX_RETRIES"):
-        provider_config["max_retries"] = int(os.getenv("VPRISM_PROVIDER_MAX_RETRIES"))
-    if os.getenv("VPRISM_PROVIDER_RATE_LIMIT"):
-        provider_config["rate_limit"] = os.getenv("VPRISM_PROVIDER_RATE_LIMIT").lower() == "true"
+    provider_config: dict[str, Any] = {}
+    vprism_provider_timeout = os.getenv("VPRISM_PROVIDER_TIMEOUT")
+    if vprism_provider_timeout is not None:
+        provider_config["timeout"] = int(vprism_provider_timeout)
+    vprism_provider_max_retries = os.getenv("VPRISM_PROVIDER_MAX_RETRIES")
+    if vprism_provider_max_retries is not None:
+        provider_config["max_retries"] = int(vprism_provider_max_retries)
+    vprism_provider_rate_limit = os.getenv("VPRISM_PROVIDER_RATE_LIMIT")
+    if vprism_provider_rate_limit is not None:
+        provider_config["rate_limit"] = vprism_provider_rate_limit.lower() == "true"
 
     if provider_config:
         config["providers"] = provider_config
 
     # 日志配置
-    logging_config = {}
-    if os.getenv("VPRISM_LOGGING_LEVEL"):
-        logging_config["level"] = os.getenv("VPRISM_LOGGING_LEVEL")
-    if os.getenv("VPRISM_LOGGING_FILE"):
-        logging_config["file"] = os.getenv("VPRISM_LOGGING_FILE")
+    logging_config: dict[str, Any] = {}
+    vprism_logging_level = os.getenv("VPRISM_LOGGING_LEVEL")
+    if vprism_logging_level is not None:
+        logging_config["level"] = vprism_logging_level
+    vprism_logging_file = os.getenv("VPRISM_LOGGING_FILE")
+    if vprism_logging_file is not None:
+        logging_config["file"] = vprism_logging_file
 
     if logging_config:
         config["logging"] = logging_config

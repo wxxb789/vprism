@@ -6,8 +6,9 @@ import time
 from typing import Any
 
 import duckdb
+from duckdb import DuckDBPyConnection
 
-from .base import CacheStrategy
+from vprism.core.data.cache.base import CacheStrategy
 
 
 class SimpleDuckDBCache(CacheStrategy):
@@ -16,7 +17,7 @@ class SimpleDuckDBCache(CacheStrategy):
     def __init__(self, db_path: str = ":memory:"):
         """初始化DuckDB缓存."""
         self.db_path = db_path
-        self._conn = None
+        self._conn: DuckDBPyConnection | None = None
         self._init_database()
 
     def _init_database(self) -> None:
@@ -40,6 +41,8 @@ class SimpleDuckDBCache(CacheStrategy):
     async def get(self, key: str) -> Any | None:
         """从缓存获取数据."""
         try:
+            if not self._conn:
+                return None
             result = self._conn.execute(
                 "SELECT value FROM cache WHERE key = ? AND expiry > ?",
                 [key, time.time()],
@@ -57,6 +60,8 @@ class SimpleDuckDBCache(CacheStrategy):
             expiry = time.time() + ttl
             value_json = json.dumps(value, default=str)
 
+            if not self._conn:
+                return
             self._conn.execute(
                 """
                 INSERT OR REPLACE INTO cache (key, value, expiry)
@@ -70,19 +75,24 @@ class SimpleDuckDBCache(CacheStrategy):
     async def delete(self, key: str) -> bool:
         """删除缓存数据."""
         try:
+            if not self._conn:
+                return False
             result = self._conn.execute("DELETE FROM cache WHERE key = ?", [key])
-            return result.rowcount > 0
+            return bool(result.rowcount)
         except Exception:
             return False
 
     async def clear(self) -> None:
         """清空缓存."""
         with contextlib.suppress(Exception):
-            self._conn.execute("DELETE FROM cache")
+            if self._conn:
+                self._conn.execute("DELETE FROM cache")
 
     async def get_ttl(self, key: str) -> int | None:
         """获取剩余TTL."""
         try:
+            if not self._conn:
+                return None
             result = self._conn.execute(
                 "SELECT expiry FROM cache WHERE key = ? AND expiry > ?",
                 [key, time.time()],
@@ -99,16 +109,22 @@ class SimpleDuckDBCache(CacheStrategy):
         """清理过期数据."""
         """清理过期缓存项."""
         try:
+            if not self._conn:
+                return 0
             result = self._conn.execute("DELETE FROM cache WHERE expiry <= ?", [time.time()])
-            return result.rowcount
+            return int(result.rowcount or 0)
         except Exception:
             return 0
+
+    def is_connected(self) -> bool:
+        """检查数据库连接是否处于活动状态."""
+        return self._conn is not None
 
     def close(self) -> None:
         """关闭数据库连接."""
         if self._conn:
             self._conn.close()
 
-    def __del__(self):
+    def __del__(self) -> None:
         """析构函数，确保连接关闭."""
         self.close()

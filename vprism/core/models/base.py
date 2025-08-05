@@ -7,7 +7,7 @@ from typing import Any
 from pydantic import BaseModel, Field, field_serializer
 from pydantic import ConfigDict as PydanticConfigDict
 
-from .market import MarketType
+from vprism.core.models.market import MarketType
 
 
 class DataPoint(BaseModel):

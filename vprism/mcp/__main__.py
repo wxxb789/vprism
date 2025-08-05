@@ -19,12 +19,17 @@ def setup_logging(level: str = "INFO") -> None:
     logger.remove()
     logger.add(
         sys.stderr,
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8>}</level> | <cyan>{module}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+        format=(
+            "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
+            "<level>{level: <8>}</level> | "
+            "<cyan>{module}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+            "<level>{message}</level>"
+        ),
         level=level.upper(),
     )
 
 
-async def main():
+async def main() -> None:
     """Main entry point for the MCP server."""
     parser = argparse.ArgumentParser(description="vPrism Financial Data MCP Server")
     parser.add_argument(
@@ -59,10 +64,7 @@ async def main():
 
         try:
             with open(args.config) as f:
-                if args.config.endswith(".yaml") or args.config.endswith(".yml"):
-                    config = yaml.safe_load(f)
-                else:
-                    config = json.load(f)
+                config = yaml.safe_load(f) if args.config.endswith((".yaml", ".yml")) else json.load(f)
             logger.info(f"Loaded configuration from {args.config}")
         except Exception as e:
             logger.error(f"Failed to load configuration: {e}")
@@ -77,9 +79,9 @@ async def main():
         if args.transport == "stdio":
             await server.start("stdio")
         elif args.transport == "http":
-            await server.mcp.run(transport="http", host=args.host, port=args.port)
+            await server.start(transport="http", host=args.host, port=args.port)
         elif args.transport == "sse":
-            await server.mcp.run(transport="sse", host=args.host, port=args.port)
+            await server.start(transport="sse", host=args.host, port=args.port)
 
     except KeyboardInterrupt:
         logger.info("Shutting down vPrism MCP Server...")

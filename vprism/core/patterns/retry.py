@@ -5,9 +5,11 @@ import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, TypeVar
 
-from ..exceptions import ProviderError, RateLimitError
+from vprism.core.exceptions import ProviderError, RateLimitError
+
+T = TypeVar("T")
 
 
 class RetryState(Enum):
@@ -43,7 +45,7 @@ class ExponentialBackoffRetry:
         self.state = RetryState.READY
         self.last_exception: Exception | None = None
 
-    async def execute(self, func: Callable[..., Awaitable], *args, **kwargs) -> Any:
+    async def execute(self, func: Callable[..., Awaitable[T]], *args: Any, **kwargs: Any) -> T:
         """执行函数，应用重试逻辑.
 
         Args:
@@ -89,6 +91,12 @@ class ExponentialBackoffRetry:
                 # 等待重试
                 await asyncio.sleep(delay)
                 self.total_delay += delay
+
+        # 如果循环完成但没有成功，则引发最后的异常
+        if self.last_exception:
+            raise self.last_exception
+        # 这是一个备用，以防循环在没有异常的情况下退出
+        raise RuntimeError("Retry loop completed without success or exception.")
 
     def _calculate_delay(self, attempt_number: int) -> float:
         """计算延迟时间.
@@ -138,7 +146,7 @@ class ExponentialBackoffRetry:
 class RetryRegistry:
     """重试注册表."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._retries: dict[str, ExponentialBackoffRetry] = {}
         self._lock = asyncio.Lock()
 
@@ -187,10 +195,10 @@ class RetryDecorator:
         self.name = name
         self.config = config or RetryConfig()
 
-    def __call__(self, func: Callable[..., Awaitable]) -> Callable[..., Awaitable]:
+    def __call__(self, func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
         """装饰器实现."""
 
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args: Any, **kwargs: Any) -> T:
             retry = ExponentialBackoffRetry(self.config)
             return await retry.execute(func, *args, **kwargs)
 
@@ -256,13 +264,13 @@ class ResilientExecutor:
         retry_name: str,
         circuit_config: dict[str, Any] | None = None,
         retry_config: dict[str, Any] | None = None,
-    ):
+    ) -> None:
         self.circuit_breaker_name = circuit_breaker_name
         self.retry_name = retry_name
         self.circuit_config = circuit_config or {}
         self.retry_config = retry_config or {}
 
-    async def execute(self, func: Callable[..., Awaitable], *args, **kwargs) -> Any:
+    async def execute(self, func: Callable[..., Awaitable[T]], *args: Any, **kwargs: Any) -> T:
         """执行函数，应用熔断器和重试机制.
 
         Args:
@@ -273,7 +281,10 @@ class ResilientExecutor:
         Returns:
             函数返回结果
         """
-        from .circuit_breaker import CircuitBreakerConfig, circuit_breaker_registry
+        from vprism.core.patterns.circuitbreaker import (
+            CircuitBreakerConfig,
+            circuit_breaker_registry,
+        )
 
         # 获取或创建熔断器
         circuit_config = CircuitBreakerConfig(name=self.circuit_breaker_name, **self.circuit_config)
@@ -284,7 +295,7 @@ class ResilientExecutor:
         retry_instance = ExponentialBackoffRetry(retry_config)
 
         # 定义重试函数
-        async def retry_func(*f_args, **f_kwargs):
+        async def retry_func(*f_args: Any, **f_kwargs: Any) -> T:
             return await retry_instance.execute(func, *f_args, **f_kwargs)
 
         # 使用熔断器包装重试函数

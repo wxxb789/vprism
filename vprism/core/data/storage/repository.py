@@ -1,15 +1,17 @@
 """数据存储仓储模式实现"""
 
+import json
 import logging
 from abc import ABC, abstractmethod
+from contextlib import suppress
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
 from pydantic import BaseModel
 
-from ...models.market import MarketType, TimeFrame
-from .schema import DatabaseSchema
+from vprism.core.data.storage.schema import DatabaseSchema
+from vprism.core.models.market import MarketType, TimeFrame
 
 logger = logging.getLogger(__name__)
 
@@ -91,17 +93,17 @@ class DataRepository(ABC):
     @abstractmethod
     async def save_asset_info(self, asset: AssetInfo) -> bool:
         """保存资产信息"""
-        pass
+        ...
 
     @abstractmethod
     async def get_asset_info(self, symbol: str, market: str) -> AssetInfo | None:
         """获取资产信息"""
-        pass
+        ...
 
     @abstractmethod
     async def save_ohlcv_data(self, data: list[OHLCVData]) -> bool:
         """保存OHLCV数据"""
-        pass
+        ...
 
     @abstractmethod
     async def get_ohlcv_data(
@@ -113,37 +115,42 @@ class DataRepository(ABC):
         timeframe: TimeFrame = TimeFrame.DAY_1,
     ) -> list[OHLCVData]:
         """获取OHLCV数据"""
-        pass
+        ...
 
     @abstractmethod
     async def save_real_time_quote(self, quote: RealTimeQuote) -> bool:
         """保存实时报价"""
-        pass
+        ...
 
     @abstractmethod
     async def get_real_time_quote(self, symbol: str, market: str) -> RealTimeQuote | None:
         """获取实时报价"""
-        pass
+        ...
 
     @abstractmethod
     async def save_data_quality_metrics(self, metrics: DataQualityMetrics) -> bool:
         """保存数据质量指标"""
-        pass
+        ...
 
     @abstractmethod
     async def get_data_quality_metrics(self, symbol: str, market: str, start_date: date, end_date: date) -> DataQualityMetrics | None:
         """获取数据质量指标"""
-        pass
+        ...
 
     @abstractmethod
     async def get_symbols_by_market(self, market: MarketType) -> list[str]:
         """获取指定市场的所有股票代码"""
-        pass
+        ...
 
     @abstractmethod
     async def get_latest_price(self, symbol: str, market: str) -> Decimal | None:
         """获取最新价格"""
-        pass
+        ...
+
+    @abstractmethod
+    def close(self) -> None:
+        """关闭连接"""
+        ...
 
 
 class DuckDBRepository(DataRepository):
@@ -214,7 +221,7 @@ class DuckDBRepository(DataRepository):
                     exchange_timezone=result[10],
                     first_traded=result[11],
                     last_updated=result[12],
-                    metadata=eval(result[13]) if result[13] else None,
+                    metadata=json.loads(result[13]) if result[13] else None,
                 )
             return None
         except Exception as e:
@@ -240,8 +247,8 @@ class DuckDBRepository(DataRepository):
                         INSERT OR REPLACE INTO intraday_ohlcv
                         (id, symbol, market, timeframe, timestamp, open_price, high_price,
                          low_price, close_price, volume, amount, provider)
-                        VALUES (md5(concat(?, ?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
+                       VALUES (md5(concat(?, ?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   """,
                         [
                             item.symbol,
                             item.market,
@@ -256,7 +263,6 @@ class DuckDBRepository(DataRepository):
                             item.close_price,
                             item.volume,
                             item.amount,
-                            item.provider,
                         ],
                     )
                 else:  # 日线数据
@@ -265,7 +271,7 @@ class DuckDBRepository(DataRepository):
                         INSERT OR REPLACE INTO daily_ohlcv
                         (id, symbol, market, trade_date, open_price, high_price, low_price,
                          close_price, volume, amount, adjusted_close, provider)
-                        VALUES (md5(concat(?, ?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        VALUES (md5(concat(?, ?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                         [
                             item.symbol,
@@ -281,7 +287,6 @@ class DuckDBRepository(DataRepository):
                             item.volume,
                             item.amount,
                             item.adjusted_close or None,
-                            item.provider,
                         ],
                     )
             return True
@@ -386,7 +391,7 @@ class DuckDBRepository(DataRepository):
                 INSERT OR REPLACE INTO real_time_quotes
                 (id, symbol, market, price, change_amount, change_percent, volume,
                  bid, ask, bid_size, ask_size, timestamp, provider)
-                VALUES (md5(concat(?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (md5(concat(?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 [
                     quote.symbol,
@@ -402,7 +407,6 @@ class DuckDBRepository(DataRepository):
                     quote.bid_size,
                     quote.ask_size,
                     quote.timestamp,
-                    quote.provider,
                 ],
             )
             return True
@@ -452,7 +456,7 @@ class DuckDBRepository(DataRepository):
                 (id, symbol, market, date_range_start, date_range_end, completeness_score,
                  accuracy_score, consistency_score, total_records, missing_records,
                  anomaly_count, provider)
-                VALUES (md5(concat(?, ?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (md5(concat(?, ?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 [
                     metrics.symbol,
@@ -468,7 +472,6 @@ class DuckDBRepository(DataRepository):
                     metrics.total_records,
                     metrics.missing_records,
                     metrics.anomaly_count,
-                    metrics.provider,
                 ],
             )
             return True
@@ -552,13 +555,11 @@ class DuckDBRepository(DataRepository):
             logger.error(f"Failed to get latest price: {e}")
             return None
 
-    def close(self):
+    def close(self) -> None:
         """关闭数据库连接"""
         self.schema.close()
 
-    def __del__(self):
+    def __del__(self) -> None:
         """析构函数"""
-        try:
+        with suppress(Exception):
             self.close()
-        except Exception:
-            pass  # 忽略析构时的错误

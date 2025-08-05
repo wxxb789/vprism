@@ -8,6 +8,7 @@ and reliability.
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 import pandas as pd
 
@@ -28,9 +29,9 @@ class ConsistencyReport:
     max_price_difference: float
     consistency_percentage: float
     issues: list[str]
-    detailed_comparison: dict[str, dict]
+    detailed_comparison: dict[str, dict[str, Any]]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate report data after initialization."""
         # Only calculate if consistency_percentage is 0 (default)
         # Allow explicit override for testing
@@ -348,7 +349,7 @@ class DataConsistencyValidator:
 
         return reports
 
-    def run_automated_validation(self, symbols: list[str], days_back: int = 7, alert_threshold: float = 95.0) -> dict[str, any]:
+    def run_automated_validation(self, symbols: list[str], days_back: int = 7, alert_threshold: float = 95.0) -> dict[str, Any]:
         """
         Run automated validation with alerting.
 

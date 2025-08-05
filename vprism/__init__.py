@@ -4,12 +4,15 @@
 支持同步和异步操作，内置缓存和错误处理。
 """
 
-from .core.client.client import VPrismClient
-from .core.models.market import AssetType, MarketType, TimeFrame
-from .core.models.query import DataQuery
+from typing import Any
+
+from vprism.core.client.builder import QueryBuilder
+from vprism.core.client.client import VPrismClient
+from vprism.core.models.market import AssetType, MarketType, TimeFrame
+from vprism.core.models.query import DataQuery
 
 # 创建全局客户端实例
-_client = None
+_client: VPrismClient | None = None
 
 
 def get_client() -> VPrismClient:
@@ -21,15 +24,15 @@ def get_client() -> VPrismClient:
 
 
 def get(
-    asset: str = None,
-    market: str = None,
-    symbols: list[str] = None,
-    timeframe: str = None,
-    start: str = None,
-    end: str = None,
-    provider: str = None,
-    **kwargs,
-):
+    asset: str | None = None,
+    market: str | None = None,
+    symbols: list[str] | None = None,
+    timeframe: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+    provider: str | None = None,
+    **kwargs: Any,
+) -> Any:
     """同步获取金融数据
 
     Args:
@@ -59,6 +62,8 @@ def get(
         >>> print(data)
     """
     client = get_client()
+    if asset is None:
+        raise ValueError("Asset type must be specified.")
     return client.get(
         asset=asset,
         market=market,
@@ -72,15 +77,15 @@ def get(
 
 
 async def get_async(
-    asset: str = None,
-    market: str = None,
-    symbols: list[str] = None,
-    timeframe: str = None,
-    start: str = None,
-    end: str = None,
-    provider: str = None,
-    **kwargs,
-):
+    asset: str | None = None,
+    market: str | None = None,
+    symbols: list[str] | None = None,
+    timeframe: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+    provider: str | None = None,
+    **kwargs: Any,
+) -> Any:
     """异步获取金融数据
 
     Args:
@@ -112,6 +117,8 @@ async def get_async(
         >>> asyncio.run(main())
     """
     client = get_client()
+    if asset is None:
+        raise ValueError("Asset type must be specified.")
     return await client.get_async(
         asset=asset,
         market=market,
@@ -124,7 +131,7 @@ async def get_async(
     )
 
 
-def query():
+def query() -> QueryBuilder:
     """获取查询构建器
 
     Returns:
@@ -146,7 +153,7 @@ def query():
     return client.query()
 
 
-async def execute(query):
+async def execute(query: DataQuery) -> Any:
     """执行查询
 
     Args:
@@ -170,28 +177,12 @@ async def execute(query):
     return await client.execute(query)
 
 
-def configure(**config):
+def configure(**config: Any) -> None:
     """配置全局客户端
 
     Args:
         **config: 配置参数
 
-    支持的配置项:
-        cache.enabled: 是否启用缓存 (bool)
-        cache.memory_size: 内存缓存大小 (int)
-        cache.disk_path: 磁盘缓存路径 (str)
-        providers.timeout: 提供商超时时间 (int)
-        providers.max_retries: 最大重试次数 (int)
-        providers.rate_limit: 是否启用速率限制 (bool)
-        logging.level: 日志级别 (str)
-        logging.file: 日志文件路径 (str)
-
-    Examples:
-        >>> import vprism
-        >>> vprism.configure(
-        ...     cache={"enabled": True, "memory_size": 2000},
-        ...     providers={"timeout": 60, "max_retries": 3}
-        ... )
     """
     client = get_client()
     client.configure(**config)

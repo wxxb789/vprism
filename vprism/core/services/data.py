@@ -2,10 +2,12 @@
 
 import asyncio
 from datetime import date, datetime, timedelta
+from typing import Any, cast
 
 from loguru import logger
 
 from vprism.core.data.cache.multilevel import MultiLevelCache
+from vprism.core.data.providers.registry import ProviderRegistry
 from vprism.core.data.repositories.data import DataRepository
 from vprism.core.data.storage.database import DatabaseManager
 from vprism.core.models.base import DataPoint
@@ -13,7 +15,7 @@ from vprism.core.models.market import AssetType, MarketType, TimeFrame
 from vprism.core.models.query import DataQuery
 from vprism.core.models.response import DataResponse, ProviderInfo, ResponseMetadata
 from vprism.core.monitoring import PerformanceLogger, bind
-from vprism.core.services.routing import DataRouter
+from vprism.core.services.data_router import DataRouter
 
 
 class DataService:
@@ -32,7 +34,7 @@ class DataService:
             cache: 多层缓存实例
             repository: 数据存储仓库实例
         """
-        self.router = router or DataRouter()
+        self.router = router or DataRouter(ProviderRegistry())
         self.cache = cache or MultiLevelCache()
         self.repository = repository or DataRepository(DatabaseManager())
 
@@ -79,21 +81,28 @@ class DataService:
         if isinstance(symbols, str):
             symbols = [symbols]
 
-        # 处理默认日期
-        if end is None:
-            end = datetime.now().date()
-        if start is None:
-            start = end - timedelta(days=30)
-
         # 标准化日期格式
-        if isinstance(start, str):
-            start = datetime.strptime(start, "%Y-%m-%d").date()
         if isinstance(end, str):
-            end = datetime.strptime(end, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end, "%Y-%m-%d").date()
+        elif isinstance(end, datetime):
+            end_date = end.date()
+        elif end is None:
+            end_date = datetime.now().date()
+        else:
+            end_date = end
+
+        if isinstance(start, str):
+            start_date = datetime.strptime(start, "%Y-%m-%d").date()
+        elif isinstance(start, datetime):
+            start_date = start.date()
+        elif start is None:
+            start_date = end_date - timedelta(days=30)
+        else:
+            start_date = start
 
         # 创建查询对象
-        start_dt = datetime.combine(start, datetime.min.time())
-        end_dt = datetime.combine(end, datetime.max.time())
+        start_dt = datetime.combine(start_date, datetime.min.time())
+        end_dt = datetime.combine(end_date, datetime.max.time())
 
         query = DataQuery(
             asset=asset_type,
@@ -104,7 +113,7 @@ class DataService:
             end=end_dt,
         )
 
-        return await self.query_data(query)
+        return cast("DataResponse", await self.query_data(query))
 
     def query(self) -> "QueryBuilder":
         """链式API：创建查询构建器.
@@ -151,7 +160,7 @@ class DataService:
             cache_key = self._generate_cache_key(query)
             logger.debug("Checking cache", extra={"cache_key": cache_key})
 
-            cached_data = await self.cache.get(cache_key)
+            cached_data = await self.cache.get_data(query)
 
             if cached_data is not None:
                 logger.info(
@@ -180,11 +189,12 @@ class DataService:
             logger.info("Cache miss, querying from provider")
 
             # 从路由器获取数据
-            response = await self.router.route_query(query)
+            provider = self.router.route_query(query)
+            response = await provider.get_data(query)
 
             # 缓存结果
             if response.data:
-                await self.cache.set(cache_key, response.data)
+                await self.cache.set_data(query, response.data)
                 logger.info(
                     "Data cached",
                     extra={
@@ -194,11 +204,13 @@ class DataService:
                 )
 
                 # 存储到数据库
-                await self.repository.save_data_points(response.data)
-                logger.info(
-                    "Data stored to repository",
-                    extra={"stored_records": len(response.data)},
-                )
+                if response.source:
+                    data_records = [self.repository.from_data_point(dp, response.source.name) for dp in response.data]
+                    await self.repository.save_batch(data_records)
+                    logger.info(
+                        "Data stored to repository",
+                        extra={"stored_records": len(response.data)},
+                    )
 
             logger.info(
                 "Query completed successfully",
@@ -217,27 +229,22 @@ class DataService:
 
             # 尝试从数据库获取历史数据
             try:
-                stored_data = await self.repository.get_data_points(query)
-                if stored_data:
+                stored_records = await self.repository.find_by_query(query)
+                if stored_records:
                     logger.info(
                         "Retrieved fallback data from storage",
-                        extra={"stored_records": len(stored_data)},
+                        extra={"stored_records": len(stored_records)},
                     )
-                    # Ensure stored data is converted to DataPoint instances
-                    data_points = []
-                    for item in stored_data:
-                        if isinstance(item, dict):
-                            data_points.append(DataPoint(**item))
-                        else:
-                            data_points.append(item)
+                    data_points = [record.to_data_point() for record in stored_records]
                     return DataResponse(
                         data=data_points,
                         metadata=ResponseMetadata(
                             total_records=len(data_points),
                             query_time_ms=0.0,
                             data_source="repository",
+                            cache_hit=False,
                         ),
-                        source=ProviderInfo(name="repository", endpoint="repository"),
+                        source=ProviderInfo(name="repository"),
                         cached=False,
                     )
             except Exception as storage_error:
@@ -297,7 +304,7 @@ class DataService:
 
         response = await self.query_data(query)
         logger.info("Latest data retrieved", extra={"records_count": len(response.data)})
-        return response
+        return cast("DataResponse", response)
 
     @PerformanceLogger("get_historical")
     async def get_historical(
@@ -367,10 +374,10 @@ class DataService:
                 "date_range": f"{start_date} to {end_date}",
             },
         )
-        return response
+        return cast("DataResponse", response)
 
     @PerformanceLogger("batch_query")
-    async def batch_query(self, queries: list[DataQuery]) -> dict[str, DataResponse]:
+    async def batch_query(self, queries: list[DataQuery]) -> dict[str, DataResponse | BaseException]:
         """批量查询多个数据请求.
 
         Args:
@@ -387,12 +394,12 @@ class DataService:
         responses = await asyncio.gather(*tasks, return_exceptions=True)
 
         # 构建响应映射
-        results = {}
+        results: dict[str, DataResponse | BaseException] = {}
         success_count = 0
         failure_count = 0
         for i, (query, response) in enumerate(zip(queries, responses, strict=False)):
             query_id = f"query_{i}"
-            if isinstance(response, Exception):
+            if isinstance(response, BaseException):
                 logger.error(
                     "Query failed",
                     extra={
@@ -402,18 +409,9 @@ class DataService:
                         "error_message": str(response),
                     },
                 )
-                results[query_id] = DataResponse(
-                    data=[],
-                    metadata=ResponseMetadata(
-                        total_records=0,
-                        query_time_ms=0.0,
-                        data_source="error",
-                    ),
-                    source=ProviderInfo(name="error", endpoint="error"),
-                    cached=False,
-                )
+                results[query_id] = response
                 failure_count += 1
-            else:
+            elif isinstance(response, DataResponse):
                 logger.info(
                     "Query completed successfully",
                     extra={
@@ -447,22 +445,24 @@ class DataService:
         symbols_str = ",".join(sorted(query.symbols)) if query.symbols else ""
         start_str = query.start.isoformat() if query.start else "None"
         end_str = query.end.isoformat() if query.end else "None"
-        return f"{query.asset.value}:{query.market.value}:{symbols_str}:{query.timeframe.value}:{start_str}:{end_str}"
+        market_val = query.market.value if query.market else "none"
+        timeframe_val = query.timeframe.value if query.timeframe else "none"
+        return f"{query.asset.value}:{market_val}:{symbols_str}:{timeframe_val}:{start_str}:{end_str}"
 
-    async def health_check(self) -> dict[str, bool]:
+    async def health_check(self) -> dict[str, Any]:
         """健康检查.
 
         Returns:
-            Dict[str, bool]: 各组件健康状态
+            Dict[str, Any]: 各组件健康状态
         """
         health = {
-            "router": await self.router.health_check(),
+            "router": self.router.health_check(),
             "cache": await self.cache.health_check(),
-            "repository": await self.repository.health_check(),
+            "repository": self.repository.health_check(),
         }
         return health
 
-    async def close(self):
+    async def close(self) -> None:
         """关闭服务并清理资源."""
         logger.info("Closing DataService")
 
@@ -585,7 +585,7 @@ class QueryBuilder:
         Returns:
             DataResponse: 包含数据点的响应对象
         """
-        return await self.service.query_data(self.query)
+        return cast("DataResponse", await self.service.query_data(self.query))
 
     def period(self, period: str) -> "QueryBuilder":
         """设置查询周期.

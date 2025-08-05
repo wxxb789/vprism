@@ -1,9 +1,13 @@
 """数据库存储模型."""
 
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 
 from pydantic import BaseModel, Field
+
+from vprism.core.models import DataPoint
+from vprism.core.models.market import MarketType
 
 
 class DataRecord(BaseModel):
@@ -25,6 +29,21 @@ class DataRecord(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     metadata: dict[str, Any] | None = None
+
+    def to_data_point(self) -> DataPoint:
+        """将DataRecord转换为DataPoint."""
+        return DataPoint(
+            symbol=self.symbol,
+            timestamp=self.timestamp,
+            open_price=Decimal(str(self.open)) if self.open is not None else None,
+            high_price=Decimal(str(self.high)) if self.high is not None else None,
+            low_price=Decimal(str(self.low)) if self.low is not None else None,
+            close_price=Decimal(str(self.close)) if self.close is not None else None,
+            volume=Decimal(str(self.volume)) if self.volume is not None else None,
+            amount=Decimal(str(self.amount)) if self.amount is not None else None,
+            market=MarketType(self.market) if self.market else MarketType.CN,
+            extra_fields=self.metadata or {},
+        )
 
 
 class ProviderRecord(BaseModel):

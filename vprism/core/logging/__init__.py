@@ -1,7 +1,7 @@
 """Logging utilities for monitoring and debugging."""
 
-from .config import LogConfig
-from .logger import (
+from vprism.core.logging.config import LogConfig
+from vprism.core.logging.logger import (
     PerformanceLogger,
     StructuredLogger,
     bind,

@@ -114,12 +114,12 @@ class TestDataQualityChecks:
         prices = np.concatenate([normal_prices, outliers])
 
         # Use IQR method for outlier detection
-        Q1 = np.percentile(prices, 25)
-        Q3 = np.percentile(prices, 75)
-        IQR = Q3 - Q1
+        q1 = np.percentile(prices, 25)
+        q3 = np.percentile(prices, 75)
+        iqr = q3 - q1
 
-        lower_bound = Q1 - 1.5 * IQR
-        upper_bound = Q3 + 1.5 * IQR
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
 
         outliers_detected = prices[(prices < lower_bound) | (prices > upper_bound)]
         assert len(outliers_detected) >= 3  # Should detect our artificial outliers
@@ -284,12 +284,12 @@ class TestDataCleaning:
         df = pd.DataFrame({"price": prices})
 
         # Remove outliers using IQR method
-        Q1 = df["price"].quantile(0.25)
-        Q3 = df["price"].quantile(0.75)
-        IQR = Q3 - Q1
+        q1 = df["price"].quantile(0.25)
+        q3 = df["price"].quantile(0.75)
+        iqr = q3 - q1
 
-        lower_bound = Q1 - 1.5 * IQR
-        upper_bound = Q3 + 1.5 * IQR
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
 
         df_cleaned = df[(df["price"] >= lower_bound) & (df["price"] <= upper_bound)]
 

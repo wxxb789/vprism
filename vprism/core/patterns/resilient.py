@@ -1,10 +1,15 @@
 """弹性执行器，结合熔断器和重试机制."""
 
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import Any, TypeVar
 
-from .circuitbreaker import CircuitBreakerConfig, circuit_breaker_registry
-from .retry import ExponentialBackoffRetry, RetryConfig
+from vprism.core.patterns.circuitbreaker import (
+    CircuitBreakerConfig,
+    circuit_breaker_registry,
+)
+from vprism.core.patterns.retry import ExponentialBackoffRetry, RetryConfig
+
+T = TypeVar("T")
 
 
 class ResilientExecutor:
@@ -16,13 +21,13 @@ class ResilientExecutor:
         retry_name: str,
         circuit_config: dict[str, Any] | None = None,
         retry_config: dict[str, Any] | None = None,
-    ):
+    ) -> None:
         self.circuit_breaker_name = circuit_breaker_name
         self.retry_name = retry_name
         self.circuit_config = circuit_config or {}
         self.retry_config = retry_config or {}
 
-    async def execute(self, func: Callable[..., Awaitable], *args, **kwargs) -> Any:
+    async def execute(self, func: Callable[..., Awaitable[T]], *args: Any, **kwargs: Any) -> T:
         """执行函数，应用熔断器和重试机制.
 
         Args:
@@ -42,7 +47,7 @@ class ResilientExecutor:
         retry_instance = ExponentialBackoffRetry(retry_config)
 
         # 定义重试函数
-        async def retry_func(*f_args, **f_kwargs):
+        async def retry_func(*f_args: Any, **f_kwargs: Any) -> T:
             return await retry_instance.execute(func, *f_args, **f_kwargs)
 
         # 使用熔断器包装重试函数

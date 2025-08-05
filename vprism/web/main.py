@@ -7,7 +7,7 @@ import os
 import uvicorn
 
 
-def main():
+def main() -> None:
     """启动 FastAPI Web 服务"""
 
     # 配置

@@ -3,23 +3,33 @@
 import asyncio
 import contextlib
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, TypedDict
 
-from ...models.query import DataQuery
-from .base import DataProvider
+from vprism.core.data.providers.base import DataProvider
+from vprism.core.models.query import DataQuery
+
+
+class HealthSummary(TypedDict):
+    """健康状态摘要的类型定义."""
+
+    total_providers: int
+    healthy_providers: int
+    unhealthy_providers: int
+    health_percentage: float
+    providers: list[dict[str, Any]]
 
 
 class ProviderRegistry:
     """提供商注册表，管理数据提供商的生命周期和健康状态."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化提供商注册表."""
         self.providers: dict[str, DataProvider] = {}
         self.provider_health: dict[str, bool] = {}
         self.provider_metadata: dict[str, dict[str, Any]] = {}
         self._lock = asyncio.Lock()
         self._health_check_interval = 300  # 5分钟
-        self._health_check_task: asyncio.Task | None = None
+        self._health_check_task: asyncio.Task[None] | None = None
 
     def register(self, provider: DataProvider) -> None:
         """注册提供商.
@@ -218,7 +228,7 @@ class ProviderRegistry:
                 provider._capability = None
                 _ = provider.capability  # 触发重新发现
 
-    def get_health_summary(self) -> dict[str, Any]:
+    def get_health_summary(self) -> HealthSummary:
         """获取健康状态摘要.
 
         Returns:

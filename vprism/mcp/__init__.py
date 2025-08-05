@@ -10,6 +10,6 @@ __version__ = "0.1.0"
 __author__ = "vPrism Team"
 __description__ = "vPrism Financial Data Platform MCP Server"
 
-from .server import VPrismMCPServer, create_mcp_server
+from vprism.mcp.server import VPrismMCPServer, create_mcp_server
 
 __all__ = ["VPrismMCPServer", "create_mcp_server"]

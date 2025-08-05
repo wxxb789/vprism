@@ -18,7 +18,7 @@ from vprism.core.patterns.circuitbreaker import (
 class TestCircuitBreakerConfig:
     """测试熔断器配置."""
 
-    def test_default_config(self):
+    def test_default_config(self) -> None:
         """测试默认配置."""
         config = CircuitBreakerConfig()
 
@@ -28,7 +28,7 @@ class TestCircuitBreakerConfig:
         assert config.expected_exception == ProviderError
         assert config.name == "default"
 
-    def test_custom_config(self):
+    def test_custom_config(self) -> None:
         """测试自定义配置."""
         config = CircuitBreakerConfig(
             failure_threshold=3,
@@ -47,7 +47,7 @@ class TestCircuitBreaker:
     """测试熔断器."""
 
     @pytest.fixture
-    def breaker(self):
+    def breaker(self) -> CircuitBreaker:
         """创建熔断器实例."""
         config = CircuitBreakerConfig(
             failure_threshold=2,
@@ -58,17 +58,17 @@ class TestCircuitBreaker:
         return CircuitBreaker(config)
 
     @pytest.mark.asyncio
-    async def test_initial_state(self, breaker):
+    async def test_initial_state(self, breaker: CircuitBreaker) -> None:
         """测试初始状态."""
         assert breaker.state == CircuitState.CLOSED
         assert breaker.failure_count == 0
         assert breaker.last_failure_time is None
 
     @pytest.mark.asyncio
-    async def test_successful_call(self, breaker):
+    async def test_successful_call(self, breaker: CircuitBreaker) -> None:
         """测试成功调用."""
 
-        async def success_func():
+        async def success_func() -> str:
             return "success"
 
         result = await breaker.call(success_func)
@@ -76,10 +76,10 @@ class TestCircuitBreaker:
         assert breaker.state == CircuitState.CLOSED
 
     @pytest.mark.asyncio
-    async def test_failure_threshold(self, breaker):
+    async def test_failure_threshold(self, breaker: CircuitBreaker) -> None:
         """测试失败阈值."""
 
-        async def failure_func():
+        async def failure_func() -> None:
             raise ProviderError("测试失败", "test_provider")
 
         # 第一次失败
@@ -95,10 +95,10 @@ class TestCircuitBreaker:
         assert breaker.failure_count == 2
 
     @pytest.mark.asyncio
-    async def test_circuit_open(self, breaker):
+    async def test_circuit_open(self, breaker: CircuitBreaker) -> None:
         """测试熔断器打开状态."""
 
-        async def failure_func():
+        async def failure_func() -> None:
             raise ProviderError("测试失败", "test_provider")
 
         # 触发熔断
@@ -110,7 +110,7 @@ class TestCircuitBreaker:
         assert breaker.state == CircuitState.OPEN
 
         # 尝试调用应该被阻止
-        async def any_func():
+        async def any_func() -> str:
             return "should not reach here"
 
         with pytest.raises(ProviderError) as exc_info:
@@ -119,13 +119,13 @@ class TestCircuitBreaker:
         assert "熔断器处于OPEN状态" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_half_open_recovery(self, breaker):
+    async def test_half_open_recovery(self, breaker: CircuitBreaker) -> None:
         """测试半开状态恢复."""
 
-        async def failure_func():
+        async def failure_func() -> None:
             raise ProviderError("测试失败", "test_provider")
 
-        async def success_func():
+        async def success_func() -> str:
             return "success"
 
         # 触发熔断
@@ -151,10 +151,10 @@ class TestCircuitBreaker:
         assert breaker.failure_count == 0
 
     @pytest.mark.asyncio
-    async def test_half_open_failure(self, breaker):
+    async def test_half_open_failure(self, breaker: CircuitBreaker) -> None:
         """测试半开状态失败."""
 
-        async def failure_func():
+        async def failure_func() -> None:
             raise ProviderError("测试失败", "test_provider")
 
         # 触发熔断
@@ -175,10 +175,10 @@ class TestCircuitBreaker:
         assert breaker.failure_count == 3
 
     @pytest.mark.asyncio
-    async def test_reset(self, breaker):
+    async def test_reset(self, breaker: CircuitBreaker) -> None:
         """测试手动重置."""
 
-        async def failure_func():
+        async def failure_func() -> None:
             raise ProviderError("测试失败", "test_provider")
 
         # 触发熔断
@@ -194,7 +194,7 @@ class TestCircuitBreaker:
         assert breaker.state == CircuitState.CLOSED
         assert breaker.failure_count == 0
 
-    def test_get_state(self, breaker):
+    def test_get_state(self, breaker: CircuitBreaker) -> None:
         """测试获取状态."""
         state = breaker.get_state()
 
@@ -209,12 +209,12 @@ class TestCircuitBreakerRegistry:
     """测试熔断器注册表."""
 
     @pytest.fixture
-    def registry(self):
+    def registry(self) -> CircuitBreakerRegistry:
         """创建注册表实例."""
         return CircuitBreakerRegistry()
 
     @pytest.mark.asyncio
-    async def test_get_or_create(self, registry):
+    async def test_get_or_create(self, registry: CircuitBreakerRegistry) -> None:
         """测试获取或创建熔断器."""
         breaker1 = await registry.get_or_create("test_breaker")
         breaker2 = await registry.get_or_create("test_breaker")
@@ -223,7 +223,7 @@ class TestCircuitBreakerRegistry:
         assert breaker1.config.name == "test_breaker"
 
     @pytest.mark.asyncio
-    async def test_get_or_create_with_config(self, registry):
+    async def test_get_or_create_with_config(self, registry: CircuitBreakerRegistry) -> None:
         """测试获取或创建带配置的熔断器."""
         config = CircuitBreakerConfig(failure_threshold=3, name="custom")
         breaker = await registry.get_or_create("custom_breaker", config)
@@ -231,12 +231,12 @@ class TestCircuitBreakerRegistry:
         assert breaker.config.failure_threshold == 3
         assert breaker.config.name == "custom"
 
-    def test_get_breaker(self, registry):
+    def test_get_breaker(self, registry: CircuitBreakerRegistry) -> None:
         """测试获取指定熔断器."""
         assert registry.get_breaker("non_existent") is None
 
     @pytest.mark.asyncio
-    async def test_get_all_states(self, registry):
+    async def test_get_all_states(self, registry: CircuitBreakerRegistry) -> None:
         """测试获取所有熔断器状态."""
         await registry.get_or_create("breaker1")
         await registry.get_or_create("breaker2")
@@ -248,7 +248,7 @@ class TestCircuitBreakerRegistry:
         assert "breaker2" in states
 
     @pytest.mark.asyncio
-    async def test_reset_all(self, registry):
+    async def test_reset_all(self, registry: CircuitBreakerRegistry) -> None:
         """测试重置所有熔断器."""
         breaker = await registry.get_or_create("test_breaker")
 
@@ -266,7 +266,7 @@ class TestCircuitBreakerDecorator:
     """测试熔断器装饰器."""
 
     @pytest.mark.asyncio
-    async def test_decorator_success(self):
+    async def test_decorator_success(self) -> None:
         """测试装饰器成功."""
 
         @circuit_breaker(
@@ -275,14 +275,14 @@ class TestCircuitBreakerDecorator:
             recovery_timeout=0.1,
             half_open_max_calls=2,
         )
-        async def success_func():
+        async def success_func() -> str:
             return "success"
 
         result = await success_func()
         assert result == "success"
 
     @pytest.mark.asyncio
-    async def test_decorator_failure(self):
+    async def test_decorator_failure(self) -> None:
         """测试装饰器失败."""
 
         @circuit_breaker(
@@ -291,7 +291,7 @@ class TestCircuitBreakerDecorator:
             recovery_timeout=0.1,
             half_open_max_calls=2,
         )
-        async def failure_func():
+        async def failure_func() -> None:
             raise ProviderError("测试失败", "test_provider")
 
         # 第一次失败
@@ -309,7 +309,7 @@ class TestIntegration:
     """集成测试."""
 
     @pytest.mark.asyncio
-    async def test_multiple_providers_with_circuit_breakers(self):
+    async def test_multiple_providers_with_circuit_breakers(self) -> None:
         """测试多个提供商使用熔断器."""
         registry = CircuitBreakerRegistry()
 
@@ -317,10 +317,10 @@ class TestIntegration:
         akshare_breaker = await registry.get_or_create("akshare", CircuitBreakerConfig(failure_threshold=3, name="akshare"))
         yahoo_breaker = await registry.get_or_create("yahoo", CircuitBreakerConfig(failure_threshold=2, name="yahoo"))
 
-        async def akshare_call():
+        async def akshare_call() -> None:
             raise ProviderError("akshare失败", "akshare")
 
-        async def yahoo_call():
+        async def yahoo_call() -> str:
             return "yahoo数据"
 
         # 触发akshare熔断

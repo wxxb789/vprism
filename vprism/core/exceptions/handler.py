@@ -1,15 +1,16 @@
 """错误处理和日志记录模块."""
 
 import traceback
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import Any
 
 from loguru import logger
 
-from .base import VPrismError
-from .codes import ErrorCode
-from .messages import format_error_response
+from vprism.core.exceptions.base import VPrismError
+from vprism.core.exceptions.codes import ErrorCode
+from vprism.core.exceptions.messages import format_error_response
 
 
 class ErrorHandler:
@@ -139,7 +140,7 @@ class ErrorHandler:
 
     def _map_to_standard_error(self, error: Exception, context: dict[str, Any]) -> VPrismError:
         """将标准异常映射到VPrismError."""
-        from .base import (
+        from vprism.core.exceptions.base import (
             CacheError,
             DataValidationError,
             NetworkError,
@@ -206,7 +207,7 @@ class ErrorHandler:
 class ErrorTracker:
     """错误追踪和统计."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.error_counts: dict[str, int] = {}
         self.last_errors: dict[str, dict[str, Any]] = {}
 
@@ -242,9 +243,9 @@ class ErrorContextManager:
 
     def __init__(self, error_handler: ErrorHandler):
         self.error_handler = error_handler
-        self.operation = None
-        self.provider = None
-        self.context = {}
+        self.operation: str | None = None
+        self.provider: str | None = None
+        self.context: dict[str, Any] = {}
 
     def set_context(self, operation: str, provider: str | None = None, **context: Any) -> None:
         """设置错误上下文."""
@@ -253,20 +254,23 @@ class ErrorContextManager:
         self.context = context
 
     @contextmanager
-    def error_context(self, operation: str, provider: str | None = None, **context: Any):
+    def error_context(self, operation: str, provider: str | None = None, **context: Any) -> Iterator[None]:
         """错误上下文管理器."""
         self.set_context(operation, provider, **context)
         try:
             yield
         except Exception as e:
-            raise self.error_handler.handle_exception(e, operation, provider, **context)
+            raise self.error_handler.handle_exception(e, operation, provider, **context) from e
 
-    def safe_execute(self, func, *args, **kwargs):
+    def safe_execute(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         """安全执行函数."""
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            raise self.error_handler.handle_exception(e, self.operation, self.provider, **self.context)
+            if self.operation is None:
+                # 如果没有设置操作，则无法提供有意义的上下文
+                raise VPrismError("Operation context not set for safe_execute") from e
+            raise self.error_handler.handle_exception(e, self.operation, self.provider, **self.context) from e
 
 
 # 全局错误处理器实例

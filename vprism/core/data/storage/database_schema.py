@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 
-from .schema import DatabaseSchema
+from vprism.core.data.storage.schema import DatabaseSchema
 
 
 class DatabaseMigration:
@@ -13,7 +13,7 @@ class DatabaseMigration:
         self.db_path = db_path
         self.schema = DatabaseSchema(db_path)
 
-    def migrate_v1_to_v2(self):
+    def migrate_v1_to_v2(self) -> None:
         """从v1版本迁移到v2版本
 
         v1到v2的主要变更：
@@ -33,7 +33,7 @@ class DatabaseMigration:
 
         # 创建缺失的表（在schema.py中应该已经定义）
         print("创建数据质量表...")
-        self.schema.create_tables()
+        self.schema._create_tables()
 
         print("创建物化视图...")
         self.schema.create_materialized_views()
@@ -46,16 +46,16 @@ class DatabaseMigration:
 
         print("数据库迁移完成")
 
-    def setup_test_data(self):
+    def setup_test_data(self) -> None:
         """设置测试数据"""
         print("开始设置测试数据...")
 
         try:
             # 插入测试资产信息
             self.schema.conn.execute("""
-                INSERT OR IGNORE INTO asset_info 
+                INSERT OR IGNORE INTO asset_info
                 (id, symbol, market, name, asset_type, currency, exchange, provider)
-                VALUES 
+                VALUES
                 ('asset-001', '000001.SZ', 'cn', '平安银行', 'stock', 'CNY', 'SZSE', 'tushare'),
                 ('asset-002', '000002.SZ', 'cn', '万科A', 'stock', 'CNY', 'SZSE', 'tushare'),
                 ('asset-003', '600000.SH', 'cn', '浦发银行', 'stock', 'CNY', 'SSE', 'tushare'),
@@ -69,9 +69,9 @@ class DatabaseMigration:
                 date_str = (base_date + timedelta(days=i)).strftime("%Y-%m-%d")
                 self.schema.conn.execute(
                     """
-                    INSERT OR IGNORE INTO daily_ohlcv 
+                    INSERT OR IGNORE INTO daily_ohlcv
                     (id, symbol, market, trade_date, open_price, high_price, low_price, close_price, volume, provider)
-                    VALUES 
+                    VALUES
                     (?, '000001.SZ', 'cn', ?, 10.0 + ?, 10.5 + ?, 9.5 + ?, 10.2 + ?, 1000000 + ? * 10000, 'tushare')
                 """,
                     (f"daily-{i:04d}", date_str, i * 0.01, i * 0.01, i * 0.01, i * 0.01, i * 100),
@@ -79,9 +79,9 @@ class DatabaseMigration:
 
             # 插入测试提供商状态
             self.schema.conn.execute("""
-                INSERT OR IGNORE INTO provider_status 
+                INSERT OR IGNORE INTO provider_status
                 (id, provider_name, status, last_success, uptime_percent, avg_response_time_ms)
-                VALUES 
+                VALUES
                 ('provider-001', 'tushare', 'healthy', CURRENT_TIMESTAMP, 99.5, 150),
                 ('provider-002', 'yfinance', 'healthy', CURRENT_TIMESTAMP, 98.8, 200),
                 ('provider-003', 'alpha_vantage', 'healthy', CURRENT_TIMESTAMP, 97.2, 300)
@@ -89,22 +89,20 @@ class DatabaseMigration:
 
             # 插入测试数据质量记录
             self.schema.conn.execute("""
-                INSERT OR IGNORE INTO data_quality 
+                INSERT OR IGNORE INTO data_quality
                 (id, symbol, market, date_range_start, date_range_end, completeness_score, accuracy_score, consistency_score, total_records, provider)
-                VALUES 
+                VALUES
                 ('quality-001', '000001.SZ', 'cn', '2024-01-01', '2024-01-31', 98.5, 99.2, 97.8, 30, 'tushare'),
                 ('quality-002', 'AAPL', 'us', '2024-01-01', '2024-01-31', 99.1, 98.9, 98.5, 30, 'yfinance')
             """)
 
-            self.schema.conn.commit()
             print("测试数据设置完成")
 
         except Exception as e:
             print(f"设置测试数据时出错: {e}")
-            self.schema.conn.rollback()
             raise
 
-    def cleanup_test_data(self):
+    def cleanup_test_data(self) -> None:
         """清理测试数据"""
         print("清理测试数据...")
 
@@ -118,21 +116,19 @@ class DatabaseMigration:
                 except Exception as e:
                     print(f"清理表 {table} 时出错: {e}")
 
-            self.schema.conn.commit()
             print("测试数据清理完成")
 
         except Exception as e:
             print(f"清理测试数据时出错: {e}")
-            self.schema.conn.rollback()
             raise
 
-    def close(self):
+    def close(self) -> None:
         """关闭连接"""
         if hasattr(self, "schema"):
             self.schema.close()
 
 
-if __name__ == "__main__":
+def main() -> None:
     """命令行接口"""
     import argparse
 
@@ -153,3 +149,7 @@ if __name__ == "__main__":
             migration.cleanup_test_data()
     finally:
         migration.close()
+
+
+if __name__ == "__main__":
+    main()

@@ -2,10 +2,10 @@
 
 from typing import Any
 
-from ...models import DataQuery
-from .duckdb import SimpleDuckDBCache
-from .key import CacheKey
-from .memory import ThreadSafeInMemoryCache
+from vprism.core.data.cache.duckdb import SimpleDuckDBCache
+from vprism.core.data.cache.key import CacheKey
+from vprism.core.data.cache.memory import ThreadSafeInMemoryCache
+from vprism.core.models import DataQuery
 
 
 class MultiLevelCache:
@@ -68,7 +68,7 @@ class MultiLevelCache:
         """清理过期数据，只清理L2缓存."""
         return await self.l2_cache.cleanup_expired()
 
-    async def get_cache_stats(self) -> dict:
+    async def get_cache_stats(self) -> dict[str, Any]:
         """获取缓存统计信息."""
         return {
             "l1_size": self.l1_cache.size(),
@@ -78,7 +78,18 @@ class MultiLevelCache:
     async def _get_l2_count(self) -> int:
         """获取L2缓存条目数."""
         try:
-            result = self.l2_cache._conn.execute("SELECT COUNT(*) FROM cache").fetchone()
-            return result[0] if result else 0
+            if self.l2_cache._conn:
+                result = self.l2_cache._conn.execute("SELECT COUNT(*) FROM cache").fetchone()
+                return result[0] if result else 0
         except Exception:
             return 0
+        return 0
+
+    async def health_check(self) -> bool:
+        """检查缓存健康状况"""
+        # 简单检查L2缓存连接
+        return self.l2_cache.is_connected()
+
+    async def close(self) -> None:
+        """关闭缓存连接"""
+        self.l2_cache.close()

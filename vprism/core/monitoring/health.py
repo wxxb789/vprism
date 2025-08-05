@@ -2,6 +2,7 @@
 
 import asyncio
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -23,9 +24,9 @@ class HealthStatus:
 class HealthChecker:
     """简化版健康检查器。"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.start_time = time.time()
-        self.checks: dict[str, callable] = {}
+        self.checks: dict[str, Callable[[], Any]] = {}
         self._register_default_checks()
 
     def _register_default_checks(self) -> None:
@@ -33,7 +34,7 @@ class HealthChecker:
         self.register_check("system", self._check_system_health)
         self.register_check("memory", self._check_memory_usage)
 
-    def register_check(self, name: str, check_func: callable) -> None:
+    def register_check(self, name: str, check_func: Callable[[], Any]) -> None:
         """注册自定义健康检查。"""
         self.checks[name] = check_func
 
@@ -82,7 +83,7 @@ class HealthChecker:
         tasks = []
         check_names = list(self.checks.keys())
 
-        for name, check_func in self.checks.items():
+        for _, check_func in self.checks.items():
             if asyncio.iscoroutinefunction(check_func):
                 tasks.append(check_func())
             else:
@@ -101,12 +102,17 @@ class HealthChecker:
                         extra={"check_name": name, "error": str(result)},
                     )
                 else:
-                    checks_results[name] = result
-                    if result.get("status") == "unhealthy":
-                        overall_status = "unhealthy"
+                    if isinstance(result, dict):
+                        checks_results[name] = result
+                        if result.get("status") == "unhealthy":
+                            overall_status = "unhealthy"
+                            failed_checks += 1
+                        elif result.get("status") == "degraded" and overall_status == "healthy":
+                            overall_status = "degraded"
+                    else:
+                        checks_results[name] = {"status": "unhealthy", "error": "Invalid check result"}
                         failed_checks += 1
-                    elif result.get("status") == "degraded" and overall_status == "healthy":
-                        overall_status = "degraded"
+                        overall_status = "unhealthy"
         except Exception as e:
             logger.error("Health check execution failed", extra={"error": str(e)})
             overall_status = "unhealthy"
@@ -152,7 +158,7 @@ class HealthChecker:
 
 
 # 全局健康检查器实例
-_health_checker: HealthChecker = None
+_health_checker: HealthChecker | None = None
 
 
 def get_health_checker() -> HealthChecker:
@@ -166,11 +172,13 @@ def get_health_checker() -> HealthChecker:
 class SimpleHealthMiddleware:
     """FastAPI健康检查中间件。"""
 
-    def __init__(self, app=None):
+    def __init__(self, app: Callable[..., Any] | None = None) -> None:
         self.app = app
         self.checker = get_health_checker()
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope: dict[str, Any], receive: Callable[[], Any], send: Callable[[dict[str, Any]], Any]) -> None:
+        if self.app is None:
+            return
         if scope["type"] == "http" and scope["path"] == "/health":
             health = await self.checker.check_health()
             response_body = {
@@ -183,7 +191,7 @@ class SimpleHealthMiddleware:
         else:
             await self.app(scope, receive, send)
 
-    async def _send_json_response(self, send, body):
+    async def _send_json_response(self, send: Callable[[dict[str, Any]], Any], body: dict[str, Any]) -> None:
         """发送JSON响应。"""
         import json
 
