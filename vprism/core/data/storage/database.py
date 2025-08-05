@@ -4,9 +4,11 @@ import uuid
 from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from duckdb import DuckDBPyConnection
+if TYPE_CHECKING:
+    from duckdb.typing import DuckDBPyConnection as DuckDBConnection
+
 
 from vprism.core.data.storage.models import (
     CacheRecord,
@@ -23,7 +25,7 @@ class DatabaseManager:
     def __init__(self, db_path: str = "data/vprism.db"):
         """初始化数据库管理器."""
         self.db_path = db_path
-        self.connection: DuckDBPyConnection
+        self.connection: DuckDBConnection
         self._setup()
 
     def _setup(self) -> None:

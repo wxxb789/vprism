@@ -14,7 +14,6 @@ from loguru import logger
 
 from vprism.core.client import VPrismClient
 from vprism.core.exceptions import VPrismError
-from vprism.core.models import MarketType, TimeFrame
 
 
 class VPrismMCPServer:
@@ -66,8 +65,8 @@ class VPrismMCPServer:
                 logger.info(f"Getting stock data for {symbol} from {start_date} to {end_date}")
 
                 # Convert string parameters to enum types
-                market_type = MarketType(market.lower())
-                time_frame = TimeFrame(timeframe.lower())
+                # market_type = MarketType(market.lower()) # Unused
+                # time_frame = TimeFrame(timeframe.lower()) # Unused
 
                 # Get data using vPrism client
                 data = await self.client.get_async(
@@ -132,7 +131,7 @@ class VPrismMCPServer:
             try:
                 logger.info(f"Getting market overview for {market}")
 
-                market_type = MarketType(market.lower())
+                # market_type = MarketType(market.lower()) # Unused
                 target_date = date or datetime.now().strftime("%Y-%m-%d")
 
                 # Define major indices for each market
@@ -279,7 +278,7 @@ class VPrismMCPServer:
             try:
                 logger.info(f"Getting real-time price for {symbol}")
 
-                market_type = MarketType(market.lower())
+                # market_type = MarketType(market.lower()) # Unused
 
                 # Get latest data
                 end_date = datetime.now().strftime("%Y-%m-%d")
@@ -334,7 +333,7 @@ class VPrismMCPServer:
             try:
                 logger.info(f"Getting batch quotes for {len(symbols)} symbols")
 
-                market_type = MarketType(market.lower())
+                # market_type = MarketType(market.lower()) # Unused
                 end_date = datetime.now().strftime("%Y-%m-%d")
                 start_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
 
