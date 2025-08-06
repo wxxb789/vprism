@@ -247,23 +247,24 @@ class DuckDBRepository(DataRepository):
                         INSERT OR REPLACE INTO intraday_ohlcv
                         (id, symbol, market, timeframe, timestamp, open_price, high_price,
                          low_price, close_price, volume, amount, provider)
-                       VALUES (md5(concat(?, ?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                       VALUES (md5(concat(?, ?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                    """,
                         [
-                            item.symbol,
-                            item.market,
-                            str(item.timestamp),
-                            item.symbol,
-                            item.market,
-                            "1m",
-                            item.timestamp,
-                            item.open_price,
-                            item.high_price,
-                            item.low_price,
-                            item.close_price,
-                            item.volume,
-                            item.amount,
-                        ],
+                           item.symbol,
+                           item.market,
+                           str(item.timestamp),
+                           item.symbol,
+                           item.market,
+                           "1m",
+                           item.timestamp,
+                           item.open_price,
+                           item.high_price,
+                           item.low_price,
+                           item.close_price,
+                           item.volume,
+                           item.amount,
+                           item.provider,
+                       ],
                     )
                 else:  # 日线数据
                     self.schema.conn.execute(
@@ -271,23 +272,24 @@ class DuckDBRepository(DataRepository):
                         INSERT OR REPLACE INTO daily_ohlcv
                         (id, symbol, market, trade_date, open_price, high_price, low_price,
                          close_price, volume, amount, adjusted_close, provider)
-                        VALUES (md5(concat(?, ?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        VALUES (md5(concat(?, ?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                         [
-                            item.symbol,
-                            item.market,
-                            str(item.timestamp.date()),
-                            item.symbol,
-                            item.market,
-                            item.timestamp.date(),
-                            item.open_price,
-                            item.high_price,
-                            item.low_price,
-                            item.close_price,
-                            item.volume,
-                            item.amount,
-                            item.adjusted_close or None,
-                        ],
+                           item.symbol,
+                           item.market,
+                           str(item.timestamp.date()),
+                           item.symbol,
+                           item.market,
+                           item.timestamp.date(),
+                           item.open_price,
+                           item.high_price,
+                           item.low_price,
+                           item.close_price,
+                           item.volume,
+                           item.amount,
+                           item.adjusted_close or None,
+                           item.provider,
+                       ],
                     )
             return True
         except Exception as e:
@@ -391,7 +393,7 @@ class DuckDBRepository(DataRepository):
                 INSERT OR REPLACE INTO real_time_quotes
                 (id, symbol, market, price, change_amount, change_percent, volume,
                  bid, ask, bid_size, ask_size, timestamp, provider)
-                VALUES (md5(concat(?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (md5(concat(?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 [
                     quote.symbol,
@@ -407,6 +409,7 @@ class DuckDBRepository(DataRepository):
                     quote.bid_size,
                     quote.ask_size,
                     quote.timestamp,
+                    quote.provider,
                 ],
             )
             return True
@@ -455,8 +458,8 @@ class DuckDBRepository(DataRepository):
                 INSERT OR REPLACE INTO data_quality
                 (id, symbol, market, date_range_start, date_range_end, completeness_score,
                  accuracy_score, consistency_score, total_records, missing_records,
-                 anomaly_count, provider)
-                VALUES (md5(concat(?, ?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 anomaly_count, provider, checked_at)
+                VALUES (md5(concat(?, ?, ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 [
                     metrics.symbol,
@@ -472,6 +475,8 @@ class DuckDBRepository(DataRepository):
                     metrics.total_records,
                     metrics.missing_records,
                     metrics.anomaly_count,
+                    metrics.provider,
+                    metrics.checked_at,
                 ],
             )
             return True

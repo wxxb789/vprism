@@ -117,16 +117,7 @@ class AkShare(DataProvider):
         if not self.can_handle_query(query):
             raise ProviderError(f"AkShare cannot handle query: {query}", "akshare")
 
-        try:
-            return await self._fetch_data(query)
-
-        except Exception as e:
-            logger.error(f"Error getting data from AkShare: {e}")
-            return DataResponse(
-                data=[],
-                metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
-                source=ProviderInfo(name="akshare"),
-            )
+        return await self._fetch_data(query)
 
     async def stream_data(self, query: DataQuery) -> AsyncIterator[DataPoint]:
         """流式获取数据."""
@@ -146,22 +137,13 @@ class AkShare(DataProvider):
         symbol = query.symbols[0]
         market = query.market.value if query.market else "cn"
 
-        try:
-            if market == "cn":
-                return await self._get_cn_data(symbol, query)
-            elif market == "us":
-                return await self._get_us_data(symbol, query)
-            elif market == "hk":
-                return await self._get_hk_data(symbol, query)
-            else:
-                return DataResponse(
-                    data=[],
-                    metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
-                    source=ProviderInfo(name="akshare"),
-                )
-
-        except Exception as e:
-            logger.error(f"Error fetching data from AkShare: {e}")
+        if market == "cn":
+            return await self._get_cn_data(symbol, query)
+        elif market == "us":
+            return await self._get_us_data(symbol, query)
+        elif market == "hk":
+            return await self._get_hk_data(symbol, query)
+        else:
             return DataResponse(
                 data=[],
                 metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
@@ -212,6 +194,14 @@ class AkShare(DataProvider):
                 )
 
             if df is None or df.empty:
+                # 对于无效的股票代码，抛出异常而不是返回空数据
+                if query.asset == AssetType.STOCK and symbol:
+                    raise ProviderError(
+                        f"Invalid stock symbol: {symbol}",
+                        "akshare",
+                        "INVALID_SYMBOL",
+                        {"symbol": symbol, "market": "cn"}
+                    )
                 return DataResponse(
                     data=[],
                     metadata=ResponseMetadata(total_records=0, query_time_ms=0, data_source="akshare", cache_hit=False),
@@ -267,6 +257,9 @@ class AkShare(DataProvider):
             )
 
         except Exception as e:
+            # 如果是ProviderError，让它继续传播
+            if isinstance(e, ProviderError):
+                raise
             logger.error(f"Error getting Chinese data: {e}")
             return DataResponse(
                 data=[],

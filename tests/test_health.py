@@ -1,7 +1,7 @@
 """健康检查系统测试"""
 
 from datetime import UTC, datetime
-from typing import Any, dict
+from typing import Any, Dict
 
 import pytest
 

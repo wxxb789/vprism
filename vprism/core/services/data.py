@@ -188,38 +188,70 @@ class DataService:
 
             logger.info("Cache miss, querying from provider")
 
-            # 从路由器获取数据
-            provider = self.router.route_query(query)
-            response = await provider.get_data(query)
+            try:
+                # 从路由器获取数据
+                provider = await self.router.route_query(query)
+                response = await provider.get_data(query)
 
-            # 缓存结果
-            if response.data:
-                await self.cache.set_data(query, response.data)
-                logger.info(
-                    "Data cached",
-                    extra={
-                        "cache_key": cache_key,
-                        "cached_records": len(response.data),
-                    },
-                )
-
-                # 存储到数据库
-                if response.source:
-                    data_records = [self.repository.from_data_point(dp, response.source.name) for dp in response.data]
-                    await self.repository.save_batch(data_records)
+                # 缓存结果
+                if response.data:
+                    await self.cache.set_data(query, response.data)
                     logger.info(
-                        "Data stored to repository",
-                        extra={"stored_records": len(response.data)},
+                        "Data cached",
+                        extra={
+                            "cache_key": cache_key,
+                            "cached_records": len(response.data),
+                        },
                     )
 
-            logger.info(
-                "Query completed successfully",
-                extra={
-                    "retrieved_records": len(response.data),
-                    "data_source": response.source.name if response.source else "unknown",
-                },
-            )
-            return response
+                    # 存储到数据库
+                    if response.source:
+                        data_records = [self.repository.from_data_point(dp, response.source.name) for dp in response.data]
+                        await self.repository.save_batch(data_records)
+                        logger.info(
+                            "Data stored to repository",
+                            extra={"stored_records": len(response.data)},
+                        )
+
+                logger.info(
+                    "Query completed successfully",
+                    extra={
+                        "retrieved_records": len(response.data),
+                        "data_source": response.source.name if response.source else "unknown",
+                    },
+                )
+                return response
+            except Exception as router_error:
+                logger.error(
+                    "Router failed, attempting database fallback",
+                    extra={
+                        "error_type": type(router_error).__name__,
+                        "error_message": str(router_error),
+                    },
+                )
+                
+                # 尝试从数据库获取历史数据
+                stored_records = await self.repository.find_by_query(query)
+                if stored_records:
+                    logger.info(
+                        "Retrieved fallback data from storage",
+                        extra={"stored_records": len(stored_records)},
+                    )
+                    data_points = [record.to_data_point() for record in stored_records]
+                    return DataResponse(
+                        data=data_points,
+                        metadata=ResponseMetadata(
+                            total_records=len(data_points),
+                            query_time_ms=0.0,
+                            data_source="repository",
+                            cache_hit=False,
+                        ),
+                        source=ProviderInfo(name="repository"),
+                        cached=False,
+                    )
+                
+                # 如果数据库也没有数据，重新抛出异常
+                raise router_error
 
         except Exception as e:
             logger.error(
@@ -235,7 +267,17 @@ class DataService:
                         "Retrieved fallback data from storage",
                         extra={"stored_records": len(stored_records)},
                     )
-                    data_points = [record.to_data_point() for record in stored_records]
+                    
+                    # 处理不同类型的返回数据
+                    data_points = []
+                    for record in stored_records:
+                        if hasattr(record, 'to_data_point'):
+                            # 数据库记录对象
+                            data_points.append(record.to_data_point())
+                        else:
+                            # 已经是DataPoint对象
+                            data_points.append(record)
+                    
                     return DataResponse(
                         data=data_points,
                         metadata=ResponseMetadata(
@@ -409,7 +451,19 @@ class DataService:
                         "error_message": str(response),
                     },
                 )
-                results[query_id] = response
+                # 为失败的查询创建错误响应
+                error_response = DataResponse(
+                    data=[],
+                    metadata=ResponseMetadata(
+                        total_records=0,
+                        query_time_ms=0.0,
+                        data_source="error",
+                        cache_hit=False,
+                    ),
+                    source=ProviderInfo(name="error", endpoint="error"),
+                    cached=False,
+                )
+                results[query_id] = error_response
                 failure_count += 1
             elif isinstance(response, DataResponse):
                 logger.info(
@@ -456,9 +510,9 @@ class DataService:
             Dict[str, Any]: 各组件健康状态
         """
         health = {
-            "router": self.router.health_check(),
+            "router": await self.router.health_check(),
             "cache": await self.cache.health_check(),
-            "repository": self.repository.health_check(),
+            "repository": await self.repository.health_check(),
         }
         return health
 

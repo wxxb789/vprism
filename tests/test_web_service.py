@@ -33,8 +33,8 @@ class TestWebService:
 
         # 创建同步的查询构建器
         class MockQueryBuilder:
-            def asset(self, symbol):
-                self._asset = symbol
+            def symbols(self, symbols):
+                self._symbols = symbols
                 return self
 
             def market(self, market):
@@ -45,15 +45,11 @@ class TestWebService:
                 self._timeframe = timeframe
                 return self
 
-            def limit(self, limit):
-                self._limit = limit
-                return self
-
-            def start_date(self, start_date):
+            def start(self, start_date):
                 self._start_date = start_date
                 return self
 
-            def end_date(self, end_date):
+            def end(self, end_date):
                 self._end_date = end_date
                 return self
 
@@ -62,7 +58,7 @@ class TestWebService:
 
         query_builder = MockQueryBuilder()
         client.query.return_value = query_builder
-        client.execute_async = AsyncMock()
+        client.execute = AsyncMock()
         client.batch_get_async = AsyncMock()
         client.startup = AsyncMock()
         client.shutdown = AsyncMock()
@@ -137,7 +133,7 @@ class TestWebService:
             metadata=ResponseMetadata(total_records=1, query_time_ms=150.5, data_source="test_provider"),
             source=ProviderInfo(name="test_provider", endpoint="https://api.test.com"),
         )
-        mock_client.execute_async.return_value = mock_response
+        mock_client.execute.return_value = mock_response
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -149,7 +145,7 @@ class TestWebService:
         data = response.json()
         assert data["success"] is True
         assert "AAPL" in data["message"]
-        mock_client.execute_async.assert_called_once()
+        mock_client.execute.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_post_stock_data(self, app, mock_client):
@@ -176,7 +172,7 @@ class TestWebService:
             metadata=ResponseMetadata(total_records=1, query_time_ms=100.0, data_source="test_provider"),
             source=ProviderInfo(name="test_provider", endpoint="https://api.test.com"),
         )
-        mock_client.execute_async.return_value = mock_response
+        mock_client.execute.return_value = mock_response
 
         request_data = {
             "symbol": "AAPL",
@@ -221,7 +217,7 @@ class TestWebService:
             metadata=ResponseMetadata(total_records=1, query_time_ms=150.0, data_source="test_provider"),
             source=ProviderInfo(name="test_provider", endpoint="https://api.test.com"),
         )
-        mock_client.execute_async.return_value = mock_response
+        mock_client.execute.return_value = mock_response
 
         request_data = {
             "market": "us",
@@ -277,7 +273,7 @@ class TestWebService:
             metadata=ResponseMetadata(total_records=1, query_time_ms=110.0, data_source="test_provider"),
             source=ProviderInfo(name="test_provider", endpoint="https://api.test.com"),
         )
-        mock_client.batch_get_async.return_value = [mock_response1, mock_response2]
+        mock_client.execute.side_effect = [mock_response1, mock_response2]
 
         request_data = {
             "queries": [
@@ -331,7 +327,7 @@ class TestWebService:
     @pytest.mark.asyncio
     async def test_invalid_symbol_error(self, app, mock_client):
         """测试无效股票代码的错误处理"""
-        mock_client.execute_async.side_effect = Exception("Invalid symbol")
+        mock_client.execute.side_effect = Exception("Invalid symbol")
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:

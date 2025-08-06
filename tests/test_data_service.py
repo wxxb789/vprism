@@ -35,8 +35,8 @@ class TestDataService:
     def mock_cache(self):
         """创建mock缓存."""
         cache = AsyncMock()
-        cache.get = AsyncMock(return_value=None)
-        cache.set = AsyncMock()
+        cache.get_data = AsyncMock(return_value=None)
+        cache.set_data = AsyncMock()
         cache.health_check = AsyncMock(return_value=True)
         return cache
 
@@ -44,8 +44,8 @@ class TestDataService:
     def mock_repository(self):
         """创建mock仓库."""
         repo = AsyncMock()
-        repo.save_data_points = AsyncMock()
-        repo.get_data_points = AsyncMock(return_value=[])
+        repo.save_batch = AsyncMock()
+        repo.find_by_query = AsyncMock(return_value=[])
         repo.health_check = AsyncMock(return_value=True)
         return repo
 
@@ -83,7 +83,9 @@ class TestDataService:
             metadata=ResponseMetadata(total_records=len(sample_data), query_time_ms=100.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
-        mock_router.route_query.return_value = mock_response
+        mock_provider = AsyncMock()
+        mock_provider.get_data.return_value = mock_response
+        mock_router.route_query.return_value = mock_provider
 
         result = await service.get("000001", start="2024-01-01", end="2024-01-31")
 
@@ -124,7 +126,9 @@ class TestDataService:
             metadata=ResponseMetadata(total_records=len(data), query_time_ms=100.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
-        mock_router.route_query.return_value = mock_response
+        mock_provider = AsyncMock()
+        mock_provider.get_data.return_value = mock_response
+        mock_router.route_query.return_value = mock_provider
 
         result = await service.get(["000001", "000002"], start="2024-01-01")
 
@@ -136,11 +140,13 @@ class TestDataService:
     @pytest.mark.asyncio
     async def test_simple_api_with_default_dates(self, service, mock_router):
         """测试简单API：使用默认日期."""
-        mock_router.route_query.return_value = DataResponse(
+        mock_provider = AsyncMock()
+        mock_provider.get_data.return_value = DataResponse(
             data=[],
             metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
+        mock_router.route_query.return_value = mock_provider
 
         await service.get("000001")
 
@@ -156,11 +162,13 @@ class TestDataService:
     @pytest.mark.asyncio
     async def test_simple_api_different_markets(self, service, mock_router):
         """测试简单API：不同市场."""
-        mock_router.route_query.return_value = DataResponse(
+        mock_provider = AsyncMock()
+        mock_provider.get_data.return_value = DataResponse(
             data=[],
             metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
+        mock_router.route_query.return_value = mock_provider
 
         await service.get("AAPL", market=MarketType.US)
 
@@ -182,7 +190,9 @@ class TestDataService:
             metadata=ResponseMetadata(total_records=len(sample_data), query_time_ms=100.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
-        mock_router.route_query.return_value = mock_response
+        mock_provider = AsyncMock()
+        mock_provider.get_data.return_value = mock_response
+        mock_router.route_query.return_value = mock_provider
 
         result = await service.query().asset("stock").market("cn").symbols(["000001"]).start("2024-01-01").end("2024-01-31").get()
 
@@ -192,11 +202,13 @@ class TestDataService:
     @pytest.mark.asyncio
     async def test_chain_api_with_period(self, service, mock_router):
         """测试链式API：使用周期参数."""
-        mock_router.route_query.return_value = DataResponse(
+        mock_provider = AsyncMock()
+        mock_provider.get_data.return_value = DataResponse(
             data=[],
             metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
+        mock_router.route_query.return_value = mock_provider
 
         await service.query().symbols(["000001"]).period("1m").get()
 
@@ -207,30 +219,32 @@ class TestDataService:
     @pytest.mark.asyncio
     async def test_cache_hit(self, service, mock_cache, sample_data):
         """测试缓存命中."""
-        mock_cache.get.return_value = sample_data
+        mock_cache.get_data.return_value = sample_data
 
         result = await service.get("000001", start="2024-01-01")
 
         assert result.cached is True
         assert len(result.data) == 1
-        mock_cache.get.assert_called_once()
+        mock_cache.get_data.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_cache_miss_and_store(self, service, mock_cache, mock_repository, sample_data):
         """测试缓存未命中并存储."""
         mock_router = AsyncMock()
-        mock_router.route_query.return_value = DataResponse(
+        mock_provider = AsyncMock()
+        mock_provider.get_data.return_value = DataResponse(
             data=sample_data,
             metadata=ResponseMetadata(total_records=len(sample_data), query_time_ms=100.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
+        mock_router.route_query.return_value = mock_provider
         service.router = mock_router
 
         result = await service.get("000001", start="2024-01-01")
 
         assert result.cached is False
-        mock_cache.set.assert_called_once()
-        mock_repository.save_data_points.assert_called_once()
+        mock_cache.set_data.assert_called_once()
+        mock_repository.save_batch.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_database_fallback_on_error(self, service, mock_router, mock_repository, sample_data):
@@ -238,7 +252,7 @@ class TestDataService:
         # 路由器失败
         mock_router.route_query.side_effect = Exception("Router error")
         # 数据库有数据
-        mock_repository.get_data_points.return_value = sample_data
+        mock_repository.find_by_query.return_value = sample_data
 
         result = await service.get("000001", start="2024-01-01")
 
@@ -248,11 +262,13 @@ class TestDataService:
     @pytest.mark.asyncio
     async def test_get_latest_data(self, service, mock_router):
         """测试获取最新数据."""
-        mock_router.route_query.return_value = DataResponse(
+        mock_provider = AsyncMock()
+        mock_provider.get_data.return_value = DataResponse(
             data=[],
             metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
+        mock_router.route_query.return_value = mock_provider
 
         await service.get_latest(["000001", "000002"])
 
@@ -264,11 +280,13 @@ class TestDataService:
     @pytest.mark.asyncio
     async def test_get_historical_data(self, service, mock_router):
         """测试获取历史数据."""
-        mock_router.route_query.return_value = DataResponse(
+        mock_provider = AsyncMock()
+        mock_provider.get_data.return_value = DataResponse(
             data=[],
             metadata=ResponseMetadata(total_records=0, query_time_ms=0.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
+        mock_router.route_query.return_value = mock_provider
 
         await service.get_historical(["000001"], "3m")
 
@@ -279,11 +297,13 @@ class TestDataService:
     @pytest.mark.asyncio
     async def test_batch_query(self, service, mock_router, sample_data):
         """测试批量查询."""
-        mock_router.route_query.return_value = DataResponse(
+        mock_provider = AsyncMock()
+        mock_provider.get_data.return_value = DataResponse(
             data=sample_data,
             metadata=ResponseMetadata(total_records=len(sample_data), query_time_ms=100.0, data_source="test"),
             source=ProviderInfo(name="test", endpoint="test"),
         )
+        mock_router.route_query.return_value = mock_provider
 
         queries = [
             DataQuery(symbols=["000001"], market=MarketType.CN, asset=AssetType.STOCK),

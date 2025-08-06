@@ -380,7 +380,7 @@ class DatabaseSchema:
                 self.conn.execute(f"""
                     CREATE OR REPLACE TABLE daily_ohlcv_{year} AS
                     SELECT * FROM daily_ohlcv
-                    WHERE EXTRACT(YEAR FROM trade_ade) = {year}
+                    WHERE EXTRACT(YEAR FROM trade_date) = {year}
                 """)
 
     def get_table_stats(self) -> dict[str, int]:

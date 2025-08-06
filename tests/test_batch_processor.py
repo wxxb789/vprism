@@ -302,7 +302,11 @@ class TestBatchIntegration:
 
     def test_batch_processor_creation(self):
         """测试批量处理器创建."""
-        processor = BatchProcessor(data_service=None)
+        from unittest.mock import AsyncMock
+
+        mock_data_service = AsyncMock()
+        mock_data_service.router = AsyncMock()
+        processor = BatchProcessor(data_service=mock_data_service)
         assert processor is not None
 
     def test_batch_request_creation(self):
