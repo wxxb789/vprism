@@ -229,7 +229,7 @@ class DataService:
                         "error_message": str(router_error),
                     },
                 )
-                
+
                 # 尝试从数据库获取历史数据
                 stored_records = await self.repository.find_by_query(query)
                 if stored_records:
@@ -249,7 +249,7 @@ class DataService:
                         source=ProviderInfo(name="repository"),
                         cached=False,
                     )
-                
+
                 # 如果数据库也没有数据，重新抛出异常
                 raise router_error
 
@@ -267,17 +267,17 @@ class DataService:
                         "Retrieved fallback data from storage",
                         extra={"stored_records": len(stored_records)},
                     )
-                    
+
                     # 处理不同类型的返回数据
                     data_points = []
                     for record in stored_records:
-                        if hasattr(record, 'to_data_point'):
+                        if hasattr(record, "to_data_point"):
                             # 数据库记录对象
                             data_points.append(record.to_data_point())
                         else:
                             # 已经是DataPoint对象
                             data_points.append(record)
-                    
+
                     return DataResponse(
                         data=data_points,
                         metadata=ResponseMetadata(

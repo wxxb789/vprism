@@ -61,6 +61,8 @@ class TestProviderBase:
     async def test_provider_authenticate(self):
         """测试提供商认证."""
         provider = AkShare()
+
+        # 在测试环境中，认证应该成功
         result = await provider.authenticate()
 
         assert result is True
@@ -85,6 +87,10 @@ class TestAkShare:
     async def test_akshare_get_data(self):
         """测试AkShare获取数据."""
         provider = AkShare()
+
+        # 确保认证成功
+        await provider.authenticate()
+        assert provider.is_authenticated is True
 
         query = DataQuery(
             asset=AssetType.STOCK,

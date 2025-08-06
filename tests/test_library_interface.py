@@ -228,10 +228,21 @@ class TestErrorHandling:
             client = VPrismClient()
             client.get(asset="stock", market="cn", symbols=["000001"], timeframe="invalid")
 
-    def test_empty_symbols(self):
+    @patch("vprism.core.services.data_router.DataRouter.route_query")
+    @patch("vprism.core.data.providers.base.DataProvider.get_data")
+    def test_empty_symbols(self, mock_get_data, mock_route_query):
         """测试空股票代码列表"""
+        from vprism.core.exceptions.base import ProviderError
+
+        async def mock_coro(query):
+            raise ProviderError("Invalid stock symbol: 0000001", "akshare", "INVALID_SYMBOL")
+
+        mock_provider = AsyncMock()
+        mock_provider.get_data = mock_coro
+        mock_route_query.return_value = mock_provider
+
         client = VPrismClient()
-        # 不应该抛出异常，但可能返回空结果
+        # 应该抛出VPrismError（ProviderError是VPrismError的子类）
         with pytest.raises(VPrismError):
             client.get(asset="stock", market="cn", symbols=["0000001"])
 
