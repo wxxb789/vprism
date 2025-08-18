@@ -102,27 +102,23 @@ class TestAkShare:
         )
 
         # 使用mock避免真实API调用
-        with patch.object(provider, "_fetch_data") as mock_fetch:
-            data_points = [
-                DataPoint(
-                    symbol="000001",
-                    market=MarketType.CN,
-                    timestamp=datetime.now(),
-                    open_price=Decimal("10.0"),
-                    high_price=Decimal("11.0"),
-                    low_price=Decimal("9.0"),
-                    close_price=Decimal("10.5"),
-                    volume=Decimal("1000000"),
-                    provider="akshare",
-                )
-            ]
-            mock_response = Mock()
-            mock_response.data = data_points
-            mock_fetch.return_value = mock_response
+        with patch.object(provider, "_get_stock_data") as mock_fetch:
+            import pandas as pd
+            mock_df = pd.DataFrame({
+                "date": [datetime.now()],
+                "open": [10.0],
+                "high": [11.0],
+                "low": [9.0],
+                "close": [10.5],
+                "volume": [1000000],
+            })
+            mock_fetch.return_value = mock_df
 
             response = await provider.get_data(query)
-            assert response.data is not None
+            assert response is not None
+            assert not response.data.is_empty()
             assert response.data[0].symbol == "000001"
+            assert response.data[0].close_price == Decimal("10.5")
 
 
 class TestYFinance:

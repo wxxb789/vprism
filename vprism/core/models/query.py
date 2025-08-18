@@ -1,11 +1,19 @@
 """Query models and builders."""
-
 from datetime import date, datetime
-from typing import Any
+from enum import Enum
+from typing import Any, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from vprism.core.models.market import AssetType, MarketType, TimeFrame
+
+
+class Adjustment(str, Enum):
+    """Price adjustment type."""
+
+    NONE = "none"
+    FORWARD = "qfq"
+    BACKWARD = "hfq"
 
 
 class DataQuery(BaseModel):
@@ -20,6 +28,9 @@ class DataQuery(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     symbols: list[str] | None = None
+    adjustment: Optional[Adjustment] = Field(
+        default=Adjustment.NONE, description="Price adjustment type"
+    )
 
 
 class QueryBuilder:
@@ -51,6 +62,11 @@ class QueryBuilder:
     def symbols(self, symbols: list[str]) -> "QueryBuilder":
         """设置股票代码列表."""
         self._query["symbols"] = symbols
+        return self
+
+    def with_adjustment(self, adjustment: Adjustment) -> "QueryBuilder":
+        """Set the price adjustment type."""
+        self._query["adjustment"] = adjustment
         return self
 
     def date_range(self, start: datetime | date, end: datetime | date) -> "QueryBuilder":
