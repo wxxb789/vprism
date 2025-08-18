@@ -16,6 +16,7 @@ class AssetType(str, Enum):
     CRYPTO = "crypto"
     INDEX = "index"
     COMMODITY = "commodity"
+    CONVERTIBLE_BOND = "convertible_bond"
 
 
 class MarketType(str, Enum):
