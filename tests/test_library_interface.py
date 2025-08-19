@@ -95,7 +95,10 @@ class TestVPrismClient:
         assert query.symbols == ["000001"]
         assert query.timeframe == TimeFrame.DAY_1
 
-    @patch("vprism.core.services.data_router.DataRouter.route_query")
+    @patch(
+        "vprism.core.services.routing.DataRouter.route_query",
+        new_callable=AsyncMock,
+    )
     @patch("vprism.core.data.providers.base.DataProvider.get_data")
     @pytest.mark.asyncio
     async def test_execute_query(self, mock_get_data, mock_route_query):
@@ -114,7 +117,10 @@ class TestVPrismClient:
         mock_provider.get_data.assert_called_once_with(query)
         assert result == {"data": "test"}
 
-    @patch("vprism.core.services.data_router.DataRouter.route_query")
+    @patch(
+        "vprism.core.services.routing.DataRouter.route_query",
+        new_callable=AsyncMock,
+    )
     @patch("vprism.core.data.providers.base.DataProvider.get_data")
     def test_get_sync(self, mock_get_data, mock_route_query):
         """测试同步获取数据"""
@@ -133,7 +139,10 @@ class TestVPrismClient:
 
         assert result == {"data": "sync_test"}
 
-    @patch("vprism.core.services.data_router.DataRouter.route_query")
+    @patch(
+        "vprism.core.services.routing.DataRouter.route_query",
+        new_callable=AsyncMock,
+    )
     @patch("vprism.core.data.providers.base.DataProvider.get_data")
     @pytest.mark.asyncio
     async def test_get_async(self, mock_get_data, mock_route_query):
@@ -152,7 +161,10 @@ class TestVPrismClient:
 class TestGlobalInterface:
     """测试全局接口"""
 
-    @patch("vprism.core.services.data_router.DataRouter.route_query")
+    @patch(
+        "vprism.core.services.routing.DataRouter.route_query",
+        new_callable=AsyncMock,
+    )
     @patch("vprism.core.data.providers.base.DataProvider.get_data")
     def test_global_get(self, mock_get_data, mock_route_query):
         """测试全局get函数"""
@@ -168,7 +180,10 @@ class TestGlobalInterface:
 
         assert result == {"data": "mock_data"}
 
-    @patch("vprism.core.services.data_router.DataRouter.route_query")
+    @patch(
+        "vprism.core.services.routing.DataRouter.route_query",
+        new_callable=AsyncMock,
+    )
     @patch("vprism.core.data.providers.base.DataProvider.get_data")
     @pytest.mark.asyncio
     async def test_global_get_async(self, mock_get_data, mock_route_query):
@@ -181,7 +196,10 @@ class TestGlobalInterface:
 
         assert result == {"data": "mock_async_data"}
 
-    @patch("vprism.core.services.data_router.DataRouter.route_query")
+    @patch(
+        "vprism.core.services.routing.DataRouter.route_query",
+        new_callable=AsyncMock,
+    )
     @patch("vprism.core.data.providers.base.DataProvider.get_data")
     def test_global_query_and_execute(self, mock_get_data, mock_route_query):
         """测试全局query和execute函数"""
@@ -228,7 +246,10 @@ class TestErrorHandling:
             client = VPrismClient()
             client.get(asset="stock", market="cn", symbols=["000001"], timeframe="invalid")
 
-    @patch("vprism.core.services.data_router.DataRouter.route_query")
+    @patch(
+        "vprism.core.services.routing.DataRouter.route_query",
+        new_callable=AsyncMock,
+    )
     @patch("vprism.core.data.providers.base.DataProvider.get_data")
     def test_empty_symbols(self, mock_get_data, mock_route_query):
         """测试空股票代码列表"""

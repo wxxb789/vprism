@@ -3,12 +3,14 @@ Data consistency validation between different data sources.
 """
 
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date
 from typing import Any
 
 import pandas as pd
+
 from vprism.core.client.client import VPrismClient
 from vprism.core.models.market import AssetType, MarketType
+
 
 @dataclass
 class ConsistencyReport:
@@ -51,9 +53,7 @@ class DataConsistencyValidator:
         self.external_provider = external_provider
         self.tolerance = tolerance
 
-    async def validate_consistency(
-        self, symbol: str, start_date: date, end_date: date, asset_type: AssetType, market: MarketType
-    ) -> ConsistencyReport:
+    async def validate_consistency(self, symbol: str, start_date: date, end_date: date, asset_type: AssetType, market: MarketType) -> ConsistencyReport:
         """
         Validate data consistency for a symbol between a date range.
         """
@@ -93,10 +93,18 @@ class DataConsistencyValidator:
         """Compare dataframes and return a consistency report."""
         if vprism_df.empty and external_df.empty:
             return ConsistencyReport(
-                symbol=symbol, start_date=start_date, end_date=end_date, total_records=0,
-                matching_records=0, mismatching_records=0, missing_in_vprism=0,
-                missing_in_external=0, average_price_difference=0.0, max_price_difference=0.0,
-                issues=["Both data sources returned no data."], detailed_comparison={}
+                symbol=symbol,
+                start_date=start_date,
+                end_date=end_date,
+                total_records=0,
+                matching_records=0,
+                mismatching_records=0,
+                missing_in_vprism=0,
+                missing_in_external=0,
+                average_price_difference=0.0,
+                max_price_difference=0.0,
+                issues=["Both data sources returned no data."],
+                detailed_comparison={},
             )
 
         if "timestamp" in vprism_df.columns:
@@ -104,16 +112,16 @@ class DataConsistencyValidator:
         if "timestamp" in external_df.columns:
             external_df["date"] = pd.to_datetime(external_df["timestamp"]).dt.date
 
-        if 'date' not in vprism_df.columns and not vprism_df.empty:
-            vprism_df['date'] = pd.to_datetime(vprism_df['timestamp']).dt.date
-        if 'date' not in external_df.columns and not external_df.empty:
-            external_df['date'] = pd.to_datetime(external_df['timestamp']).dt.date
+        if "date" not in vprism_df.columns and not vprism_df.empty:
+            vprism_df["date"] = pd.to_datetime(vprism_df["timestamp"]).dt.date
+        if "date" not in external_df.columns and not external_df.empty:
+            external_df["date"] = pd.to_datetime(external_df["timestamp"]).dt.date
 
         # Ensure 'date' column exists before merging
-        if 'date' not in vprism_df.columns:
-            vprism_df['date'] = None
-        if 'date' not in external_df.columns:
-            external_df['date'] = None
+        if "date" not in vprism_df.columns:
+            vprism_df["date"] = None
+        if "date" not in external_df.columns:
+            external_df["date"] = None
 
         merged = pd.merge(
             vprism_df,
@@ -123,20 +131,18 @@ class DataConsistencyValidator:
             suffixes=("_vprism", "_external"),
         )
 
-        merged['close_price_vprism'] = pd.to_numeric(merged['close_price_vprism'], errors='coerce')
-        merged['close_price_external'] = pd.to_numeric(merged['close_price_external'], errors='coerce')
+        merged["close_price_vprism"] = pd.to_numeric(merged["close_price_vprism"], errors="coerce")
+        merged["close_price_external"] = pd.to_numeric(merged["close_price_external"], errors="coerce")
 
-        mismatched_dates = merged[merged["close_price_vprism"].notna() & merged["close_price_external"].notna() & (merged["close_price_vprism"] != merged["close_price_external"])]
+        mismatched_dates = merged[
+            (merged["close_price_vprism"].notna() & merged["close_price_external"].notna() & (merged["close_price_vprism"] != merged["close_price_external"]))
+        ]
 
         issues = []
         for _, row in mismatched_dates.iterrows():
-            issues.append(
-                f"Mismatch on {row['date']}: "
-                f"vprism={row['close_price_vprism']:.2f}, "
-                f"external={row['close_price_external']:.2f}"
-            )
+            issues.append(f"Mismatch on {row['date']}: vprism={row['close_price_vprism']:.2f}, external={row['close_price_external']:.2f}")
 
-        diff = abs(merged['close_price_vprism'] - merged['close_price_external'])
+        diff = abs(merged["close_price_vprism"] - merged["close_price_external"])
 
         return ConsistencyReport(
             symbol=symbol,
@@ -150,5 +156,5 @@ class DataConsistencyValidator:
             average_price_difference=diff.mean(),
             max_price_difference=diff.max(),
             issues=issues,
-            detailed_comparison={} # Placeholder for now
+            detailed_comparison={},  # Placeholder for now
         )

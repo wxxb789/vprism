@@ -12,7 +12,7 @@ from vprism.core.models.market import AssetType, MarketType, TimeFrame
 from vprism.core.models.query import DataQuery
 from vprism.core.models.response import DataResponse
 from vprism.core.services.data import DataService
-from vprism.core.services.data_router import DataRouter
+from vprism.core.services.routing import DataRouter
 
 logger = logging.getLogger(__name__)
 

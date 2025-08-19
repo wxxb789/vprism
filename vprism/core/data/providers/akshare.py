@@ -1,10 +1,10 @@
 """akshare数据提供商实现."""
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Callable
+from typing import Any
 
 import pandas as pd
 from pydantic import ValidationError
@@ -19,11 +19,12 @@ from vprism.core.data.providers.base import (
 from vprism.core.exceptions.base import ProviderError
 from vprism.core.models.base import DataPoint
 from vprism.core.models.market import AssetType, MarketType
-from vprism.core.models.query import Adjustment, DataQuery
+from vprism.core.models.query import DataQuery
 from vprism.core.models.response import DataResponse, ProviderInfo, ResponseMetadata
 from vprism.core.monitoring import StructuredLogger
 
 logger = StructuredLogger().logger
+
 
 class AkShare(DataProvider):
     """akshare数据提供商实现."""
@@ -67,11 +68,16 @@ class AkShare(DataProvider):
             return
         try:
             import akshare as ak
+
             self._ak = ak
             logger.info("AkShare package is available.")
-        except ImportError:
+        except ImportError as e:
             logger.error("AkShare package not found. Please install it using 'pip install akshare'.")
-            raise ProviderError("AkShare package not installed", provider_name=self.name, code="DEPENDENCY_MISSING")
+            raise ProviderError(
+                "AkShare package not installed",
+                provider_name=self.name,
+                code="DEPENDENCY_MISSING",
+            ) from e
 
     async def authenticate(self) -> bool:
         """与AkShare进行身份验证."""
@@ -134,7 +140,7 @@ class AkShare(DataProvider):
         symbol = query.symbols[0]
         adjust = query.adjustment.value if query.adjustment else ""
         if adjust == "none":
-            adjust = "" # akshare uses empty string for no adjustment
+            adjust = ""  # akshare uses empty string for no adjustment
 
         if query.market == MarketType.CN:
             return self._ak.stock_zh_a_hist(
@@ -163,18 +169,28 @@ class AkShare(DataProvider):
     async def _get_fund_data(self, query: DataQuery) -> pd.DataFrame:
         """Fetch Fund data."""
         symbol = query.symbols[0]
-        return self._ak.fund_open_fund_info_em(
-            symbol=symbol, indicator="单位净值走势"
-        )
+        return self._ak.fund_open_fund_info_em(symbol=symbol, indicator="单位净值走势")
 
     def _df_to_datapoints(self, df: pd.DataFrame, query: DataQuery) -> list[DataPoint]:
         """Convert pandas DataFrame to a list of DataPoint objects."""
         data_points = []
 
         column_map = {
-            "日期": "date", "开盘": "open", "收盘": "close", "最高": "high", "最低": "low", "成交量": "volume",
-            "date": "date", "open": "open", "close": "close", "high": "high", "low": "low", "volume": "volume",
-            "净值日期": "date", "单位净值": "close", "累计净值": "accumulated_nav",
+            "日期": "date",
+            "开盘": "open",
+            "收盘": "close",
+            "最高": "high",
+            "最低": "low",
+            "成交量": "volume",
+            "date": "date",
+            "open": "open",
+            "close": "close",
+            "high": "high",
+            "low": "low",
+            "volume": "volume",
+            "净值日期": "date",
+            "单位净值": "close",
+            "累计净值": "accumulated_nav",
         }
         df = df.rename(columns=column_map)
 
@@ -197,12 +213,14 @@ class AkShare(DataProvider):
                 }
 
                 if all(k in df.columns for k in ["open", "high", "low", "volume"]):
-                    datapoint_data.update({
-                        "open_price": Decimal(str(row["open"])) if pd.notna(row["open"]) else None,
-                        "high_price": Decimal(str(row["high"])) if pd.notna(row["high"]) else None,
-                        "low_price": Decimal(str(row["low"])) if pd.notna(row["low"]) else None,
-                        "volume": int(row["volume"]) if pd.notna(row["volume"]) else None,
-                    })
+                    datapoint_data.update(
+                        {
+                            "open_price": Decimal(str(row["open"])) if pd.notna(row["open"]) else None,
+                            "high_price": Decimal(str(row["high"])) if pd.notna(row["high"]) else None,
+                            "low_price": Decimal(str(row["low"])) if pd.notna(row["low"]) else None,
+                            "volume": int(row["volume"]) if pd.notna(row["volume"]) else None,
+                        }
+                    )
 
                 data_points.append(DataPoint(**datapoint_data))
 

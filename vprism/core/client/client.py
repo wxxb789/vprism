@@ -35,7 +35,7 @@ class VPrismClient:
 
         # 初始化核心组件
         from vprism.core.data.providers.registry import ProviderRegistry
-        from vprism.core.services.data_router import DataRouter
+        from vprism.core.services.routing import DataRouter
 
         self.registry = ProviderRegistry()
         self.router = DataRouter(self.registry)
@@ -83,7 +83,7 @@ class VPrismClient:
         if not self._configured:
             self._apply_config()
 
-        provider = self.router.route_query(query)
+        provider = await self.router.route_query(query)
         return await provider.get_data(query)
 
     def get(
