@@ -55,7 +55,7 @@ vprism/
 - **Rate limiting** and **circuit breaker** patterns
 - **Data validation** and **quality checks**
 
-#### 2. Service Layer (`src/core/services/`)
+#### 2. Service Layer (`vprism/core/services/`)
 - **Batch processing** for large data requests
 - **Data routing** between providers
 - **Query optimization** and **caching**
