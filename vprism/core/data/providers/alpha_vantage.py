@@ -82,12 +82,13 @@ class AlphaVantage(DataProvider):
         try:
             # 测试API密钥是否有效
             url = f"{self.BASE_URL}?function=SYMBOL_SEARCH&keywords=IBM&apikey={self.api_key}"
-            async with aiohttp.ClientSession() as session, session.get(url) as response:
-                data = await response.json()
-                if "Error Message" in data:
-                    return False
-                self._is_authenticated = True
-                return True
+            async with aiohttp.ClientSession() as session:  # noqa: SIM117
+                async with session.get(url) as response:
+                    data = await response.json()
+                    if "Error Message" in data:
+                        return False
+                    self._is_authenticated = True
+                    return True
         except Exception:
             return False
 
@@ -191,17 +192,15 @@ class AlphaVantage(DataProvider):
 
         url = f"{self.BASE_URL}"
 
-        async with (
-            aiohttp.ClientSession() as session,
-            session.get(url, params=params) as response,
-        ):
-            data = await response.json()
+        async with aiohttp.ClientSession() as session:  # noqa: SIM117
+            async with session.get(url, params=params) as response:
+                data = await response.json()
 
-            if "Error Message" in data:
-                raise ProviderError(f"AlphaVantage API error: {data['Error Message']}", "AlphaVantage")
+                if "Error Message" in data:
+                    raise ProviderError(f"AlphaVantage API error: {data['Error Message']}", "AlphaVantage")
 
-            if "Note" in data:
-                raise ProviderError(f"AlphaVantage rate limit: {data['Note']}", "AlphaVantage")
+                if "Note" in data:
+                    raise ProviderError(f"AlphaVantage rate limit: {data['Note']}", "AlphaVantage")
 
             data_points = self._parse_alpha_vantage_response(data, symbol, function, query.market or "us")
 
@@ -242,16 +241,14 @@ class AlphaVantage(DataProvider):
 
         url = f"{self.BASE_URL}"
 
-        async with (
-            aiohttp.ClientSession() as session,
-            session.get(url, params=params) as response,
-        ):
-            data = await response.json()
+        async with aiohttp.ClientSession() as session:  # noqa: SIM117
+            async with session.get(url, params=params) as response:
+                data = await response.json()
 
-            if "Error Message" in data:
-                raise ProviderError(f"AlphaVantage API error: {data['Error Message']}", "AlphaVantage")
+                if "Error Message" in data:
+                    raise ProviderError(f"AlphaVantage API error: {data['Error Message']}", "AlphaVantage")
 
-            data_points = self._parse_alpha_vantage_response(data, symbol, function, query.market or "global")
+                data_points = self._parse_alpha_vantage_response(data, symbol, function, query.market or "global")
 
         return data_points
 
@@ -290,16 +287,14 @@ class AlphaVantage(DataProvider):
 
         url = f"{self.BASE_URL}"
 
-        async with (
-            aiohttp.ClientSession() as session,
-            session.get(url, params=params) as response,
-        ):
-            data = await response.json()
+        async with aiohttp.ClientSession() as session:  # noqa: SIM117
+            async with session.get(url, params=params) as response:
+                data = await response.json()
 
-            if "Error Message" in data:
-                raise ProviderError(f"AlphaVantage API error: {data['Error Message']}", "AlphaVantage")
+                if "Error Message" in data:
+                    raise ProviderError(f"AlphaVantage API error: {data['Error Message']}", "AlphaVantage")
 
-            data_points = self._parse_alpha_vantage_response(data, symbol, function, market)
+                data_points = self._parse_alpha_vantage_response(data, symbol, function, market)
 
         return data_points
 

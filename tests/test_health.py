@@ -1,5 +1,6 @@
 """健康检查系统测试"""
 
+import asyncio
 from datetime import UTC, datetime
 from typing import Any
 
@@ -30,9 +31,7 @@ class TestHealthChecker:
     @pytest.mark.asyncio
     async def test_check_health_success(self) -> None:
         """测试健康检查成功场景"""
-        import time
-
-        time.sleep(0.01)  # 确保有微小的延迟
+        await asyncio.sleep(0.01)  # 确保有微小的延迟
         checker = HealthChecker()
         health = await checker.check_health()
 
@@ -136,9 +135,7 @@ class TestHealthEndpoints:
     @pytest.mark.asyncio
     async def test_uptime_calculation(self) -> None:
         """测试运行时间计算"""
-        import time
-
-        time.sleep(0.01)  # 确保有微小的延迟
+        await asyncio.sleep(0.01)  # 确保有微小的延迟
         checker = HealthChecker()
         health = await checker.check_health()
         assert health.uptime_seconds >= 0  # 允许0值，因为时间分辨率可能不够

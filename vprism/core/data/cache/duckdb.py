@@ -106,7 +106,6 @@ class SimpleDuckDBCache(CacheStrategy):
             return None
 
     async def cleanup_expired(self) -> int:
-        """清理过期数据."""
         """清理过期缓存项."""
         try:
             if not self._conn:
