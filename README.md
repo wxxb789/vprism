@@ -1,10 +1,10 @@
-# vPrism - Unified Financial Data Platform
+# vprism - Unified Financial Data Platform
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-vPrism is a comprehensive financial data platform that provides unified access to multiple financial data sources through consistent, high-performance APIs. It abstracts away the complexity of managing multiple data providers, rate limits, and data format inconsistencies.
+vprism is a comprehensive financial data platform that provides unified access to multiple financial data sources through consistent, high-performance APIs. It abstracts away the complexity of managing multiple data providers, rate limits, and data format inconsistencies.
 
 ## 🚀 Quick Start
 
@@ -35,7 +35,7 @@ docker-compose up -d
 
 ## 🏗️ Architecture
 
-vPrism is built with a modular, scalable architecture:
+vprism is built with a modular, scalable architecture:
 
 ```
 vprism/

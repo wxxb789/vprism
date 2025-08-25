@@ -1,11 +1,12 @@
-import pytest
 from datetime import date
 from decimal import Decimal
 
+import pytest
+
 from vprism.core.data.providers.akshare import AkShare
 from vprism.core.models.market import AssetType, MarketType
-from vprism.core.models.query import DataQuery, Adjustment
-from vprism.core.exceptions.base import ProviderError
+from vprism.core.models.query import Adjustment, DataQuery
+
 
 @pytest.mark.integration
 class TestAkshareIntegration:

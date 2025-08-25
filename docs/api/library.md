@@ -167,11 +167,11 @@ DataFrame包含标准OHLCV格式：
 ### 异常类型
 
 ```python
-from vprism.exceptions import VPrismException
+from vprism.exceptions import VPrismError
 
 try:
     data = vprism.get("INVALID_SYMBOL")
-except VPrismException as e:
+except VPrismError as e:
     print(f"错误代码: {e.code}")
     print(f"错误消息: {e.message}")
     print(f"提供商: {e.provider}")

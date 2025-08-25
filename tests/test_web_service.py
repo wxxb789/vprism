@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "web"))
 from vprism.web.app import create_app
 
 
-class TestWebService:
+class TestVPrismWebService:
     """Web 服务测试类"""
 
     @pytest.fixture
@@ -25,14 +25,14 @@ class TestWebService:
         return create_app()
 
     @pytest.fixture
-    def mock_client(self):
+    def vprism_mock_client(self):
         """创建模拟的 VPrismClient"""
         from unittest.mock import Mock
 
-        client = Mock()
+        vprism_client = Mock()
 
         # 创建同步的查询构建器
-        class MockQueryBuilder:
+        class VPrismMockQueryBuilder:
             def symbols(self, symbols):
                 self._symbols = symbols
                 return self
@@ -56,21 +56,21 @@ class TestWebService:
             def build(self):
                 return "mock_query"
 
-        query_builder = MockQueryBuilder()
-        client.query.return_value = query_builder
-        client.execute = AsyncMock()
-        client.batch_get_async = AsyncMock()
-        client.startup = AsyncMock()
-        client.shutdown = AsyncMock()
+        vprism_query_builder = VPrismMockQueryBuilder()
+        vprism_client.query.return_value = vprism_query_builder
+        vprism_client.execute = AsyncMock()
+        vprism_client.batch_get_async = AsyncMock()
+        vprism_client.startup = AsyncMock()
+        vprism_client.shutdown = AsyncMock()
 
-        return client
+        return vprism_client
 
     @pytest.mark.asyncio
-    async def test_health_check(self, app, mock_client):
+    async def test_health_check(self, app, vprism_mock_client):
         """测试健康检查端点"""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            app.state.vprism_client = mock_client
+            app.state.vprism_client = vprism_mock_client
 
             response = await ac.get("/api/v1/health")
 
@@ -80,11 +80,11 @@ class TestWebService:
         assert "checks" in data["data"]
 
     @pytest.mark.asyncio
-    async def test_readiness_check(self, app, mock_client):
+    async def test_readiness_check(self, app, vprism_mock_client):
         """测试就绪检查端点"""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            app.state.vprism_client = mock_client
+            app.state.vprism_client = vprism_mock_client
 
             response = await ac.get("/api/v1/health/ready")
 
@@ -104,7 +104,7 @@ class TestWebService:
         assert data["data"]["alive"] is True
 
     @pytest.mark.asyncio
-    async def test_get_stock_data(self, app, mock_client):
+    async def test_get_stock_data(self, app, vprism_mock_client):
         """测试获取股票数据端点"""
         # 设置模拟返回数据
         from decimal import Decimal
@@ -116,7 +116,7 @@ class TestWebService:
             ResponseMetadata,
         )
 
-        mock_response = DataResponse(
+        vprism_mock_response = DataResponse(
             data=[
                 DataPoint(
                     symbol="AAPL",
@@ -133,11 +133,11 @@ class TestWebService:
             metadata=ResponseMetadata(total_records=1, query_time_ms=150.5, data_source="test_provider"),
             source=ProviderInfo(name="test_provider", endpoint="https://api.test.com"),
         )
-        mock_client.execute.return_value = mock_response
+        vprism_mock_client.execute.return_value = vprism_mock_response
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            app.state.vprism_client = mock_client
+            app.state.vprism_client = vprism_mock_client
 
             response = await ac.get("/api/v1/data/stock/AAPL")
 
@@ -145,10 +145,10 @@ class TestWebService:
         data = response.json()
         assert data["success"] is True
         assert "AAPL" in data["message"]
-        mock_client.execute.assert_called_once()
+        vprism_mock_client.execute.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_post_stock_data(self, app, mock_client):
+    async def test_post_stock_data(self, app, vprism_mock_client):
         """测试 POST 方式获取股票数据"""
         from decimal import Decimal
 
@@ -159,7 +159,7 @@ class TestWebService:
             ResponseMetadata,
         )
 
-        mock_response = DataResponse(
+        vprism_mock_response = DataResponse(
             data=[
                 DataPoint(
                     symbol="AAPL",
@@ -172,7 +172,7 @@ class TestWebService:
             metadata=ResponseMetadata(total_records=1, query_time_ms=100.0, data_source="test_provider"),
             source=ProviderInfo(name="test_provider", endpoint="https://api.test.com"),
         )
-        mock_client.execute.return_value = mock_response
+        vprism_mock_client.execute.return_value = vprism_mock_response
 
         request_data = {
             "symbol": "AAPL",
@@ -183,7 +183,7 @@ class TestWebService:
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            app.state.vprism_client = mock_client
+            app.state.vprism_client = vprism_mock_client
 
             response = await ac.post("/api/v1/data/stock", json=request_data)
 
@@ -192,7 +192,7 @@ class TestWebService:
         assert data["success"] is True
 
     @pytest.mark.asyncio
-    async def test_market_data_endpoint(self, app, mock_client):
+    async def test_market_data_endpoint(self, app, vprism_mock_client):
         """测试市场数据端点"""
         from datetime import datetime
         from decimal import Decimal
@@ -204,7 +204,7 @@ class TestWebService:
             ResponseMetadata,
         )
 
-        mock_response = DataResponse(
+        vprism_mock_response = DataResponse(
             data=[
                 DataPoint(
                     symbol="^GSPC",
@@ -217,7 +217,7 @@ class TestWebService:
             metadata=ResponseMetadata(total_records=1, query_time_ms=150.0, data_source="test_provider"),
             source=ProviderInfo(name="test_provider", endpoint="https://api.test.com"),
         )
-        mock_client.execute.return_value = mock_response
+        vprism_mock_client.execute.return_value = vprism_mock_response
 
         request_data = {
             "market": "us",
@@ -227,7 +227,7 @@ class TestWebService:
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            app.state.vprism_client = mock_client
+            app.state.vprism_client = vprism_mock_client
 
             response = await ac.post("/api/v1/data/market", json=request_data)
 
@@ -236,7 +236,7 @@ class TestWebService:
         assert data["success"] is True
 
     @pytest.mark.asyncio
-    async def test_batch_data_endpoint(self, app, mock_client):
+    async def test_batch_data_endpoint(self, app, vprism_mock_client):
         """测试批量数据端点"""
         from decimal import Decimal
 
@@ -247,7 +247,7 @@ class TestWebService:
             ResponseMetadata,
         )
 
-        mock_response1 = DataResponse(
+        vprism_mock_response1 = DataResponse(
             data=[
                 DataPoint(
                     symbol="AAPL",
@@ -260,7 +260,7 @@ class TestWebService:
             metadata=ResponseMetadata(total_records=1, query_time_ms=120.0, data_source="test_provider"),
             source=ProviderInfo(name="test_provider", endpoint="https://api.test.com"),
         )
-        mock_response2 = DataResponse(
+        vprism_mock_response2 = DataResponse(
             data=[
                 DataPoint(
                     symbol="GOOGL",
@@ -273,7 +273,7 @@ class TestWebService:
             metadata=ResponseMetadata(total_records=1, query_time_ms=110.0, data_source="test_provider"),
             source=ProviderInfo(name="test_provider", endpoint="https://api.test.com"),
         )
-        mock_client.execute.side_effect = [mock_response1, mock_response2]
+        vprism_mock_client.execute.side_effect = [vprism_mock_response1, vprism_mock_response2]
 
         request_data = {
             "queries": [
@@ -285,7 +285,7 @@ class TestWebService:
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            app.state.vprism_client = mock_client
+            app.state.vprism_client = vprism_mock_client
 
             response = await ac.post("/api/v1/data/batch", json=request_data)
 
@@ -295,11 +295,11 @@ class TestWebService:
         assert len(data["data"]) == 2
 
     @pytest.mark.asyncio
-    async def test_symbols_endpoint(self, app, mock_client):
+    async def test_symbols_endpoint(self, app, vprism_mock_client):
         """测试股票代码列表端点"""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            app.state.vprism_client = mock_client
+            app.state.vprism_client = vprism_mock_client
 
             response = await ac.get("/api/v1/data/symbols?market=us")
 
@@ -309,7 +309,7 @@ class TestWebService:
         assert isinstance(data["data"], list)
 
     @pytest.mark.asyncio
-    async def test_batch_data_limit_exceeded(self, app, mock_client):
+    async def test_batch_data_limit_exceeded(self, app, vprism_mock_client):
         """测试批量数据超出限制"""
         request_data = {
             "queries": [{"symbol": f"STOCK{i}", "market": "us", "timeframe": "daily"} for i in range(101)],  # 超过100个限制
@@ -318,20 +318,20 @@ class TestWebService:
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            app.state.vprism_client = mock_client
+            app.state.vprism_client = vprism_mock_client
 
             response = await ac.post("/api/v1/data/batch", json=request_data)
 
         assert response.status_code == 422
 
     @pytest.mark.asyncio
-    async def test_invalid_symbol_error(self, app, mock_client):
+    async def test_invalid_symbol_error(self, app, vprism_mock_client):
         """测试无效股票代码的错误处理"""
-        mock_client.execute.side_effect = Exception("Invalid symbol")
+        vprism_mock_client.execute.side_effect = Exception("Invalid symbol")
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            app.state.vprism_client = mock_client
+            app.state.vprism_client = vprism_mock_client
 
             response = await ac.get("/api/v1/data/stock/INVALID")
 
@@ -340,11 +340,11 @@ class TestWebService:
         assert data["success"] is False
 
     @pytest.mark.asyncio
-    async def test_provider_health_check(self, app, mock_client):
+    async def test_provider_health_check(self, app, vprism_mock_client):
         """测试提供商健康检查"""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            app.state.vprism_client = mock_client
+            app.state.vprism_client = vprism_mock_client
 
             response = await ac.get("/api/v1/health/providers")
 
@@ -354,11 +354,11 @@ class TestWebService:
         assert isinstance(data["data"], list)
 
     @pytest.mark.asyncio
-    async def test_cache_health_check(self, app, mock_client):
+    async def test_cache_health_check(self, app, vprism_mock_client):
         """测试缓存健康检查"""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            app.state.vprism_client = mock_client
+            app.state.vprism_client = vprism_mock_client
 
             response = await ac.get("/api/v1/health/cache")
 
@@ -368,11 +368,11 @@ class TestWebService:
         assert "hit_rate" in data["data"]
 
     @pytest.mark.asyncio
-    async def test_metrics_endpoint(self, app, mock_client):
+    async def test_metrics_endpoint(self, app, vprism_mock_client):
         """测试指标端点"""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            app.state.vprism_client = mock_client
+            app.state.vprism_client = vprism_mock_client
 
             response = await ac.get("/api/v1/metrics")
 
@@ -382,11 +382,11 @@ class TestWebService:
         assert "uptime" in data["data"]
 
     @pytest.mark.asyncio
-    async def test_cors_headers(self, app, mock_client):
+    async def test_cors_headers(self, app, vprism_mock_client):
         """测试 CORS 头设置"""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            app.state.vprism_client = mock_client
+            app.state.vprism_client = vprism_mock_client
 
             # 预检请求
             response = await ac.options("/api/v1/health")
@@ -394,11 +394,11 @@ class TestWebService:
         assert response.status_code == 405  # OPTIONS not supported for health check
 
     @pytest.mark.asyncio
-    async def test_openapi_docs(self, app, mock_client):
+    async def test_openapi_docs(self, app, vprism_mock_client):
         """测试 OpenAPI 文档"""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            app.state.vprism_client = mock_client
+            app.state.vprism_client = vprism_mock_client
 
             response = await ac.get("/docs")
 
@@ -406,11 +406,11 @@ class TestWebService:
         assert "text/html" in response.headers["content-type"]
 
     @pytest.mark.asyncio
-    async def test_redoc_docs(self, app, mock_client):
+    async def test_redoc_docs(self, app, vprism_mock_client):
         """测试 ReDoc 文档"""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            app.state.vprism_client = mock_client
+            app.state.vprism_client = vprism_mock_client
 
             response = await ac.get("/redoc")
 

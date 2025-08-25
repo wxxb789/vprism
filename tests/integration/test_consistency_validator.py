@@ -1,8 +1,11 @@
-import pytest
 from datetime import date
+
+import pytest
+
 from vprism.core.client.client import VPrismClient
-from vprism.core.validation.consistency import DataConsistencyValidator
 from vprism.core.models.market import AssetType, MarketType
+from vprism.core.validation.consistency import DataConsistencyValidator
+
 
 @pytest.mark.integration
 class TestConsistencyValidatorIntegration:
@@ -18,7 +21,7 @@ class TestConsistencyValidatorIntegration:
     async def test_validate_consistency_real_data(self, validator):
         """Test consistency validation with real data from providers."""
         report = await validator.validate_consistency(
-            symbol="000001.SZ", # Ping An Bank, supported by both akshare and yfinance
+            symbol="000001.SZ",  # Ping An Bank, supported by both akshare and yfinance
             start_date=date(2023, 1, 1),
             end_date=date(2023, 1, 31),
             asset_type=AssetType.STOCK,

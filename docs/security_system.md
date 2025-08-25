@@ -1,4 +1,4 @@
-# vPrism Financial Data Platform - 安全认证系统
+# vprism Financial Data Platform - 安全认证系统
 
 ## 安全架构概述
 

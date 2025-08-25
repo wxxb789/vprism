@@ -1,6 +1,6 @@
-# VPrism Examples
+# vprism Examples
 
-This directory contains example scripts demonstrating how to use the VPrism library.
+This directory contains example scripts demonstrating how to use the vprism library.
 
 ## Running Examples
 

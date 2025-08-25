@@ -7,17 +7,17 @@ import os
 import uvicorn
 
 
-def main() -> None:
+def vprism_main() -> None:
     """启动 FastAPI Web 服务"""
 
     # 配置
-    host = os.getenv("VPRISM_HOST", "0.0.0.0")
-    port = int(os.getenv("VPRISM_PORT", "8000"))
-    reload = os.getenv("VPRISM_RELOAD", "false").lower() == "true"
+    vprism_host = os.getenv("VPRISM_HOST", "0.0.0.0")
+    vprism_port = int(os.getenv("VPRISM_PORT", "8000"))
+    vprism_reload = os.getenv("VPRISM_RELOAD", "false").lower() == "true"
 
     # 启动服务
-    uvicorn.run("app:app", host=host, port=port, reload=reload, log_level="info")
+    uvicorn.run("app:app", host=vprism_host, port=vprism_port, reload=vprism_reload, log_level="info")
 
 
 if __name__ == "__main__":
-    main()
+    vprism_main()

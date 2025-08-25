@@ -1,4 +1,4 @@
-# vPrism Financial Data Platform - 性能优化和全面测试系统
+# vprism Financial Data Platform - 性能优化和全面测试系统
 
 ## 1. 性能优化配置 (vprism/config/performance.py)
 
@@ -766,7 +766,7 @@ class PerformanceMonitor:
         try:
             message = self._format_alert_message(alerts)
             msg = MIMEText(message)
-            msg['Subject'] = 'vPrism Performance Alert'
+            msg['Subject'] = 'vprism Performance Alert'
             msg['From'] = 'alerts@vprism.com'
             msg['To'] = self.alert_email
             
@@ -780,7 +780,7 @@ class PerformanceMonitor:
     
     def _format_alert_message(self, alerts: List[Dict[str, Any]]) -> str:
         """格式化告警消息"""
-        message = f"vPrism Performance Alert - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+        message = f"vprism Performance Alert - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
         for alert in alerts:
             message += f"ALERT: {alert['metric']} is {alert['value']:.2f} (threshold: {alert['threshold']:.2f}) - Severity: {alert['severity']}\n"
         return message
@@ -817,7 +817,7 @@ performance_monitor = PerformanceMonitor()
 ## 6. 性能优化部署指南 (performance_deployment.md)
 
 ```markdown
-# vPrism 性能优化部署指南
+# vprism 性能优化部署指南
 
 ## 1. 系统资源优化
 

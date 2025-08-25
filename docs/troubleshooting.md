@@ -152,11 +152,11 @@ export ALPHA_VANTAGE_API_KEY="your-key-here"
 
 #### 网络连接错误
 ```python
-from vprism.exceptions import VPrismException
+from vprism.exceptions import VPrismError
 
 try:
     data = vprism.get("AAPL")
-except VPrismException as e:
+except VPrismError as e:
     if e.code == "NETWORK_ERROR":
         print("检查网络连接或尝试稍后重试")
     elif e.code == "TIMEOUT":

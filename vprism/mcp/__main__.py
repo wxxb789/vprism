@@ -1,7 +1,7 @@
 """
-Main entry point for vPrism MCP Server.
+Main entry point for vprism MCP Server.
 
-This module provides command-line interface for running the vPrism MCP server
+This module provides command-line interface for running the vprism MCP server
 with different transport modes and configurations.
 """
 
@@ -31,7 +31,7 @@ def setup_logging(level: str = "INFO") -> None:
 
 async def main() -> None:
     """Main entry point for the MCP server."""
-    parser = argparse.ArgumentParser(description="vPrism Financial Data MCP Server")
+    parser = argparse.ArgumentParser(description="vprism Financial Data MCP Server")
     parser.add_argument(
         "--transport",
         choices=["stdio", "http", "sse"],
@@ -70,7 +70,7 @@ async def main() -> None:
             logger.error(f"Failed to load configuration: {e}")
             sys.exit(1)
 
-    logger.info(f"Starting vPrism MCP Server with transport: {args.transport}")
+    logger.info(f"Starting vprism MCP Server with transport: {args.transport}")
 
     # Create and start MCP server
     try:
@@ -84,7 +84,7 @@ async def main() -> None:
             await server.start(transport="sse", host=args.host, port=args.port)
 
     except KeyboardInterrupt:
-        logger.info("Shutting down vPrism MCP Server...")
+        logger.info("Shutting down vprism MCP Server...")
     except Exception as e:
         logger.error(f"Failed to start server: {e}")
         sys.exit(1)

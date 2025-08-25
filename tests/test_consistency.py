@@ -3,14 +3,15 @@ Tests for data consistency validation between vprism and akshare.
 """
 
 from datetime import datetime
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
 
-from vprism.core.validation import ConsistencyReport, DataConsistencyValidator
 from vprism.core.client.client import VPrismClient
 from vprism.core.models.market import AssetType, MarketType
+from vprism.core.validation import DataConsistencyValidator
+
 
 class TestDataConsistencyValidator:
     """Test DataConsistencyValidator class."""
@@ -29,8 +30,7 @@ class TestDataConsistencyValidator:
         dates = pd.date_range(start=start_date, end=end_date, freq="D")
         data = pd.DataFrame({"timestamp": dates, "close_price": [100.5, 101.5, 102.5, 103.5, 104.5]})
 
-        with patch.object(validator, "_get_vprism_data", return_value=data.copy()), \
-             patch.object(validator, "_get_external_data", return_value=data.copy()):
+        with patch.object(validator, "_get_vprism_data", return_value=data.copy()), patch.object(validator, "_get_external_data", return_value=data.copy()):
             report = await validator.validate_consistency("TEST", start_date.date(), end_date.date(), AssetType.STOCK, MarketType.CN)
 
         assert report.symbol == "TEST"
@@ -49,8 +49,7 @@ class TestDataConsistencyValidator:
         akshare_data = vprism_data.copy()
         akshare_data.loc[1, "close_price"] = 101.6
 
-        with patch.object(validator, "_get_vprism_data", return_value=vprism_data), \
-             patch.object(validator, "_get_external_data", return_value=akshare_data):
+        with patch.object(validator, "_get_vprism_data", return_value=vprism_data), patch.object(validator, "_get_external_data", return_value=akshare_data):
             report = await validator.validate_consistency("TEST", start_date.date(), end_date.date(), AssetType.STOCK, MarketType.CN)
 
         assert report.symbol == "TEST"
@@ -66,8 +65,7 @@ class TestDataConsistencyValidator:
         vprism_data = pd.DataFrame({"timestamp": pd.date_range(start=start_date, periods=3, freq="D"), "close_price": [100.5, 101.5, 102.5]})
         akshare_data = pd.DataFrame({"timestamp": pd.date_range(start=start_date, periods=5, freq="D"), "close_price": [100.5, 101.5, 102.5, 103.5, 104.5]})
 
-        with patch.object(validator, "_get_vprism_data", return_value=vprism_data), \
-             patch.object(validator, "_get_external_data", return_value=akshare_data):
+        with patch.object(validator, "_get_vprism_data", return_value=vprism_data), patch.object(validator, "_get_external_data", return_value=akshare_data):
             report = await validator.validate_consistency("TEST", start_date.date(), end_date.date(), AssetType.STOCK, MarketType.CN)
 
         assert report.missing_in_vprism == 2
@@ -92,11 +90,7 @@ class TestConsistencyIntegration:
 
         # This symbol is known to exist in both yfinance (as 000001.SZ) and akshare
         report = await validator.validate_consistency(
-            symbol="000001.SZ",
-            start_date=start_date,
-            end_date=end_date,
-            asset_type=AssetType.STOCK,
-            market=MarketType.CN
+            symbol="000001.SZ", start_date=start_date, end_date=end_date, asset_type=AssetType.STOCK, market=MarketType.CN
         )
 
         assert report.symbol == "000001.SZ"
@@ -112,11 +106,7 @@ class TestConsistencyIntegration:
         end_date = datetime(2024, 1, 7).date()  # A Sunday
 
         report = await validator.validate_consistency(
-            symbol="000001.SZ",
-            start_date=start_date,
-            end_date=end_date,
-            asset_type=AssetType.STOCK,
-            market=MarketType.CN
+            symbol="000001.SZ", start_date=start_date, end_date=end_date, asset_type=AssetType.STOCK, market=MarketType.CN
         )
 
         # Expect no records for a weekend

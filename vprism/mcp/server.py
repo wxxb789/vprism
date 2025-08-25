@@ -1,8 +1,8 @@
 """
-MCP Server for vPrism Financial Data Platform
+MCP Server for vprism Financial Data Platform
 
 This module implements the MCP (Model Context Protocol) server interface
-for vPrism, providing financial data access through standardized MCP tools.
+for vprism, providing financial data access through standardized MCP tools.
 """
 
 import asyncio
@@ -18,19 +18,19 @@ from vprism.core.exceptions import VPrismError
 
 class VPrismMCPServer:
     """
-    vPrism MCP Server implementation providing financial data tools.
+    vprism MCP Server implementation providing financial data tools.
 
-    This server exposes vPrism's financial data capabilities through
+    This server exposes vprism's financial data capabilities through
     standardized MCP tools, allowing AI models to access real-time
     and historical financial data.
     """
 
     def __init__(self, config: dict[str, Any] | None = None):
         """
-        Initialize vPrism MCP Server.
+        Initialize vprism MCP Server.
 
         Args:
-            config: Optional configuration dictionary for vPrism client
+            config: Optional configuration dictionary for vprism client
         """
         self.config: dict[str, Any] = config or {}
         self.mcp: FastMCP[Any] = FastMCP("vprism-financial-data")
@@ -68,7 +68,7 @@ class VPrismMCPServer:
                 # market_type = MarketType(market.lower()) # Unused
                 # time_frame = TimeFrame(timeframe.lower()) # Unused
 
-                # Get data using vPrism client
+                # Get data using vprism client
                 data = await self.client.get_async(
                     asset="stock",
                     symbols=[symbol.upper()],
@@ -107,7 +107,7 @@ class VPrismMCPServer:
                 return result
 
             except VPrismError as e:
-                logger.error(f"vPrism error getting stock data: {e}")
+                logger.error(f"vprism error getting stock data: {e}")
                 return {"error": str(e), "symbol": symbol}
             except Exception as e:
                 logger.error(f"Unexpected error getting stock data: {e}")
@@ -174,7 +174,7 @@ class VPrismMCPServer:
                 return {"market": market, "date": target_date, "indices": overview_data}
 
             except VPrismError as e:
-                logger.error(f"vPrism error getting market overview: {e}")
+                logger.error(f"vprism error getting market overview: {e}")
                 return {"error": str(e), "market": market}
             except Exception as e:
                 logger.error(f"Unexpected error getting market overview: {e}")
@@ -309,7 +309,7 @@ class VPrismMCPServer:
                     return {"error": "No data available", "symbol": symbol}
 
             except VPrismError as e:
-                logger.error(f"vPrism error getting real-time price: {e}")
+                logger.error(f"vprism error getting real-time price: {e}")
                 return {"error": str(e), "symbol": symbol}
             except Exception as e:
                 logger.error(f"Unexpected error getting real-time price: {e}")
@@ -380,7 +380,7 @@ class VPrismMCPServer:
                 }
 
             except VPrismError as e:
-                logger.error(f"vPrism error getting batch quotes: {e}")
+                logger.error(f"vprism error getting batch quotes: {e}")
                 return {"error": str(e)}
             except Exception as e:
                 logger.error(f"Unexpected error getting batch quotes: {e}")
@@ -450,7 +450,7 @@ Use the available financial data tools to gather relevant information and provid
             transport: Transport method ("stdio", "http", or "sse")
             **kwargs: Additional arguments for the transport
         """
-        logger.info(f"Starting vPrism MCP server with {transport} transport")
+        logger.info(f"Starting vprism MCP server with {transport} transport")
 
         try:
             if hasattr(self.client, "initialize"):
@@ -470,7 +470,7 @@ Use the available financial data tools to gather relevant information and provid
 
 def create_mcp_server(config: dict[str, Any] | None = None) -> VPrismMCPServer:
     """
-    Create and configure a vPrism MCP server.
+    Create and configure a vprism MCP server.
 
     Args:
         config: Optional configuration dictionary

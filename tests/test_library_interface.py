@@ -19,7 +19,7 @@ except ImportError:
         from vprism import vprism
     except ImportError:
         # 创建模拟模块用于测试
-        class MockVPrism:
+        class VPrismMock:
             def get(self, **kwargs):
                 return {"data": "mock_data"}
 
@@ -27,7 +27,7 @@ except ImportError:
                 return {"data": "mock_async_data"}
 
             def query(self):
-                return MockQueryBuilder()
+                return VPrismMockQueryBuilder()
 
             async def execute(self, query):
                 return {"data": "mock_execute"}
@@ -35,7 +35,7 @@ except ImportError:
             def configure(self, **kwargs):
                 pass
 
-        class MockQueryBuilder:
+        class VPrismMockQueryBuilder:
             def asset(self, asset):
                 return self
 
@@ -54,7 +54,7 @@ except ImportError:
             def build(self):
                 return "mock_query"
 
-        vprism = MockVPrism()
+        vprism = VPrismMock()
 
 
 class TestVPrismClient:

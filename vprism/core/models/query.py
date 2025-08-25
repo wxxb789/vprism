@@ -1,7 +1,8 @@
 """Query models and builders."""
+
 from datetime import date, datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -28,9 +29,7 @@ class DataQuery(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     symbols: list[str] | None = None
-    adjustment: Optional[Adjustment] = Field(
-        default=Adjustment.NONE, description="Price adjustment type"
-    )
+    adjustment: Adjustment | None = Field(default=Adjustment.NONE, description="Price adjustment type")
 
 
 class QueryBuilder:

@@ -1,4 +1,4 @@
-# vPrism Financial Data Platform - Complete Docker Compose Configuration
+# vprism Financial Data Platform - Complete Docker Compose Configuration
 version: '3.8'
 
 services:
@@ -34,7 +34,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # vPrism API 服务
+  # vprism API 服务
   vprism-api:
     build: 
       context: ../..
@@ -60,7 +60,7 @@ services:
       retries: 3
     restart: unless-stopped
 
-  # vPrism MCP 服务器
+  # vprism MCP 服务器
   mcp:
     build: 
       context: ../..

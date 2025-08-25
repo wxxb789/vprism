@@ -17,18 +17,18 @@ from vprism.core.validation.quality import DataCleaner, DataQualityScorer, DataQ
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+vprism_logger = logging.getLogger(__name__)
 
 
-def create_sample_data():
+def vprism_create_sample_data():
     """Create sample financial data for demonstration."""
-    dates = pd.date_range(start=datetime(2024, 1, 1), periods=10, freq="D")
+    vprism_dates = pd.date_range(start=datetime(2024, 1, 1), periods=10, freq="D")
 
     # Create realistic OHLCV data with some issues
-    data = pd.DataFrame(
+    vprism_data = pd.DataFrame(
         {
-            "timestamp": dates,
-            "symbol": ["AAPL"] * len(dates),
+            "timestamp": vprism_dates,
+            "symbol": ["AAPL"] * len(vprism_dates),
             "open": [
                 100.0,
                 101.5,
@@ -82,119 +82,119 @@ def create_sample_data():
     )
 
     # Introduce some data quality issues
-    data.loc[2, "close"] = np.nan  # Missing close price
-    data.loc[5, "high"] = 95.0  # Invalid: high < low
-    data.loc[7, "volume"] = -500000  # Negative volume
-    data.loc[3, "open"] = 150.0  # Outlier
+    vprism_data.loc[2, "close"] = np.nan  # Missing close price
+    vprism_data.loc[5, "high"] = 95.0  # Invalid: high < low
+    vprism_data.loc[7, "volume"] = -500000  # Negative volume
+    vprism_data.loc[3, "open"] = 150.0  # Outlier
 
-    return data
+    return vprism_data
 
 
-def demonstrate_data_quality_validation():
+def vprism_demonstrate_data_quality_validation():
     """Demonstrate data quality validation."""
     print("=" * 60)
     print("DATA QUALITY VALIDATION DEMONSTRATION")
     print("=" * 60)
 
     # Create sample data
-    data = create_sample_data()
-    print(f"Original data shape: {data.shape}")
+    vprism_data = vprism_create_sample_data()
+    print(f"Original data shape: {vprism_data.shape}")
     print("\nSample data:")
-    print(data.head())
+    print(vprism_data.head())
 
     # Initialize validator
-    validator = DataQualityValidator()
+    vprism_validator = DataQualityValidator()
 
     # Validate data
-    issues = validator.validate_dataframe(data)
-    print(f"\nValidation Issues Found: {len(issues)}")
-    for issue in issues:
-        print(f"  - {issue}")
+    vprism_issues = vprism_validator.validate_dataframe(vprism_data)
+    print(f"\nValidation Issues Found: {len(vprism_issues)}")
+    for vprism_issue in vprism_issues:
+        print(f"  - {vprism_issue}")
 
     # Check for missing data
-    missing_info = validator.detect_missing_data(data, expected_frequency="D")
+    vprism_missing_info = vprism_validator.detect_missing_data(vprism_data, expected_frequency="D")
     print("\nMissing Data Analysis:")
-    print(f"  Missing records: {missing_info['missing_count']}")
-    print(f"  Missing percentage: {missing_info['missing_percentage']:.2%}")
+    print(f"  Missing records: {vprism_missing_info['missing_count']}")
+    print(f"  Missing percentage: {vprism_missing_info['missing_percentage']:.2%}")
 
     # Detect outliers
-    outliers = validator.detect_outliers(data)
-    print(f"\nOutliers Detected: {len(outliers)}")
-    if not outliers.empty:
-        print(outliers[["timestamp", "open", "high", "low", "close", "volume"]])
+    vprism_outliers = vprism_validator.detect_outliers(vprism_data)
+    print(f"\nOutliers Detected: {len(vprism_outliers)}")
+    if not vprism_outliers.empty:
+        print(vprism_outliers[["timestamp", "open", "high", "low", "close", "volume"]])
 
 
-def demonstrate_data_quality_scoring():
+def vprism_demonstrate_data_quality_scoring():
     """Demonstrate data quality scoring."""
     print("\n" + "=" * 60)
     print("DATA QUALITY SCORING DEMONSTRATION")
     print("=" * 60)
 
     # Create sample data
-    data = create_sample_data()
+    vprism_data = vprism_create_sample_data()
 
     # Initialize scorer
-    scorer = DataQualityScorer()
+    vprism_scorer = DataQualityScorer()
 
     # Calculate comprehensive score
-    score = scorer.calculate_overall_score(data)
+    vprism_score = vprism_scorer.calculate_overall_score(vprism_data)
 
     print("Data Quality Score for AAPL:")
-    print(f"  Overall Score: {score.overall:.2%}")
-    print(f"  Quality Level: {score.level.value}")
-    print(f"  Completeness: {score.completeness:.2%}")
-    print(f"  Accuracy: {score.accuracy:.2%}")
-    print(f"  Timeliness: {score.timeliness:.2%}")
-    print(f"  Consistency: {score.consistency:.2%}")
-    print(f"  Issues: {len(score.issues)}")
+    print(f"  Overall Score: {vprism_score.overall:.2%}")
+    print(f"  Quality Level: {vprism_score.level.value}")
+    print(f"  Completeness: {vprism_score.completeness:.2%}")
+    print(f"  Accuracy: {vprism_score.accuracy:.2%}")
+    print(f"  Timeliness: {vprism_score.timeliness:.2%}")
+    print(f"  Consistency: {vprism_score.consistency:.2%}")
+    print(f"  Issues: {len(vprism_score.issues)}")
 
 
-def demonstrate_data_cleaning():
+def vprism_demonstrate_data_cleaning():
     """Demonstrate data cleaning."""
     print("\n" + "=" * 60)
     print("DATA CLEANING DEMONSTRATION")
     print("=" * 60)
 
     # Create sample data
-    data = create_sample_data()
+    vprism_data = vprism_create_sample_data()
     print("\nBefore cleaning:")
-    print(f"  Records: {len(data)}")
-    print(f"  Missing values: {data.isna().sum().sum()}")
+    print(f"  Records: {len(vprism_data)}")
+    print(f"  Missing values: {vprism_data.isna().sum().sum()}")
 
     # Initialize cleaner
-    cleaner = DataCleaner()
+    vprism_cleaner = DataCleaner()
 
     # Clean the data
-    cleaned = cleaner.clean_missing_values(data, method="interpolate")
-    cleaned = cleaner.remove_outliers(cleaned)
+    vprism_cleaned = vprism_cleaner.clean_missing_values(vprism_data, method="interpolate")
+    vprism_cleaned = vprism_cleaner.remove_outliers(vprism_cleaned)
 
     print("\nAfter cleaning:")
-    print(f"  Records: {len(cleaned)}")
-    print(f"  Missing values: {cleaned.isna().sum().sum()}")
-    print(f"  Records removed: {len(data) - len(cleaned)}")
+    print(f"  Records: {len(vprism_cleaned)}")
+    print(f"  Missing values: {vprism_cleaned.isna().sum().sum()}")
+    print(f"  Records removed: {len(vprism_data) - len(vprism_cleaned)}")
 
 
-async def demonstrate_consistency_validation():
+async def vprism_demonstrate_consistency_validation():
     """Demonstrate consistency validation with akshare."""
     print("\n" + "=" * 60)
     print("CONSISTENCY VALIDATION DEMONSTRATION")
     print("=" * 60)
 
     # Create validator
-    validator = DataConsistencyValidator(tolerance=0.01)
+    vprism_validator = DataConsistencyValidator(tolerance=0.01)
 
     # Create sample data for demonstration
-    start_date = datetime(2024, 1, 1)
-    end_date = datetime(2024, 1, 5)
+    vprism_start_date = datetime(2024, 1, 1)
+    vprism_end_date = datetime(2024, 1, 5)
 
     # Since we don't have real repository, we'll mock the data
     print("Note: This example uses mock data for demonstration.")
     print("In real usage, this would compare actual vprism data with akshare data.")
 
     # Create identical data to show perfect consistency
-    identical_data = pd.DataFrame(
+    vprism_identical_data = pd.DataFrame(
         {
-            "timestamp": pd.date_range(start=start_date, periods=5, freq="D"),
+            "timestamp": pd.date_range(start=vprism_start_date, periods=5, freq="D"),
             "symbol": ["000001"] * 5,
             "open": [100.0, 101.0, 102.0, 103.0, 104.0],
             "high": [101.0, 102.0, 103.0, 104.0, 105.0],
@@ -207,65 +207,68 @@ async def demonstrate_consistency_validation():
     # Simulate consistency validation
     from unittest.mock import patch
 
-    with patch.object(validator, "_get_vprism_data", return_value=identical_data), patch.object(validator, "_get_akshare_data", return_value=identical_data):
-        report = validator.validate_consistency("000001", start_date, end_date)
+    with (
+        patch.object(vprism_validator, "_get_vprism_data", return_value=vprism_identical_data),
+        patch.object(vprism_validator, "_get_akshare_data", return_value=vprism_identical_data),
+    ):
+        vprism_report = vprism_validator.validate_consistency("000001", vprism_start_date, vprism_end_date)
 
     print("\nConsistency Validation Results for 000001:")
-    print(f"  Total Records: {report.total_records}")
-    print(f"  Matching Records: {report.matching_records}")
-    print(f"  Consistency Percentage: {report.consistency_percentage:.1f}%")
-    print(f"  Average Price Difference: {report.average_price_difference:.2%}")
-    print(f"  Max Price Difference: {report.max_price_difference:.2%}")
+    print(f"  Total Records: {vprism_report.total_records}")
+    print(f"  Matching Records: {vprism_report.matching_records}")
+    print(f"  Consistency Percentage: {vprism_report.consistency_percentage:.1f}%")
+    print(f"  Average Price Difference: {vprism_report.average_price_difference:.2%}")
+    print(f"  Max Price Difference: {vprism_report.max_price_difference:.2%}")
 
 
-def run_complete_workflow():
+def vprism_run_complete_workflow():
     """Run a complete data quality workflow."""
     print("\n" + "=" * 60)
     print("COMPLETE DATA QUALITY WORKFLOW")
     print("=" * 60)
 
     # Step 1: Create sample data
-    data = create_sample_data()
-    print(f"Step 1: Created {len(data)} records of sample data")
+    vprism_data = vprism_create_sample_data()
+    print(f"Step 1: Created {len(vprism_data)} records of sample data")
 
     # Step 2: Validate data quality
-    validator = DataQualityValidator()
-    issues = validator.validate_dataframe(data)
-    print(f"Step 2: Found {len(issues)} quality issues")
+    vprism_validator = DataQualityValidator()
+    vprism_issues = vprism_validator.validate_dataframe(vprism_data)
+    print(f"Step 2: Found {len(vprism_issues)} quality issues")
 
     # Step 3: Calculate quality score
-    scorer = DataQualityScorer()
-    score = scorer.calculate_overall_score(data)
-    print(f"Step 3: Quality score: {score.overall:.2%} ({score.level.value})")
+    vprism_scorer = DataQualityScorer()
+    vprism_score = vprism_scorer.calculate_overall_score(vprism_data)
+    print(f"Step 3: Quality score: {vprism_score.overall:.2%} ({vprism_score.level.value})")
 
     # Step 4: Clean the data
-    cleaner = DataCleaner()
-    cleaned = cleaner.clean_missing_values(data, method="interpolate")
-    cleaned = cleaner.remove_outliers(cleaned)
-    print(f"Step 4: Cleaned data: {len(cleaned)} records (removed {len(data) - len(cleaned)})")
+    vprism_cleaner = DataCleaner()
+    vprism_cleaned = vprism_cleaner.clean_missing_values(vprism_data, method="interpolate")
+    vprism_cleaned = vprism_cleaner.remove_outliers(vprism_cleaned)
+    print(f"Step 4: Cleaned data: {len(vprism_cleaned)} records (removed {len(vprism_data) - len(vprism_cleaned)})")
 
     # Step 5: Re-evaluate quality
-    new_score = scorer.calculate_overall_score(cleaned)
-    print(f"Step 5: New quality score: {new_score.overall:.2%} ({new_score.level.value})")
+    vprism_new_score = vprism_scorer.calculate_overall_score(vprism_cleaned)
+    print(f"Step 5: New quality score: {vprism_new_score.overall:.2%} ({vprism_new_score.level.value})")
 
-    print(f"\nQuality improvement: {new_score.overall - score.overall:.2%}")
+    print(f"\nQuality improvement: {vprism_new_score.overall - vprism_score.overall:.2%}")
 
 
 if __name__ == "__main__":
     """Main demonstration function."""
-    print("VPRISM DATA QUALITY ASSURANCE SYSTEM")
+    print("vprism Data Quality Assurance System")
     print("====================================")
 
     # Run all demonstrations
-    demonstrate_data_quality_validation()
-    demonstrate_data_quality_scoring()
-    demonstrate_data_cleaning()
+    vprism_demonstrate_data_quality_validation()
+    vprism_demonstrate_data_quality_scoring()
+    vprism_demonstrate_data_cleaning()
 
     # Run consistency validation (will use mocked data)
-    asyncio.run(demonstrate_consistency_validation())
+    asyncio.run(vprism_demonstrate_consistency_validation())
 
     # Run complete workflow
-    run_complete_workflow()
+    vprism_run_complete_workflow()
 
     print("\n" + "=" * 60)
     print("DEMONSTRATION COMPLETE")

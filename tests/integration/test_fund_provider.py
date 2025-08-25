@@ -1,7 +1,10 @@
-import pytest
 from datetime import date
+
+import pytest
+
 from vprism.core.client.client import VPrismClient
 from vprism.core.models.market import AssetType, MarketType
+
 
 @pytest.mark.integration
 class TestFundProviderIntegration:

@@ -1,6 +1,6 @@
 name: vprism-financial-data
 version: 0.1.0
-description: vPrism Financial Data Platform MCP Server
+description: vprism Financial Data Platform MCP Server
 instructions: |
   This server provides access to real-time and historical financial data including
   stock prices, market indices, and company information. Use the tools to retrieve

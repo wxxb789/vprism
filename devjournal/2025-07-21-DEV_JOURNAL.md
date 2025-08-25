@@ -1,4 +1,4 @@
-# Development Journal: vPrism Unit Test Fixes
+# Development Journal: vprism Unit Test Fixes
 
 **Date:** 2025-07-21  
 **Duration:** ~3 hours  
@@ -7,7 +7,7 @@
 
 ## Session Overview
 
-This development session focused on fixing 68 failing unit tests across the entire vPrism codebase. The failures were primarily related to API compatibility issues, Pydantic v2 migration, and validation errors.
+This development session focused on fixing 68 failing unit tests across the entire vprism codebase. The failures were primarily related to API compatibility issues, Pydantic v2 migration, and validation errors.
 
 ## Initial State
 
