@@ -1,7 +1,7 @@
 """
-Tests for vPrism MCP Server
+Tests for vprism MCP Server
 
-This module contains comprehensive tests for the vPrism MCP server,
+This module contains comprehensive tests for the vprism MCP server,
 including tool functionality, parameter validation, and error handling.
 """
 
@@ -20,7 +20,7 @@ from vprism.mcp.server import VPrismMCPServer, create_mcp_server
 
 
 class TestVPrismMCPServer:
-    """Test suite for vPrism MCP Server."""
+    """Test suite for vprism MCP Server."""
 
     @pytest.fixture
     def server(self):
@@ -29,7 +29,7 @@ class TestVPrismMCPServer:
 
     @pytest.fixture
     def mock_client(self):
-        """Create a mock vPrism client."""
+        """Create a mock vprism client."""
         mock = AsyncMock()
         return mock
 

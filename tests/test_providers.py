@@ -9,7 +9,7 @@ import pytest
 from vprism.core.data.providers import (
     AkShare,
     ProviderRegistry,
-    # VPrism,  # vprism provider no longer exists
+    # VPrismProvider,  # vprism provider no longer exists
     YFinance,
 )
 from vprism.core.models import AssetType, DataPoint, DataQuery, MarketType, TimeFrame
@@ -104,14 +104,17 @@ class TestAkShare:
         # 使用mock避免真实API调用
         with patch.object(provider, "_get_stock_data") as mock_fetch:
             import pandas as pd
-            mock_df = pd.DataFrame({
-                "date": [datetime.now()],
-                "open": [10.0],
-                "high": [11.0],
-                "low": [9.0],
-                "close": [10.5],
-                "volume": [1000000],
-            })
+
+            mock_df = pd.DataFrame(
+                {
+                    "date": [datetime.now()],
+                    "open": [10.0],
+                    "high": [11.0],
+                    "low": [9.0],
+                    "close": [10.5],
+                    "volume": [1000000],
+                }
+            )
             mock_fetch.return_value = mock_df
 
             response = await provider.get_data(query)

@@ -1,8 +1,8 @@
-# vPrism MCP Server Deployment Guide
+# vprism MCP Server Deployment Guide
 
 ## Overview
 
-vPrism now supports the Model Context Protocol (MCP), providing AI applications with standardized access to real-time and historical financial data through MCP tools, resources, and prompts.
+vprism now supports the Model Context Protocol (MCP), providing AI applications with standardized access to real-time and historical financial data through MCP tools, resources, and prompts.
 
 ## Features
 
@@ -24,7 +24,7 @@ vPrism now supports the Model Context Protocol (MCP), providing AI applications 
 ### 1. Installation
 
 ```bash
-# Install vPrism with MCP support
+# Install vprism with MCP support
 pip install -e .
 
 # Or install with MCP dependencies
@@ -65,7 +65,7 @@ Create an `mcp_config.json` file:
 {
   "name": "vprism-financial-data",
   "version": "0.1.0",
-  "description": "vPrism Financial Data Platform MCP Server",
+  "description": "vprism Financial Data Platform MCP Server",
   "transport": {
     "stdio": {
       "command": "python",
@@ -219,7 +219,7 @@ Create `mcp_config.yaml`:
 ```yaml
 name: vprism-financial-data
 version: 0.1.0
-description: vPrism Financial Data Platform MCP Server
+description: vprism Financial Data Platform MCP Server
 
 logging:
   level: INFO

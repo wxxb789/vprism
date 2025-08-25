@@ -1,4 +1,4 @@
-# vPrism Financial Data Platform - Docker Compose 扩展配置
+# vprism Financial Data Platform - Docker Compose 扩展配置
 
 ## 开发环境配置 (docker-compose.dev.yml)
 ```yaml

@@ -1,4 +1,4 @@
-# vPrism Financial Data Platform - Complete Docker Deployment
+# vprism Financial Data Platform - Complete Docker Deployment
 FROM python:3.11-slim as builder
 
 # 设置工作目录

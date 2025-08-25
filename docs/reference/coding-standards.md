@@ -4,28 +4,13 @@
 
 ## 命名约定
 
-### 文件命名
-- 使用小写字母，单词间用下划线分隔（snake_case）
-- **重要规则**: 模块内类名不应包含模块名称作为前缀或后缀
-  - ✅ 正确: `class AkShare` 在 `providers/akshare.py`
-  - ❌ 错误: `class AkShareProvider` 在 `providers/akshare.py`
-  - 原因: 模块路径已明确指示用途，避免冗余
+### 命名规则
 
-### 类命名
-- 使用PascalCase（首字母大写，单词间无分隔符）
-- 类名应简洁且能准确表达其职责
-- 避免在类名中使用模块名作为前缀/后缀
-
-### 方法命名
-- 使用snake_case（小写，单词间用下划线分隔）
-- 方法名应使用动词或动词短语，准确描述操作
-
-### 变量命名
-- 使用snake_case
-- 变量名应具有描述性，避免使用单字符变量名（循环计数器除外）
-
-### 常量命名
-- 使用UPPER_SNAKE_CASE（全大写，单词间用下划线分隔）
+- 非代码文本中统一使用小写 `vprism`。
+- 类名以 `VPrism` 为前缀并采用 PascalCase。
+- 模块、函数与变量使用 `vprism_` 前缀并采用 snake_case。
+- 环境变量使用 `VPRISM_` 前缀并采用 SCREAMING_SNAKE_CASE。
+- 常量使用 UPPER_SNAKE_CASE。
 
 ## 代码组织
 

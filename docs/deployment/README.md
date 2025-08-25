@@ -9,7 +9,7 @@ vprism支持四种部署模式：Python库模式、Web服务模式、MCP模式�
 | 部署模式 | 适用场景 | 启动命令 | 资源需求 | 扩展性 |
 |----------|----------|----------|----------|--------|
 | [Python库](#python库模式) | 个人开发、数据分析 | `import vprism` | 低 | 单机 |
-| [Web服务](#web服务模式) | API服务、微服务架构 | `python -m vprism_web.main` | 中 | 水平扩展 |
+| [Web服务](#web服务模式) | API服务、微服务架构 | `python -m vprism.web.main` | 中 | 水平扩展 |
 | [MCP服务](#mcp模式) | AI助手集成、聊天机器人 | `python -m mcp.server` | 低-中 | 单机/集群 |
 | [容器化](#容器化部署) | 生产环境、云部署 | `docker run` | 可配置 | Kubernetes集群 |
 
@@ -91,10 +91,10 @@ plt.show()
 #### 开发环境
 ```bash
 # 安装依赖
-pip install -r src/vprism_web/requirements-web.txt
+pip install -r vprism/web/requirements-web.txt
 
 # 启动开发服务器
-python -m vprism_web.main web --reload
+python -m vprism.web.main web --reload
 
 # 访问API文档
 open http://localhost:8000/docs
@@ -106,7 +106,7 @@ open http://localhost:8000/docs
 pip install gunicorn uvloop httptools
 
 # 启动生产服务器
-gunicorn vprism_web.main:app \
+gunicorn vprism.web.main:app \
   --host 0..0.0 \
   --port 8000 \
   --workers 4 \
@@ -150,7 +150,7 @@ User=vprism
 Group=vprism
 WorkingDirectory=/opt/vprism
 Environment=PATH=/opt/vprism/venv/bin
-ExecStart=/opt/vprism/venv/bin/gunicorn vprism_web.main:app --host 0.0.0.0 --port 8000 --workers 4
+ExecStart=/opt/vprism/venv/bin/gunicorn vprism.web.main:app --host 0.0.0.0 --port 8000 --workers 4
 Restart=always
 RestartSec=10
 
@@ -665,7 +665,7 @@ WORKDIR /app
 COPY --from=builder /root/.local /root/.local
 COPY src/ ./src/
 ENV PATH=/root/.local/bin:$PATH
-CMD ["python", "-m", "vprism_web.main"]
+CMD ["python", "-m", "vprism.web.main"]
 ```
 
 ## 安全最佳实践
