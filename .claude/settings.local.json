@@ -1,39 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(uv init:*)",
-      "Bash(uv add:*)",
-      "Bash(mkdir:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(uv run pytest:*)",
-      "Bash(node:*)",
-      "Bash(cat:*)",
-      "Bash(ls:*)",
-      "Bash(dir:*)",
-      "Bash(python:*)",
-      "Bash(*:*)",
-      "*:*",
-      "Bash(uv run:*)",
-      "Bash(uv:*)",
-      "Bash(ruff format:*)",
-      "Bash(pytest:*)",
-      "mcp__sequential-thinking__problem_breakdown",
-      "Bash(touch:*)",
-      "Bash(cp:*)",
-      "Bash(mv:*)",
-      "Bash(rm:*)",
-      "mcp__sequential-thinking__step_by_step_plan",
-      "mcp__sequential-thinking__analyze_problem",
-      "Bash(git mv:*)",
-      "Bash(find:*)",
-      "Bash(rg:*)"
+      "Bash(cat data/*.jsonl)",
+      "Bash(jq -r '.label' data/dev.jsonl)",
+      "Bash(jq -r '.label' data/train.jsonl)",
+      "Bash(jq -r '.label' data/test.jsonl)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(uv run ruff check:*)",
+      "Bash(uv run mypy:*)"
     ],
     "deny": [],
-    "allowedTools": [
-      "*"
-    ],
-    "autoAcceptEdits": true,
-    "autoAcceptCommands": true
+    "ask": []
   }
 }
