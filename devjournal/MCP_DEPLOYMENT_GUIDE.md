@@ -268,7 +268,7 @@ pytest tests/test_mcp_server.py --cov=mcp --cov-report=html
 ### Docker
 
 ```dockerfile
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 WORKDIR /app
 COPY . .

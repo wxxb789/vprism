@@ -186,7 +186,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: 3.13
 
       - name: Install dependencies
         run: |
@@ -442,7 +442,7 @@ branches:
 # .github/workflows/ci.yml
 strategy:
   matrix:
-    python-version: ["3.8", "3.9", "3.10", "3.11"]
+    python-version: ["3.13"]
     os: [ubuntu-latest, windows-latest, macos-latest]
     exclude:
       - python-version: "3.8"

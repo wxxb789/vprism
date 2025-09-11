@@ -83,7 +83,6 @@ class AkShare(DataProvider):
         """与AkShare进行身份验证."""
         try:
             await self._initialize_akshare()
-            # Test connection by fetching a small piece of data
             test_data = self._ak.stock_zh_a_spot_em()
             if test_data is not None and not test_data.empty:
                 self._is_authenticated = True
@@ -107,7 +106,6 @@ class AkShare(DataProvider):
         handler = self._handler_map.get(query.asset)
         if not handler:
             raise ProviderError(f"No handler for asset type {query.asset}", self.name)
-
         df = await handler(query)
 
         if df is None or df.empty:

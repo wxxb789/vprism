@@ -3,7 +3,7 @@ name = "vprism"
 version = "0.1.0"
 description = "Modern Financial Data Infrastructure"
 authors = [{name = "vprism Team"}]
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     # 核心框架
     "fastapi>=0.104.0",
@@ -55,7 +55,7 @@ build-backend = "hatchling.build"
 packages = ["vprism"]
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py313"
 line-length = 160
 
 [tool.ruff.lint]
@@ -67,7 +67,7 @@ multi_line_output = 3  # Control multi-line formatting for imports
 include_trailing_comma = true
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 strict = true
 warn_return_any = true
 warn_unused_configs = true

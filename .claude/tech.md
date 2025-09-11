@@ -179,7 +179,7 @@ tests/
 ## Deployment
 
 ### Container Requirements
-- Use official Python 3.11+ image
+- Use official Python 3.13+ image
 - Multi-stage builds for optimization
 - Health checks for MCP server
 - Proper signal handling for graceful shutdown

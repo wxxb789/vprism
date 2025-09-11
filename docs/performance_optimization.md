@@ -902,7 +902,7 @@ CACHE_LAYERS = {
 
 ### Docker优化
 ```dockerfile
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # 使用多阶段构建
 COPY requirements.txt .

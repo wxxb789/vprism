@@ -655,12 +655,12 @@ preload_app = True
 #### Docker性能优化
 ```dockerfile
 # 多阶段构建优化
-FROM python:3.11-slim as builder
+FROM python:3.13-slim as builder
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --user -r requirements.txt
 
-FROM python:3.11-slim
+FROM python:3.13-slim
 WORKDIR /app
 COPY --from=builder /root/.local /root/.local
 COPY src/ ./src/

@@ -88,40 +88,41 @@ class TestAkShare:
         """测试AkShare获取数据."""
         provider = AkShare()
 
-        # 确保认证成功
-        await provider.authenticate()
-        assert provider.is_authenticated is True
-
-        query = DataQuery(
-            asset=AssetType.STOCK,
-            market=MarketType.CN,
-            symbols=["000001"],
-            timeframe=TimeFrame.DAY_1,
-            start_date=date(2024, 1, 1),
-            end_date=date(2024, 1, 10),
-        )
-
-        # 使用mock避免真实API调用
-        with patch.object(provider, "_get_stock_data") as mock_fetch:
-            import pandas as pd
-
-            mock_df = pd.DataFrame(
-                {
-                    "date": [datetime.now()],
-                    "open": [10.0],
-                    "high": [11.0],
-                    "low": [9.0],
-                    "close": [10.5],
-                    "volume": [1000000],
-                }
+        # 完全mock避免真实网络和认证
+        with patch.object(provider, "authenticate", return_value=True), patch.object(provider, "_initialize_akshare", return_value=None):
+            # stub internal ak module usage so _get_stock_data won't run real call
+            class _AkStub:
+                def stock_zh_a_hist(self, **kwargs):
+                    import pandas as pd
+                    return pd.DataFrame({
+                        "date": [datetime(2024, 1, 2)],
+                        "open": [10.0],
+                        "high": [11.0],
+                        "low": [9.0],
+                        "close": [10.5],
+                        "volume": [1000],
+                    })
+                def stock_us_daily(self, **kwargs):
+                    raise AssertionError("Should not be called in this test")
+                def stock_hk_daily(self, **kwargs):
+                    raise AssertionError("Should not be called in this test")
+            provider._ak = _AkStub()
+            provider._initialized = True
+            provider._is_authenticated = True
+            query = DataQuery(
+                asset=AssetType.STOCK,
+                market=MarketType.CN,
+                symbols=["000001"],
+                timeframe=TimeFrame.DAY_1,
+                start_date=date(2024, 1, 2),
+                end_date=date(2024, 1, 2),
             )
-            mock_fetch.return_value = mock_df
-
             response = await provider.get_data(query)
             assert response is not None
-            assert not response.data.is_empty()
-            assert response.data[0].symbol == "000001"
-            assert response.data[0].close_price == Decimal("10.5")
+            assert len(response.data) == 1
+            dp = response.data[0]
+            assert dp.symbol == "000001"
+            assert dp.close_price == Decimal("10.5")
 
 
 class TestYFinance:

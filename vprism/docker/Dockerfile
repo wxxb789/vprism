@@ -1,5 +1,5 @@
 # vprism Financial Data Platform - Complete Docker Deployment
-FROM python:3.11-slim as builder
+FROM python:3.13-slim as builder
 
 # 设置工作目录
 WORKDIR /app
@@ -19,7 +19,7 @@ COPY requirements.txt requirements-dev.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 生产阶段
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # 设置工作目录
 WORKDIR /app
