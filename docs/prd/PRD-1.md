@@ -21,13 +21,15 @@ Must:
 - 内置最小规则集(股票/基金/指数 基础模式) (示例形式, 待确认实际映射)
 - 规则数据结构: Rule(priority,int), pattern(正则/前缀), transform(callable/模板), asset_scope
 - 内存LRU缓存 (默认 max_size=10k) + 命中统计
+- Phase 1 保持纯内存实现（无外部持久化依赖）
 - 结构化失败结果 (UnresolvedSymbolError, 含 diagnostics)
-- 规则加载: 内置 + 可选外部 YAML/JSON (延后加载)
-- DuckDB 表 symbol_map (c_symbol, raw_symbol, market, asset_type, provider_hint, rule_id, created_at)
-- 批量规范化 normalize_batch(list[str], market, asset_type) with partial 成功报告
-- 单元测试 (规则命中 / 未命中 / 缓存命中 / 批量降级)
+- 规则加载: 内置 (外部 YAML/JSON 支持在后续阶段追加)
+- 单元测试 (规则命中 / 未命中 / 缓存命中)
 Should:
 - 规则热更新 reload() (原子替换)
+- 外部 YAML/JSON 规则加载
+- 批量规范化 normalize_batch(list[str], market, asset_type) with partial 成功报告
+- DuckDB 表 symbol_map (c_symbol, raw_symbol, market, asset_type, provider_hint, rule_id, created_at)
 - 统计导出 get_metrics() {hit_rate, miss_count, rule_usage_rank}
 Could:
 - 前缀感知歧义消解(基于 provider capability)
@@ -45,13 +47,17 @@ Definitions
 Functional Requirements
 FR1 normalize 提供确定 & 幂等: 多次调用返回同对象值
 FR2 失败时返回结构化错误，不抛裸异常，不返回 None 静默
-FR3 支持批量输入，保留输入顺序 & 提供 per-item status
-FR4 命中缓存须递增 hit_counter; miss 进入规则匹配流程
-FR5 规则按 priority ASC 执行，首个匹配即终止
-FR6 规则可声明 asset_scope(set[AssetType]) & market_scope(set[MarketType])
-FR7 存储: 首次成功规范化写 symbol_map (INSERT OR IGNORE)
-FR8 reload 调用后新请求使用新规则，旧缓存保留 TTL 到期清空 (初期简化: 全量清空)
-FR9 metrics 输出结构便于 Prometheus 包装 (字典即可)
+FR3 命中缓存须递增 hit_counter; miss 进入规则匹配流程
+FR4 规则按 priority ASC 执行，首个匹配即终止
+FR5 规则可声明 asset_scope(set[AssetType]) & market_scope(set[MarketType])
+FR6 服务维持内存命中统计(total_requests/cache_hits/cache_misses/unresolved_count)
+
+Deferred Functional Requirements (Phase 2+)
+DFR1 支持批量输入 normalize_batch(list[str], market, asset_type) 并提供 per-item status
+DFR2 存储: 首次成功规范化写 symbol_map (INSERT OR IGNORE)
+DFR3 reload 调用后新请求使用新规则，旧缓存保留 TTL 到期清空 (初期简化: 全量清空)
+DFR4 metrics 输出结构便于 Prometheus 包装 (字典即可)
+DFR5 支持外部 YAML/JSON 规则加载并进行安全校验
 
 Non-Functional Requirements
 NFR1 平均单 symbol 解析延迟 < 0.3ms (缓存命中)
@@ -60,7 +66,8 @@ NFR3 无外部网络调用 (纯本地)
 NFR4 mypy 严格通过 & 0 ruff 违规
 NFR5 测试覆盖 逻辑分支 ≥85%
 
-Proposed Data Model (DuckDB)
+Proposed Data Model (DuckDB, Phase 2+)
+用于批量/审计场景的持久化需求暂缓到 Phase 2，实现时将采用如下结构：
 symbol_map:
   c_symbol TEXT NOT NULL
   raw_symbol TEXT NOT NULL
@@ -100,11 +107,12 @@ Algorithm (normalize)
 2 Iterate rules (priority asc):
    if rule applicable(market/asset) and match(pattern): core=transform(raw)
    compose c_symbol = market.upper() + ":" + asset_type + ":" + core
-   write symbol_map (if new)
    update counters & cache -> return
 3 If no rule matched → raise UnresolvedSymbolError(detail={raw,market,asset_type})
 
-Batch Algorithm (normalize_batch)
+Phase 2 起将追加 normalize 成功后的 symbol_map 持久化逻辑。
+
+Batch Algorithm (normalize_batch, Phase 2+)
 for each raw: try normalize; collect {raw, status=ok|error, c_symbol|error_reason}
 return BatchResult(successes, failures, stats)
 
@@ -120,9 +128,9 @@ Testing Strategy
 - Parametrized tests: stock/fund/index 命中规则
 - 未命中返回结构化错误
 - 缓存命中统计正确性 (首次miss,二次hit)
-- 批量部分成功场景
-- 规则热更新后新规则生效
 - 规则优先级覆盖 (高优先级抢占)
+- 批量部分成功场景 (Phase 2+)
+- 规则热更新后新规则生效 (Phase 2+)
 
 Open Questions
 - 实际指数/基金前缀/后缀细节待补: 需要真实 mapping 样本
@@ -139,12 +147,12 @@ Acceptance Criteria
 - normalize 对示例规则全通过 & 覆盖率≥85%
 - 未命中符号抛 UnresolvedSymbolError 且包含 diagnostics(raw,market,asset_type)
 - metrics.hit_rate 在二次调用测试 ≥50%(因二次缓存)
-- symbol_map 表插入唯一行数对应成功规范化数量
+- 无持久化写入，所有状态留在内存 (确认无 DuckDB 依赖)
 
 Rollout Plan
-Phase 1: 内置规则 + 无热更新 + 监控命中率
-Phase 2: 引入 reload + 外部配置文件
-Phase 3: 可选模糊建议 & provider capability 感知
+Phase 1: 内存版 SymbolService（内置规则 + LRU 缓存 + 命中统计，无批量/持久化）
+Phase 2: 引入 normalize_batch 与 DuckDB symbol_map 持久化 + 统计导出
+Phase 3: 引入 reload + 外部配置文件 + 可选模糊建议 & provider capability 感知
 
 Future Extensions
 - Exchange 级别细分 (CN:SZ / CN:SH)
