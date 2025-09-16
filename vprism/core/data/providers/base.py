@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Protocol, runtime_checkable
 
 from vprism.core.models.base import DataPoint
 from vprism.core.models.market import AssetType
@@ -57,7 +58,32 @@ class AuthConfig:
     required_fields: list[str] = field(default_factory=list)
 
 
-class DataProvider(ABC):
+@runtime_checkable
+class ProviderProtocol(Protocol):
+    name: str
+
+    @property
+    def capability(self) -> 'ProviderCapability': ...
+
+    async def get_data(self, query: DataQuery) -> DataResponse: ...
+
+    def stream_data(self, query: DataQuery) -> AsyncIterator[DataPoint]: ...  # pragma: no cover
+
+    def can_handle_query(self, query: DataQuery) -> bool: ...
+
+    async def authenticate(self) -> bool: ...
+
+    @property
+    def is_authenticated(self) -> bool: ...
+
+    def validate_credentials(self) -> bool: ...
+
+    def get_rate_limit_info(self) -> dict[str, int]: ...
+
+    async def health_check(self) -> bool: ...
+
+
+class DataProvider(ProviderProtocol, ABC):
     """数据提供商抽象基类."""
 
     def __init__(self, name: str, auth_config: AuthConfig, rate_limit: RateLimitConfig):

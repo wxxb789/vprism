@@ -1,22 +1,20 @@
 """数据库管理器."""
+from __future__ import annotations
 
 import uuid
-from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
-if TYPE_CHECKING:
-    from duckdb.typing import DuckDBPyConnection as DuckDBConnection
-
-
-from vprism.core.data.storage.models import (
-    CacheRecord,
-    DataRecord,
-    ProviderRecord,
-    QueryRecord,
-)
 from vprism.core.data.storage.schema import setup_database
+
+# ruff: noqa: I001
+if TYPE_CHECKING:  # pragma: no cover
+    from collections.abc import Generator
+    from duckdb import DuckDBPyConnection as DuckDBConnection
+    from vprism.core.data.storage.models import CacheRecord, DataRecord, ProviderRecord, QueryRecord
+else:  # pragma: no cover
+    DuckDBConnection = object  # type: ignore[assignment]
 
 
 class DatabaseManager:
@@ -340,7 +338,7 @@ class DatabaseManager:
         self.connection.execute("ANALYZE")
 
     @contextmanager
-    def transaction(self) -> Generator[None, None, None]:
+    def transaction(self) -> Generator[None]:
         """事务上下文管理器."""
         try:
             self.connection.execute("BEGIN")
@@ -350,7 +348,7 @@ class DatabaseManager:
             self.connection.execute("ROLLBACK")
             raise
 
-    def __enter__(self) -> "DatabaseManager":
+    def __enter__(self) -> DatabaseManager:
         """上下文管理器入口."""
         return self
 

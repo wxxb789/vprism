@@ -60,7 +60,7 @@ async def main() -> None:
     if args.config:
         import json
 
-        import yaml
+        import yaml  # type: ignore[import-untyped]
 
         try:
             with open(args.config) as f:

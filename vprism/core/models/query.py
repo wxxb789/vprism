@@ -29,6 +29,7 @@ class DataQuery(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     symbols: list[str] | None = None
+    raw_symbols: list[str] | None = None
     adjustment: Adjustment | None = Field(default=Adjustment.NONE, description="Price adjustment type")
 
 

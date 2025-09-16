@@ -104,16 +104,25 @@ class DataService:
         start_dt = datetime.combine(start_date, datetime.min.time())
         end_dt = datetime.combine(end_date, datetime.max.time())
 
+        # 符号规范化
+        from vprism.core.services.symbol_normalization import get_symbol_normalizer
+
+        normalizer = get_symbol_normalizer()
+        normalized = await normalizer.normalize(symbols, market=market)
+        c_symbols = [n.c_symbol for n in normalized]
+
         query = DataQuery(
             asset=asset_type,
             market=market,
-            symbols=symbols,
+            symbols=c_symbols,
+            raw_symbols=symbols,
             timeframe=timeframe,
             start=start_dt,
             end=end_dt,
         )
 
-        return cast("DataResponse", await self.query_data(query))
+        response: DataResponse = await self.query_data(query)
+        return response
 
     def query(self) -> "QueryBuilder":
         """链式API：创建查询构建器.
@@ -191,7 +200,7 @@ class DataService:
             try:
                 # 从路由器获取数据
                 provider = await self.router.route_query(query)
-                response = await provider.get_data(query)
+                response: DataResponse = await provider.get_data(query)
 
                 # 缓存结果
                 if response.data:
@@ -269,19 +278,17 @@ class DataService:
                     )
 
                     # 处理不同类型的返回数据
-                    data_points = []
+                    fallback_points: list[DataPoint] = []
                     for record in stored_records:
                         if hasattr(record, "to_data_point"):
-                            # 数据库记录对象
-                            data_points.append(record.to_data_point())
-                        else:
-                            # 已经是DataPoint对象
-                            data_points.append(record)
+                            fallback_points.append(record.to_data_point())
+                        elif isinstance(record, DataPoint):
+                            fallback_points.append(record)
 
                     return DataResponse(
-                        data=data_points,
+                        data=fallback_points,
                         metadata=ResponseMetadata(
-                            total_records=len(data_points),
+                            total_records=len(fallback_points),
                             query_time_ms=0.0,
                             data_source="repository",
                             cache_hit=False,
@@ -509,10 +516,16 @@ class DataService:
         Returns:
             Dict[str, Any]: 各组件健康状态
         """
+        router_health_raw = await self.router.health_check() if hasattr(self.router, "health_check") else {}
+        router_health: dict[str, Any] = router_health_raw if isinstance(router_health_raw, dict) else {}
+        cache_health_raw: Any = await self.cache.health_check() if hasattr(self.cache, "health_check") else {}
+        cache_health: dict[str, Any] = cache_health_raw if isinstance(cache_health_raw, dict) else {}
+        repo_health_raw: Any = self.repository.health_check() if hasattr(self.repository, "health_check") else False
+        repository_health: bool = bool(repo_health_raw)
         health = {
-            "router": await self.router.health_check(),
-            "cache": await self.cache.health_check(),
-            "repository": await self.repository.health_check(),
+            "router": router_health,
+            "cache": cache_health,
+            "repository": repository_health,
         }
         return health
 
@@ -588,7 +601,11 @@ class QueryBuilder:
         """
         if isinstance(symbols, str):
             symbols = [symbols]
+        # 规范化（延迟到执行阶段）
+        self.query.raw_symbols = symbols
         self.query.symbols = symbols
+        if not self.query.market:
+            self.query.market = MarketType.CN
         return self
 
     def start(self, start_date: str | date) -> "QueryBuilder":

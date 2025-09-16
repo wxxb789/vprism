@@ -84,7 +84,8 @@ class VPrismClient:
             self._apply_config()
 
         provider = await self.router.route_query(query)
-        return await provider.get_data(query)
+        response: DataResponse = await provider.get_data(query)
+        return response
 
     def get(
         self,

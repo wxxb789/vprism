@@ -41,7 +41,7 @@ class HealthChecker:
     async def _check_system_health(self) -> dict[str, Any]:
         """基础系统健康检查。"""
         try:
-            import psutil
+            import psutil  # type: ignore[import-untyped]
 
             cpu_percent = psutil.cpu_percent(interval=0.1)
             memory = psutil.virtual_memory()

@@ -5,7 +5,7 @@ import functools
 import logging
 import time
 from collections.abc import Awaitable, Callable
-from typing import Any, ParamSpec, TypeAlias, TypeVar, cast, overload
+from typing import Any, ParamSpec, TypeVar, cast, overload
 
 from vprism.core.logging.config import LogConfig
 
@@ -39,9 +39,9 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 # Define a union type for the logger to handle both loguru and standard logging
-AnyLogger: TypeAlias = logging.Logger | _LoguruLogger
+type AnyLogger = logging.Logger | _LoguruLogger
 logger: AnyLogger = _logger
-LoguruLogger: TypeAlias = _LoguruLogger
+type LoguruLogger = _LoguruLogger
 
 
 def bind(**kwargs: Any) -> AnyLogger:

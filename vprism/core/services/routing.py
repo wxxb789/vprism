@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from vprism.core.data.providers.base import DataProvider
+from vprism.core.data.providers.base import DataProvider, ProviderProtocol
 from vprism.core.data.providers.registry import ProviderRegistry
 from vprism.core.exceptions.base import NoCapableProviderError
 from vprism.core.models.query import DataQuery
@@ -43,7 +43,7 @@ class DataRouter:
         self._init_default_scores()
 
     @PerformanceLogger("route_query")
-    async def route_query(self, query: DataQuery) -> DataProvider:
+    async def route_query(self, query: DataQuery) -> ProviderProtocol:
         """将查询路由到最佳的数据提供商
 
         Args:
@@ -97,7 +97,7 @@ class DataRouter:
 
         return best_provider
 
-    def _select_best_provider(self, providers: list[DataProvider], query: DataQuery) -> DataProvider:
+    def _select_best_provider(self, providers: list[DataProvider], query: DataQuery) -> ProviderProtocol:
         """根据多个因素选择最佳提供商
 
         Args:
@@ -206,3 +206,10 @@ class DataRouter:
             }
 
         return health_status
+
+    async def health_check(self) -> dict[str, Any]:
+        """健康检查摘要"""
+        return {
+            "providers": await self.get_provider_health_status(),
+            "ranking": self.get_provider_ranking(),
+        }

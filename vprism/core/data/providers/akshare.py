@@ -6,7 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-import pandas as pd
+import pandas as pd  # type: ignore[import-untyped]
 from pydantic import ValidationError
 
 from vprism.core.data.providers.base import (
@@ -19,7 +19,7 @@ from vprism.core.data.providers.base import (
 from vprism.core.exceptions.base import ProviderError
 from vprism.core.models.base import DataPoint
 from vprism.core.models.market import AssetType, MarketType
-from vprism.core.models.query import DataQuery
+from vprism.core.models.query import Adjustment, DataQuery
 from vprism.core.models.response import DataResponse, ProviderInfo, ResponseMetadata
 from vprism.core.monitoring import StructuredLogger
 
@@ -62,12 +62,12 @@ class AkShare(DataProvider):
             data_delay_seconds=0,
         )
 
-    async def _initialize_akshare(self):
+    async def _initialize_akshare(self) -> None:
         """Dynamically import and initialize akshare."""
         if self._ak:
             return
         try:
-            import akshare as ak
+            import akshare as ak  # type: ignore[import-untyped]
 
             self._ak = ak
             logger.info("AkShare package is available.")
@@ -76,13 +76,15 @@ class AkShare(DataProvider):
             raise ProviderError(
                 "AkShare package not installed",
                 provider_name=self.name,
-                code="DEPENDENCY_MISSING",
+                error_code="DEPENDENCY_MISSING",
             ) from e
 
     async def authenticate(self) -> bool:
         """与AkShare进行身份验证."""
         try:
             await self._initialize_akshare()
+            if self._ak is None:
+                return False
             test_data = self._ak.stock_zh_a_spot_em()
             if test_data is not None and not test_data.empty:
                 self._is_authenticated = True
@@ -100,6 +102,8 @@ class AkShare(DataProvider):
         start_time = asyncio.get_event_loop().time()
         if not self._initialized:
             await self.authenticate()
+        if self._ak is None:
+            raise ProviderError("AkShare not initialized after authentication", self.name)
         if not self.can_handle_query(query):
             raise ProviderError(f"{self.name} cannot handle query: {query}", self.name)
 
@@ -121,6 +125,10 @@ class AkShare(DataProvider):
             )
 
         data_points = self._df_to_datapoints(df, query)
+        # apply post-fetch adjustment if provider returned raw or needs alignment
+        if query.adjustment and query.adjustment != Adjustment.NONE:
+            from vprism.core.services.adjustment import adjust_prices
+            data_points = adjust_prices(data_points, query.adjustment)
         end_time = asyncio.get_event_loop().time()
 
         return DataResponse(
@@ -135,6 +143,10 @@ class AkShare(DataProvider):
 
     async def _get_stock_data(self, query: DataQuery) -> pd.DataFrame:
         """Fetch stock data."""
+        if not query.symbols:
+            raise ProviderError("No symbols provided for stock data", self.name)
+        if self._ak is None:
+            raise ProviderError("AkShare module not loaded", self.name)
         symbol = query.symbols[0]
         adjust = query.adjustment.value if query.adjustment else ""
         if adjust == "none":
@@ -156,6 +168,10 @@ class AkShare(DataProvider):
 
     async def _get_etf_data(self, query: DataQuery) -> pd.DataFrame:
         """Fetch ETF data."""
+        if not query.symbols:
+            raise ProviderError("No symbols provided for ETF data", self.name)
+        if self._ak is None:
+            raise ProviderError("AkShare module not loaded", self.name)
         symbol = query.symbols[0]
         return self._ak.fund_etf_hist_em(
             symbol=symbol,
@@ -166,8 +182,16 @@ class AkShare(DataProvider):
 
     async def _get_fund_data(self, query: DataQuery) -> pd.DataFrame:
         """Fetch Fund data."""
+        if not query.symbols:
+            raise ProviderError("No symbols provided for fund data", self.name)
+        if self._ak is None:
+            raise ProviderError("AkShare module not loaded", self.name)
         symbol = query.symbols[0]
         return self._ak.fund_open_fund_info_em(symbol=symbol, indicator="单位净值走势")
+
+    async def _get_corporate_action_events(self, symbol: str, market: MarketType) -> tuple[list, list]:
+        """Return placeholder corporate action events (dividends, splits)."""
+        return [], []
 
     def _df_to_datapoints(self, df: pd.DataFrame, query: DataQuery) -> list[DataPoint]:
         """Convert pandas DataFrame to a list of DataPoint objects."""
@@ -203,7 +227,7 @@ class AkShare(DataProvider):
                     continue
 
                 datapoint_data = {
-                    "symbol": query.symbols[0],
+                    "symbol": query.symbols[0] if query.symbols else "UNKNOWN",
                     "market": query.market,
                     "timestamp": timestamp,
                     "provider": self.name,
@@ -223,7 +247,7 @@ class AkShare(DataProvider):
                 data_points.append(DataPoint(**datapoint_data))
 
             except (KeyError, ValueError, TypeError, ValidationError) as e:
-                logger.warning(f"Skipping row for symbol {query.symbols[0]} due to parsing error: {e}")
+                logger.warning(f"Skipping row for symbol {query.symbols[0] if query.symbols else 'UNKNOWN'} due to parsing error: {e}")
                 continue
 
         return data_points

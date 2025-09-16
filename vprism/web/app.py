@@ -34,24 +34,16 @@ class CustomJSONEncoder(json.JSONEncoder):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """应用生命周期管理"""
-    # 启动时初始化
     config_manager = ConfigManager()
     config = config_manager.get_config()
     client = VPrismClient()
-
-    # 存储到应用状态
     app.state.vprism_client = client
     app.state.config = config
-
-    # 启动客户端（如果支持）
     if hasattr(client, "startup"):
         await client.startup()
-
     yield
-
-    # 关闭时清理（如果支持）
     if hasattr(client, "shutdown"):
         await client.shutdown()
 

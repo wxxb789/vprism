@@ -63,7 +63,13 @@ class TestProviderBase:
         provider = AkShare()
 
         # 在测试环境中，认证应该成功
-        result = await provider.authenticate()
+        with patch.object(provider, "_initialize_akshare", return_value=None), \
+            patch.object(provider, "_ak", create=True) as ak_mock:
+            # stub a minimal DataFrame-like object
+            class _DF:
+                empty = False
+            ak_mock.stock_zh_a_spot_em.return_value = _DF()
+            result = await provider.authenticate()
 
         assert result is True
         assert provider.is_authenticated is True

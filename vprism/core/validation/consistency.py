@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
-import pandas as pd
+import pandas as pd  # type: ignore[import-untyped]
 
 from vprism.core.client.client import VPrismClient
 from vprism.core.models.market import AssetType, MarketType

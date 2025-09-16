@@ -246,6 +246,72 @@ class DatabaseSchema:
             )
         """)
 
+        # 创建原始日线OHLCV表
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS raw_ohlcv_daily (
+                symbol VARCHAR NOT NULL,
+                market VARCHAR NOT NULL,
+                ts TIMESTAMP NOT NULL,
+                open DOUBLE,
+                high DOUBLE,
+                low DOUBLE,
+                close DOUBLE,
+                volume DOUBLE,
+                source_system VARCHAR NOT NULL,
+                upstream_origin VARCHAR,
+                provider_batch_id VARCHAR,
+                ingest_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(symbol, market, ts, source_system, provider_batch_id)
+            )
+        """)
+
+        # 创建规范化日线OHLCV表
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS normalized_ohlcv_daily (
+                c_symbol VARCHAR NOT NULL,
+                symbol VARCHAR NOT NULL,
+                market VARCHAR NOT NULL,
+                trade_date DATE NOT NULL,
+                ts TIMESTAMP NOT NULL,
+                open DOUBLE,
+                high DOUBLE,
+                low DOUBLE,
+                close DOUBLE,
+                volume DOUBLE,
+                currency VARCHAR,
+                tz_offset INTEGER,
+                source_system VARCHAR NOT NULL,
+                upstream_origin VARCHAR,
+                provider_batch_id VARCHAR,
+                ingest_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(c_symbol, trade_date, source_system, provider_batch_id)
+            )
+        """)
+
+        # 创建规范化符号映射表（规范化层）
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS canonical_symbols (
+                c_symbol VARCHAR NOT NULL,
+                raw_symbol VARCHAR NOT NULL,
+                market VARCHAR NOT NULL,
+                asset_type VARCHAR,
+                provider_pattern VARCHAR,
+                upstream_origin VARCHAR,
+                status VARCHAR DEFAULT 'active',
+                priority INTEGER DEFAULT 100,
+                confidence DOUBLE,
+                metadata JSON,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(c_symbol)
+            )
+        """)
+        # 唯一约束用单独索引模拟（DuckDB 不支持在 UNIQUE 中使用表达式）
+        self.conn.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_canonical_symbols_unique
+            ON canonical_symbols(raw_symbol, market, provider_pattern, upstream_origin)
+        """)
+
     def _create_indexes(self) -> None:
         """创建数据库索引。"""
         # 资产信息表索引
@@ -296,6 +362,10 @@ class DatabaseSchema:
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_query_records_hash ON query_records(query_hash)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_query_records_status ON query_records(status)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_query_records_created ON query_records(created_at)")
+
+        # 原始与规范化表索引
+        self.conn.execute("CREATE INDEX IF NOT EXISTS idx_raw_ohlcv_symbol_ts ON raw_ohlcv_daily(symbol, ts)")
+        self.conn.execute("CREATE INDEX IF NOT EXISTS idx_norm_ohlcv_csymbol_date ON normalized_ohlcv_daily(c_symbol, trade_date)")
 
     def _create_views(self) -> None:
         """创建数据库视图。"""

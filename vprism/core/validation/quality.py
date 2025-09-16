@@ -12,7 +12,7 @@ from enum import Enum
 from typing import Any
 
 import numpy as np
-import pandas as pd
+import pandas as pd  # type: ignore[import-untyped]
 
 from vprism.core.models import DataPoint
 

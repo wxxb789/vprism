@@ -1,12 +1,9 @@
 """仓储模式基础接口."""
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
-
-T = TypeVar("T")
 
 
-class Repository(ABC, Generic[T]):
+class Repository[T](ABC):
     """仓储模式基础接口."""
 
     @abstractmethod
