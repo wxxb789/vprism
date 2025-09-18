@@ -9,13 +9,11 @@ Must:
 - GapDetector: 依据交易日日历检测缺失日期 (expected vs actual)
 - DuplicateDetector: (symbol,market,date) 重复计数
 - Completeness 计算: gap_ratio = (expected-actual)/expected
-- Accuracy 基础: ohlc_logic_pass_rate (来自 PRD-2 验证汇总)
-- Freshness: ingest_lag_minutes (ingest_time - market_close_time)
-- Stability: provider_error_rate (输入: 失败计数聚合)
-- CLI: quality report --market cn --date 2024-09-10
+- CLI: quality report --market cn --date 2024-09-10 (初期仅 gap_ratio 与 duplicate_count)
 Should:
 - WARN/FAIL 阈值分类 status
 - 缺口补全建议列表 (待 fetch 批命令输入)
+- Freshness (ingest_lag_minutes) 与 provider_error_rate 汇总 (Phase 2)
 Could:
 - 趋势输出最近 N 日 metric sparkline
 Out of Scope:
@@ -41,9 +39,7 @@ Status Semantics
 
 Threshold Config (示例初始值)
 - gap_ratio: warn>=0.002 fail>=0.005
-- ohlc_logic_pass_rate: warn<0.998 fail<0.995
-- ingest_lag_minutes: warn>=20 fail>=30
-- provider_error_rate: warn>=0.01 fail>=0.02
+- duplicate_count: warn>=1 fail>=3 (市场级)
 
 Algorithm (GapDetector)
 1 获取交易日日历(days[]) within [start,end]
@@ -58,13 +54,13 @@ SELECT symbol, market, date, COUNT(*) c FROM raw GROUP BY ... HAVING c>1
 CLI Report 输出示例 (table)
 metric | value | status | threshold_info
 gap_ratio | 0.003 | WARN | warn>=0.002 fail>=0.005
+duplicate_count | 2 | WARN | warn>=1 fail>=3
 
 Testing Strategy
 - 制造缺 3 日: gap_ratio 正确
 - 制造重复行: duplicate_count 捕获
 - 阈值边界测试 (exact warn/fail)
 - 多 metric 混合输出排序 (按严重度)
-- ingest_lag_minutes 计算 (模拟收盘时间)
 
 Open Questions
 - 是否对 gap 拆分为前缀 vs 中间 vs 尾部? (初期不区分)
@@ -74,8 +70,8 @@ Open Questions
 Metrics Export (Later)
 - quality_gap_ratio{market}
 - quality_duplicate_count{market}
-- quality_ingest_lag_minutes{market}
-- quality_provider_error_rate{market}
+- quality_ingest_lag_minutes{market} (Phase 2)
+- quality_provider_error_rate{market} (Phase 2)
 
 Acceptance Criteria
 - 人工构造缺失/重复场景全部被捕捉
