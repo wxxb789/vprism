@@ -1,0 +1,1586 @@
+{
+  "detected_prd_files": [
+    "docs/prd/PRD-0.md",
+    "docs/prd/PRD-1.md",
+    "docs/prd/PRD-2.md",
+    "docs/prd/PRD-3.md",
+    "docs/prd/PRD-4.md",
+    "docs/prd/PRD-5.md",
+    "docs/prd/PRD-6.md",
+    "docs/prd/PRD-7.md",
+    "docs/prd/PRD-8.md",
+    "docs/prd/PRD-9.md"
+  ],
+  "clarification_questions": [],
+  "plan": {
+    "summary": {
+      "total": 53,
+      "todo": 35,
+      "in_progress": 0,
+      "done": 18,
+      "prd_count": 10
+    },
+    "tasks": [
+      {
+        "id": "PRD-0-001",
+        "title": "Establish core OHLCV schema module with creation helpers",
+        "description": "Define raw and normalized schema structures in a dedicated module with helpers covering the required columns for raw_schema and normalization_schema to serve as the baseline for downstream features.",
+        "source_prd_path": "docs/prd/PRD-0.md",
+        "code_targets": [
+          "vprism/core/data/schema.py",
+          "tests/core/data/test_schema_module.py"
+        ],
+        "schema_changes": {
+          "tables": [
+            {
+              "name": "raw_schema",
+              "columns": [
+                "supplier_symbol",
+                "timestamp",
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+                "provider"
+              ]
+            },
+            {
+              "name": "normalization_schema",
+              "columns": [
+                "supplier_symbol",
+                "timestamp",
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+                "provider",
+                "market",
+                "tz_offset",
+                "currency",
+                "c_symbol"
+              ]
+            }
+          ]
+        },
+        "api_changes": [],
+        "test_plan": [
+          "Unit test verifying create_ddl() outputs include required columns for raw and normalization schemas.",
+          "Ensure schema helpers integrate with DuckDB connection in tests."
+        ],
+        "dependencies": [],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove newly added schema module and related tests.",
+        "effort": "M",
+        "status": "DONE",
+        "completion_note": "Baseline raw/normalization schema tables created with DuckDB helpers; validated via pytest tests/core/data/test_schema_module.py"
+      },
+      {
+        "id": "PRD-0-002",
+        "title": "Implement schema assertion helpers for raw and normalized datasets",
+        "description": "Provide reusable assertion utilities that validate presence and types of required columns and raise structured errors when fields are missing, enabling acceptance tests to verify failure handling.",
+        "source_prd_path": "docs/prd/PRD-0.md",
+        "code_targets": [
+          "vprism/core/validation/schema_assertions.py",
+          "tests/core/validation/test_schema_assertions.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit tests covering success when schemas match expectations.",
+          "Negative tests asserting structured exceptions when required columns are absent."
+        ],
+        "dependencies": [
+          "PRD-0-001"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Delete schema assertion helper module and its tests.",
+        "effort": "S",
+        "status": "DONE",
+        "completion_note": "Schema assertion helpers validate required columns, types, and constraints; covered by pytest tests/core/validation/test_schema_assertions.py"
+      },
+      {
+        "id": "PRD-0-003",
+        "title": "Create provider stub and ingestion sample test for raw schema",
+        "description": "Implement a stub data provider capable of injecting fake records and write sample ingestion tests that confirm valid rows land in the raw table and invalid rows trigger structured failures.",
+        "source_prd_path": "docs/prd/PRD-0.md",
+        "code_targets": [
+          "vprism/core/data/providers/stub_provider.py",
+          "tests/core/data/test_stub_provider_ingestion.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Integration-style test asserting stub rows persist into DuckDB via ingestion pipeline.",
+          "Test that missing-field rows surface structured exceptions."
+        ],
+        "dependencies": [
+          "PRD-0-001",
+          "PRD-0-002"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove stub provider implementation and related tests.",
+        "effort": "S",
+        "status": "DONE",
+        "completion_note": "Stub provider seeds raw_schema and surfaces validation errors; verified via pytest tests/core/data/test_stub_provider_ingestion.py"
+      },
+      {
+        "id": "PRD-0-004",
+        "title": "Introduce DuckDB connection factory utility for tests and local runs",
+        "description": "Add a lightweight connection factory (context manager or helper) to provision single-threaded DuckDB instances suited for unit and integration tests per baseline scope.",
+        "source_prd_path": "docs/prd/PRD-0.md",
+        "code_targets": [
+          "vprism/core/data/storage/duckdb_factory.py",
+          "tests/core/data/test_duckdb_factory.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit test verifying factory yields a working DuckDB connection and cleans up resources.",
+          "Ensure factory can initialize in-memory databases for ingestion tests."
+        ],
+        "dependencies": [],
+        "risk_note": "LOW",
+        "rollback_hint": "Delete DuckDB factory utility and associated tests.",
+        "effort": "S",
+        "status": "DONE",
+        "completion_note": "DuckDB factory context manager and connection helper verified via pytest tests/core/data/test_duckdb_factory.py"
+      },
+      {
+        "id": "PRD-1-001",
+        "title": "Implement SymbolService rule engine with caching and diagnostics",
+        "description": "Build SymbolService with Rule dataclass support, LRU cache (10k default), deterministic normalize method, structured UnresolvedSymbolError diagnostics, and in-memory counters for total, cache hits, cache misses, and unresolved symbols.",
+        "source_prd_path": "docs/prd/PRD-1.md",
+        "code_targets": [
+          "vprism/core/services/symbols.py",
+          "vprism/core/models/symbols.py",
+          "tests/core/services/test_symbol_service.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [
+          {
+            "method": "function",
+            "path": "SymbolService.normalize",
+            "req_schema": "{raw_symbol: str, market: MarketType, asset_type: AssetType}",
+            "resp_schema": "CanonicalSymbol",
+            "status_codes": []
+          }
+        ],
+        "test_plan": [
+          "Unit tests for successful normalization, cache hit behavior, and diagnostics on misses.",
+          "Rule priority ordering tests ensuring first applicable rule short-circuits."
+        ],
+        "dependencies": [],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Revert SymbolService implementation and related tests.",
+        "effort": "L",
+        "status": "DONE",
+        "completion_note": "SymbolService implements rule-based normalization with caching and diagnostics; covered by pytest tests/core/services/test_symbol_service.py"
+      },
+      {
+        "id": "PRD-1-002",
+        "title": "Define built-in normalization rule set for CN stock/fund/index",
+        "description": "Add the confirmed baseline rule definitions (priority, pattern, transforms) for CN stocks, funds, and indices so that default normalization covers Phase 1 scope with deterministic canonical symbols, referencing yfinance and akshare public formats for validation.",
+        "source_prd_path": "docs/prd/PRD-1.md",
+        "code_targets": [
+          "vprism/core/services/symbols.py",
+          "tests/core/services/test_symbol_rules.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Parameterized tests covering provided stock, fund, and index samples derived from yfinance and akshare references hitting expected rules.",
+          "Negative tests for unresolved symbols producing UnresolvedSymbolError with diagnostics."
+        ],
+        "dependencies": [
+          "PRD-1-001"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove built-in rule definitions and adjust tests.",
+        "effort": "M",
+        "status": "DONE",
+        "completion_note": "Default CN stock/fund/index rules align with yfinance and akshare formats; verified via pytest tests/core/services/test_symbol_rules.py"
+      },
+      {
+        "id": "PRD-1-003",
+        "title": "Expose normalization metrics and cache introspection",
+        "description": "Implement metrics export API (get_metrics) returning hit rate, misses, and rule usage counters for observability while keeping state in memory per Phase 1 scope.",
+        "source_prd_path": "docs/prd/PRD-1.md",
+        "code_targets": [
+          "vprism/core/services/symbols.py",
+          "tests/core/services/test_symbol_metrics.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit test verifying metrics reflect cache hit and miss behavior after sequential calls.",
+          "Test rule usage counters increment per matched rule."
+        ],
+        "dependencies": [
+          "PRD-1-001"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove metrics export method and related tests.",
+        "effort": "S",
+        "status": "DONE",
+        "completion_note": "SymbolService.get_metrics exposes cache stats, hit rate, unresolved counters, and rule usage validated via pytest tests/core/services/test_symbol_metrics.py"
+      },
+      {
+        "id": "PRD-1-004",
+        "title": "Implement rule reload mechanism with atomic swap",
+        "description": "Provide reload(new_rules) support that validates incoming rule sets, atomically swaps the registry, and resets caches as outlined in Should requirements.",
+        "source_prd_path": "docs/prd/PRD-1.md",
+        "code_targets": [
+          "vprism/core/services/symbols.py",
+          "tests/core/services/test_symbol_reload.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit test ensuring reload swaps to new rules and new calls use updated mapping.",
+          "Verify cache state resets (or follows defined policy) post reload."
+        ],
+        "dependencies": [
+          "PRD-1-001"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove reload functionality and associated tests.",
+        "effort": "M",
+        "status": "DONE",
+        "completion_note": "reload() swaps rule sets, clears caches, and resets usage counters; validated via pytest tests/core/services/test_symbol_reload.py"
+      },
+      {
+        "id": "PRD-1-005",
+        "title": "Persist canonical mappings to DuckDB symbol_map table",
+        "description": "Create symbol_map DuckDB schema and write logic to insert first-time successful normalizations (INSERT OR IGNORE) capturing rule_id, provider hints, and timestamps for auditability.",
+        "source_prd_path": "docs/prd/PRD-1.md",
+        "code_targets": [
+          "vprism/core/data/schema.py",
+          "vprism/core/services/symbols.py",
+          "tests/core/services/test_symbol_persistence.py"
+        ],
+        "schema_changes": {
+          "tables": [
+            {
+              "name": "symbol_map",
+              "columns": [
+                "c_symbol",
+                "raw_symbol",
+                "market",
+                "asset_type",
+                "provider_hint",
+                "rule_id",
+                "created_at"
+              ]
+            }
+          ]
+        },
+        "api_changes": [],
+        "test_plan": [
+          "Integration test verifying first-time normalization writes a row and subsequent calls skip duplicates.",
+          "Test schema creation helper produces expected table definition."
+        ],
+        "dependencies": [
+          "PRD-0-001",
+          "PRD-0-004",
+          "PRD-1-002"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Drop symbol_map schema changes and revert persistence hooks.",
+        "effort": "M",
+        "status": "DONE",
+        "completion_note": "SymbolService persists canonical mappings to DuckDB with INSERT OR IGNORE semantics and provider hints; validated via pytest tests/core/services/test_symbol_persistence.py"
+      },
+      {
+        "id": "PRD-1-006",
+        "title": "Support normalize_batch with partial success reporting",
+        "description": "Implement batch normalization API returning per-item statuses, successes, and failures, enabling deferred functional requirements for batch workflows while sharing rule definitions from the built-in set.",
+        "source_prd_path": "docs/prd/PRD-1.md",
+        "code_targets": [
+          "vprism/core/services/symbols.py",
+          "tests/core/services/test_symbol_batch.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [
+          {
+            "method": "function",
+            "path": "SymbolService.normalize_batch",
+            "req_schema": "{raw_symbols: list[str], market: MarketType, asset_type: AssetType}",
+            "resp_schema": "BatchNormalizationResult",
+            "status_codes": []
+          }
+        ],
+        "test_plan": [
+          "Unit tests with mixed valid and invalid inputs confirming partial success reporting.",
+          "Ensure batch invocation updates metrics consistently with single normalize."
+        ],
+        "dependencies": [
+          "PRD-1-001",
+          "PRD-1-002"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove batch API and related tests.",
+        "effort": "M",
+        "status": "DONE",
+        "completion_note": "normalize_batch aggregates partial successes/failures and preserves metrics behaviour; validated via pytest tests/core/services/test_symbol_batch.py"
+      },
+      {
+        "id": "PRD-1-007",
+        "title": "Enable external YAML/JSON rule loading with validation",
+        "description": "Provide loader utilities that parse YAML and JSON rule definitions, validate structure, and feed SymbolService reload while guarding against malformed configurations.",
+        "source_prd_path": "docs/prd/PRD-1.md",
+        "code_targets": [
+          "vprism/core/services/symbol_rule_loader.py",
+          "tests/core/services/test_symbol_rule_loader.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit test loading valid YAML and JSON rule files and applying them via reload.",
+          "Negative test verifying invalid files raise structured validation errors."
+        ],
+        "dependencies": [
+          "PRD-1-004"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove rule loader module and tests.",
+        "effort": "M",
+        "status": "DONE",
+        "completion_note": "External YAML/JSON rule loader parses template and map_template transforms, with pytest coverage in tests/core/services/test_symbol_rule_loader.py"
+      },
+      {
+        "id": "PRD-2-001",
+        "title": "Align RawRecord model and raw_ohlcv DuckDB schema",
+        "description": "Define RawRecord dataclass and create raw_ohlcv table with columns and primary key matching ingestion requirements, including batch_id and ingest_time fields.",
+        "source_prd_path": "docs/prd/PRD-2.md",
+        "code_targets": [
+          "vprism/core/data/ingestion/models.py",
+          "vprism/core/data/schema.py",
+          "tests/core/data/test_raw_schema.py"
+        ],
+        "schema_changes": {
+          "tables": [
+            {
+              "name": "raw_ohlcv",
+              "columns": [
+                "supplier_symbol",
+                "market",
+                "ts",
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+                "provider",
+                "batch_id",
+                "ingest_time"
+              ],
+              "primary_key": [
+                "supplier_symbol",
+                "market",
+                "ts",
+                "batch_id"
+              ]
+            }
+          ]
+        },
+        "api_changes": [],
+        "test_plan": [
+          "Schema creation tests ensuring columns and primary key match specification.",
+          "Dataclass tests verifying default behaviors align with ingestion expectations."
+        ],
+        "dependencies": [
+          "PRD-0-001"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Drop raw_ohlcv schema helpers and related dataclass.",
+        "effort": "M",
+        "status": "DONE",
+        "completion_note": "RawRecord dataclass introduced with optional volume/provider defaults and raw_ohlcv schema validated via pytest tests/core/data/test_raw_schema.py"
+      },
+      {
+        "id": "PRD-2-002",
+        "title": "Implement base validation rules for ingestion batches",
+        "description": "Create validation routines enforcing required fields, finite OHLC values, monotonic timestamps, OHLC relationships, and volume constraints before persistence, treating missing volume as -1 per the confirmed default.",
+        "source_prd_path": "docs/prd/PRD-2.md",
+        "code_targets": [
+          "vprism/core/data/ingestion/validator.py",
+          "tests/core/data/ingestion/test_validator.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit tests for each validation rule: missing field, NaN, OHLC violations, negative volume, timestamp ordering, and defaulting missing volume to -1.",
+          "Configurable monotonicity tests verifying behavior when enforcement is toggled."
+        ],
+        "dependencies": [
+          "PRD-2-001"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove validation module and its tests.",
+        "effort": "M",
+        "status": "DONE",
+        "completion_note": "Validation rules enforce required fields, OHLC constraints, monotonic timestamps, and default missing volume to -1; covered by pytest tests/core/data/ingestion/test_validator.py"
+      },
+      {
+        "id": "PRD-2-003",
+        "title": "Implement ingest API with batch_id and ingest_time management",
+        "description": "Develop ingestion service that validates records, generates UUID batch_id, stamps ingest_time, writes valid rows to raw_ohlcv, and returns structured IngestionResult payloads while applying the -1 volume default when source data omits the field.",
+        "source_prd_path": "docs/prd/PRD-2.md",
+        "code_targets": [
+          "vprism/core/data/ingestion/service.py",
+          "tests/core/data/ingestion/test_ingest_service.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [
+          {
+            "method": "function",
+            "path": "ingest",
+            "req_schema": "{records: Iterable[RawRecord], provider: str, market: str}",
+            "resp_schema": "IngestionResult",
+            "status_codes": []
+          }
+        ],
+        "test_plan": [
+          "End-to-end test confirming valid batches are written and result counters match inputs.",
+          "Tests for rejected records ensuring they do not persist, include -1 volume defaults, and appear in result metadata."
+        ],
+        "dependencies": [
+          "PRD-2-001",
+          "PRD-2-002",
+          "PRD-0-004"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove ingest service implementation and revert tests.",
+        "effort": "M",
+        "status": "DONE",
+        "completion_note": "Ingestion service validates batches, writes to raw_ohlcv with batch metadata, and aggregates issues; verified via pytest tests/core/data/ingestion/test_ingest_service.py"
+      },
+      {
+        "id": "PRD-2-004",
+        "title": "Add duplicate detection and ingestion configuration support",
+        "description": "Introduce IngestionConfig with duplicate handling, max batch controls, and integrate duplicate suppression counters alongside optional metrics hooks per Milestone 1 scope.",
+        "source_prd_path": "docs/prd/PRD-2.md",
+        "code_targets": [
+          "vprism/core/data/ingestion/config.py",
+          "vprism/core/data/ingestion/service.py",
+          "tests/core/data/ingestion/test_ingest_duplicates.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit test ensuring duplicate records within a batch are suppressed according to config.",
+          "Tests verifying configuration edge cases (max rows, monotonic enforcement toggles)."
+        ],
+        "dependencies": [
+          "PRD-2-003"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Revert configuration logic and duplicate detection hooks.",
+        "effort": "M",
+        "status": "DONE",
+        "completion_note": "IngestionConfig controls duplicate suppression and limits; exercised by pytest tests/core/data/ingestion/test_ingest_duplicates.py"
+      },
+      {
+        "id": "PRD-2-005",
+        "title": "Extend ingestion reporting with rejection aggregation",
+        "description": "Augment IngestionResult to include rejected_rows counts, fail_reasons aggregation, and validation issue serialization to satisfy Milestone 1 reporting goals, ensuring missing volume defaults to -1 are identified distinctly.",
+        "source_prd_path": "docs/prd/PRD-2.md",
+        "code_targets": [
+          "vprism/core/data/ingestion/service.py",
+          "tests/core/data/ingestion/test_ingest_reporting.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Tests confirming fail_reasons include grouped counts per validation code, including the -1 volume default scenario.",
+          "Verify rejected_rows tally matches number of invalid records."
+        ],
+        "dependencies": [
+          "PRD-2-003",
+          "PRD-2-002"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove reporting enhancements and adjust tests.",
+        "effort": "S",
+        "status": "DONE",
+        "completion_note": "IngestionResult surfaces fail_reasons aggregation and rejection counts; confirmed with pytest tests/core/data/ingestion/test_ingest_reporting.py"
+      },
+      {
+        "id": "PRD-2-006",
+        "title": "Implement ingestion performance regression test for 10k rows",
+        "description": "Add performance-oriented test or benchmark ensuring 10k-record batches validate and insert within the 500ms local target to detect regressions.",
+        "source_prd_path": "docs/prd/PRD-2.md",
+        "code_targets": [
+          "tests/performance/test_ingest_performance.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Benchmark test feeding 10k rows and asserting runtime stays under threshold.",
+          "Record runtime metrics for visibility in CI logs."
+        ],
+        "dependencies": [
+          "PRD-2-003"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove performance test file.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-3-001",
+        "title": "Define corporate_actions and adjustments DuckDB schemas",
+        "description": "Create tables for corporate_actions and adjustments with specified columns and primary keys to support event storage and factor persistence.",
+        "source_prd_path": "docs/prd/PRD-3.md",
+        "code_targets": [
+          "vprism/core/data/schema.py",
+          "tests/core/data/test_corporate_action_schema.py"
+        ],
+        "schema_changes": {
+          "tables": [
+            {
+              "name": "corporate_actions",
+              "columns": [
+                "market",
+                "supplier_symbol",
+                "event_type",
+                "effective_date",
+                "dividend_cash",
+                "split_ratio",
+                "raw_payload",
+                "source",
+                "batch_id",
+                "ingest_time"
+              ],
+              "primary_key": [
+                "market",
+                "supplier_symbol",
+                "event_type",
+                "effective_date",
+                "batch_id"
+              ]
+            },
+            {
+              "name": "adjustments",
+              "columns": [
+                "market",
+                "supplier_symbol",
+                "date",
+                "adj_factor_qfq",
+                "adj_factor_hfq",
+                "version",
+                "build_time",
+                "source_events_hash"
+              ],
+              "primary_key": [
+                "market",
+                "supplier_symbol",
+                "date",
+                "version"
+              ]
+            }
+          ]
+        },
+        "api_changes": [],
+        "test_plan": [
+          "Schema tests ensuring column definitions and primary keys match specification.",
+          "Migration tests verifying idempotent creation."
+        ],
+        "dependencies": [
+          "PRD-0-001"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove new table definitions and associated tests.",
+        "effort": "M",
+        "status": "DONE",
+        "completion_note": "Corporate actions and adjustments schema helpers added with DuckDB creation utilities; verified via pytest tests/core/data/test_corporate_action_schema.py"
+      },
+      {
+        "id": "PRD-3-002",
+        "title": "Implement AdjustmentEngine compute pipeline with configurable factors",
+        "description": "Develop AdjustmentEngine.compute to fetch price series and events, accumulate forward and backward factors per standard qfq and hfq formulas, and support selecting among mainstream adjustment formulas through configuration while flagging gaps and emitting adjusted results with version hash generation.",
+        "source_prd_path": "docs/prd/PRD-3.md",
+        "code_targets": [
+          "vprism/core/services/adjustment_engine.py",
+          "vprism/core/models/corporate_actions.py",
+          "tests/core/services/test_adjustment_engine.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [
+          {
+            "method": "function",
+            "path": "AdjustmentEngine.compute",
+            "req_schema": "{symbol: str, market: str, start: date, end: date, mode: Literal['qfq','hfq','none']}",
+            "resp_schema": "AdjustmentResult",
+            "status_codes": []
+          }
+        ],
+        "test_plan": [
+          "Unit tests for single split, single dividend, combined events, and no-event passthrough scenarios across supported formulas.",
+          "Test version hash stability when events are unchanged."
+        ],
+        "dependencies": [
+          "PRD-3-001"
+        ],
+        "risk_note": "HIGH",
+        "rollback_hint": "Revert AdjustmentEngine implementation and tests.",
+        "effort": "L",
+        "status": "DONE",
+        "completion_note": "AdjustmentEngine computes qfq/hfq factors with gap detection and stable versioning; exercised by pytest tests/core/services/test_adjustment_engine.py"
+      },
+      {
+        "id": "PRD-3-003",
+        "title": "Implement corporate action merge and caching utilities",
+        "description": "Add logic to merge same-day events into single computation units and memoize factor results for reuse, aligning with Should requirements for efficiency.",
+        "source_prd_path": "docs/prd/PRD-3.md",
+        "code_targets": [
+          "vprism/core/services/adjustment_engine.py",
+          "tests/core/services/test_adjustment_merge.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Tests verifying same-day dividend and split events merge correctly.",
+          "Ensure cached results return without recomputation when inputs unchanged."
+        ],
+        "dependencies": [
+          "PRD-3-002"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove merge and caching enhancements and tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-3-004",
+        "title": "Persist adjustment factors with version hashing",
+        "description": "Write computed qfq and hfq factors into the adjustments table, storing version identifiers derived from event hashes and algorithm mode so each supported formula remains traceable.",
+        "source_prd_path": "docs/prd/PRD-3.md",
+        "code_targets": [
+          "vprism/core/services/adjustment_engine.py",
+          "tests/core/services/test_adjustment_persistence.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Integration test ensuring adjustments table receives one row per price date with correct version per formula mode.",
+          "Test recomputation produces identical version hash when inputs unchanged."
+        ],
+        "dependencies": [
+          "PRD-3-002",
+          "PRD-3-001"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove persistence step and adjust tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-4-001",
+        "title": "Create quality_metrics table and status encoding",
+        "description": "Add DuckDB quality_metrics schema with required columns and primary key to store quality indicators and status classifications.",
+        "source_prd_path": "docs/prd/PRD-4.md",
+        "code_targets": [
+          "vprism/core/data/schema.py",
+          "tests/core/data/test_quality_metrics_schema.py"
+        ],
+        "schema_changes": {
+          "tables": [
+            {
+              "name": "quality_metrics",
+              "columns": [
+                "date",
+                "market",
+                "supplier_symbol",
+                "metric",
+                "value",
+                "status",
+                "run_id",
+                "created_at"
+              ],
+              "primary_key": [
+                "date",
+                "market",
+                "metric",
+                "run_id",
+                "supplier_symbol"
+              ]
+            }
+          ]
+        },
+        "api_changes": [],
+        "test_plan": [
+          "Schema tests verifying column definitions and primary key constraints.",
+          "Ensure migrations run idempotently."
+        ],
+        "dependencies": [
+          "PRD-0-001"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Drop table definition changes and tests.",
+        "effort": "S",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-4-002",
+        "title": "Implement trading calendar provider for gap detection",
+        "description": "Provide calendar utility mapping markets to exchange calendars and returning trading days windows to support GapDetector logic.",
+        "source_prd_path": "docs/prd/PRD-4.md",
+        "code_targets": [
+          "vprism/core/services/calendars.py",
+          "tests/core/services/test_calendar_provider.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit tests verifying correct calendar selection for supported markets.",
+          "Test fallback behavior when market-specific calendar unavailable."
+        ],
+        "dependencies": [],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove calendar provider module and tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-4-003",
+        "title": "Implement GapDetector writing gap_ratio metrics",
+        "description": "Develop GapDetector to compute expected versus observed trading days, derive gap_ratio, and write metric rows with run metadata into quality_metrics.",
+        "source_prd_path": "docs/prd/PRD-4.md",
+        "code_targets": [
+          "vprism/core/services/quality/gap_detector.py",
+          "tests/core/services/quality/test_gap_detector.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit tests for scenarios with missing days verifying gap_ratio values.",
+          "Ensure metrics rows persist with correct status classification."
+        ],
+        "dependencies": [
+          "PRD-4-001",
+          "PRD-4-002",
+          "PRD-2-003"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove gap detector implementation and tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-4-004",
+        "title": "Implement DuplicateDetector and metric persistence",
+        "description": "Create DuplicateDetector that aggregates duplicate counts per (symbol, market, date) and records metrics with thresholds for WARN and FAIL statuses.",
+        "source_prd_path": "docs/prd/PRD-4.md",
+        "code_targets": [
+          "vprism/core/services/quality/duplicate_detector.py",
+          "tests/core/services/quality/test_duplicate_detector.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit tests injecting duplicate rows to ensure counts and statuses align with thresholds.",
+          "Verify no-duplicate scenario yields OK status."
+        ],
+        "dependencies": [
+          "PRD-4-001",
+          "PRD-2-003"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove duplicate detector logic and tests.",
+        "effort": "S",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-4-005",
+        "title": "Build quality report CLI command",
+        "description": "Add CLI command rendering quality metrics (gap_ratio, duplicate_count) with table and jsonl outputs, honoring threshold metadata and run identifiers.",
+        "source_prd_path": "docs/prd/PRD-4.md",
+        "code_targets": [
+          "vprism/cli/quality.py",
+          "tests/cli/test_quality_report_command.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "CLI test verifying table output includes metric names, values, and statuses.",
+          "Test jsonl output path producing per-row JSON lines."
+        ],
+        "dependencies": [
+          "PRD-4-003",
+          "PRD-4-004",
+          "PRD-5-001",
+          "PRD-5-002",
+          "PRD-5-003"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove quality CLI command and tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-4-006",
+        "title": "Implement threshold evaluation utility for metrics",
+        "description": "Create reusable logic to categorize metric values into OK, WARN, or FAIL based on configured thresholds to ensure consistent status labeling across detectors.",
+        "source_prd_path": "docs/prd/PRD-4.md",
+        "code_targets": [
+          "vprism/core/services/quality/thresholds.py",
+          "tests/core/services/quality/test_thresholds.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit tests verifying classification boundaries exactly at warn and fail thresholds.",
+          "Test configuration overrides adjusting thresholds dynamically."
+        ],
+        "dependencies": [
+          "PRD-4-001"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove threshold helper module and tests.",
+        "effort": "S",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-5-001",
+        "title": "Establish CLI entrypoint with command groups and global options",
+        "description": "Introduce CLI package (e.g., Typer) with data, quality, symbol, and corporate action command groups, handling global options like --format, --output, --log-level, and --no-color.",
+        "source_prd_path": "docs/prd/PRD-5.md",
+        "code_targets": [
+          "vprism/cli/__init__.py",
+          "vprism/cli/main.py",
+          "tests/cli/test_cli_entrypoint.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "CLI smoke tests verifying groups load and --help displays expected commands.",
+          "Test global options altering formatter selection and log level."
+        ],
+        "dependencies": [],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove CLI entrypoint files and tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-5-002",
+        "title": "Implement table and JSONL output formatter abstraction",
+        "description": "Create OutputFormatter interface with table and jsonl implementations delivering Rich tables and streaming JSONL output per design requirements.",
+        "source_prd_path": "docs/prd/PRD-5.md",
+        "code_targets": [
+          "vprism/cli/formatters.py",
+          "tests/cli/test_cli_formatters.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Tests verifying table formatter renders expected columns and respects --no-color.",
+          "Tests ensuring jsonl formatter writes line-delimited JSON respecting --output path."
+        ],
+        "dependencies": [
+          "PRD-5-001"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove formatter implementations and tests.",
+        "effort": "S",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-5-003",
+        "title": "Implement unified CLI error handling with exit codes",
+        "description": "Add centralized error handler mapping DomainError codes to specified exit codes and formatting error responses with code, message, and context fields.",
+        "source_prd_path": "docs/prd/PRD-5.md",
+        "code_targets": [
+          "vprism/cli/errors.py",
+          "tests/cli/test_cli_error_handling.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "CLI tests verifying different DomainError inputs map to exit codes 10, 20, 30, 40, and 50.",
+          "Ensure error output includes code, message, and context fields."
+        ],
+        "dependencies": [
+          "PRD-5-001",
+          "PRD-7-001"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove error handling module and tests.",
+        "effort": "S",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-5-004",
+        "title": "Implement data fetch CLI command",
+        "description": "Wire data fetch command to DataService, accepting asset, market, symbols, date range, timeframe, and format options, streaming results in selected formatter.",
+        "source_prd_path": "docs/prd/PRD-5.md",
+        "code_targets": [
+          "vprism/cli/data.py",
+          "tests/cli/test_data_fetch_command.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "CLI integration test verifying table output for valid fetch and jsonl stream for --format jsonl.",
+          "Negative test with invalid symbol to trigger validation exit code 10."
+        ],
+        "dependencies": [
+          "PRD-5-001",
+          "PRD-5-002",
+          "PRD-5-003",
+          "PRD-2-003"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove data fetch command module and tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-5-005",
+        "title": "Implement symbol resolve CLI command",
+        "description": "Add command invoking SymbolService normalize to resolve symbols for given market and asset, presenting canonical output and diagnostics.",
+        "source_prd_path": "docs/prd/PRD-5.md",
+        "code_targets": [
+          "vprism/cli/symbol.py",
+          "tests/cli/test_symbol_resolve_command.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "CLI test verifying resolved canonical symbol displayed with rule metadata.",
+          "Test unresolved symbol path returns exit code 10 with diagnostics."
+        ],
+        "dependencies": [
+          "PRD-5-001",
+          "PRD-5-002",
+          "PRD-5-003",
+          "PRD-1-001",
+          "PRD-1-002"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove symbol command module and tests.",
+        "effort": "S",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-5-006",
+        "title": "Support --symbols-from option for data fetch",
+        "description": "Extend data fetch command to load symbols from file (--symbols-from) as part of Should requirements, including validation and error feedback.",
+        "source_prd_path": "docs/prd/PRD-5.md",
+        "code_targets": [
+          "vprism/cli/data.py",
+          "tests/cli/test_symbols_from_file.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Test reading newline-delimited file to supply symbols list.",
+          "Negative test verifying missing file triggers validation exit code."
+        ],
+        "dependencies": [
+          "PRD-5-004"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove file option handling and tests.",
+        "effort": "S",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-6-001",
+        "title": "Create reconciliation_runs and reconciliation_diffs schemas",
+        "description": "Define DuckDB tables for reconciliation run summaries and per-symbol diffs with specified columns to store sampling results.",
+        "source_prd_path": "docs/prd/PRD-6.md",
+        "code_targets": [
+          "vprism/core/data/schema.py",
+          "tests/core/data/test_reconciliation_schema.py"
+        ],
+        "schema_changes": {
+          "tables": [
+            {
+              "name": "reconciliation_runs",
+              "columns": [
+                "run_id",
+                "market",
+                "start",
+                "end",
+                "source_a",
+                "source_b",
+                "sample_size",
+                "created_at",
+                "pass",
+                "warn",
+                "fail",
+                "p95_bp_diff"
+              ],
+              "primary_key": [
+                "run_id"
+              ]
+            },
+            {
+              "name": "reconciliation_diffs",
+              "columns": [
+                "run_id",
+                "symbol",
+                "date",
+                "close_a",
+                "close_b",
+                "close_bp_diff",
+                "volume_a",
+                "volume_b",
+                "volume_ratio",
+                "status"
+              ],
+              "primary_key": [
+                "run_id",
+                "symbol",
+                "date"
+              ]
+            }
+          ]
+        },
+        "api_changes": [],
+        "test_plan": [
+          "Schema tests verifying columns and constraints for both tables.",
+          "Ensure schema creation integrates with existing migrations."
+        ],
+        "dependencies": [
+          "PRD-0-001"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove reconciliation table definitions and tests.",
+        "effort": "S",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-6-002",
+        "title": "Implement ReconciliationService with sampling and classification",
+        "description": "Build ReconciliationService.reconcile to sample symbols, fetch provider data, compute close_bp_diff and volume_ratio, classify PASS, WARN, and FAIL per thresholds, and summarize statistics.",
+        "source_prd_path": "docs/prd/PRD-6.md",
+        "code_targets": [
+          "vprism/core/services/reconciliation.py",
+          "tests/core/services/test_reconciliation_service.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [
+          {
+            "method": "function",
+            "path": "ReconciliationService.reconcile",
+            "req_schema": "{symbols: list[str], market: str, date_range: tuple[date,date]}",
+            "resp_schema": "ReconcileResult",
+            "status_codes": []
+          }
+        ],
+        "test_plan": [
+          "Unit tests for all-pass data, induced WARN and FAIL by bp diff and volume ratio, and missing provider data scenarios.",
+          "Verify sampling strategy draws expected count and classification counts match output."
+        ],
+        "dependencies": [
+          "PRD-6-001",
+          "PRD-2-003",
+          "PRD-1-001"
+        ],
+        "risk_note": "HIGH",
+        "rollback_hint": "Revert ReconciliationService implementation and tests.",
+        "effort": "L",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-6-003",
+        "title": "Persist reconciliation results into DuckDB",
+        "description": "Add logic to store run summaries and detailed diffs into reconciliation tables after each reconcile invocation, including run_id metadata and p95 calculations.",
+        "source_prd_path": "docs/prd/PRD-6.md",
+        "code_targets": [
+          "vprism/core/services/reconciliation.py",
+          "tests/core/services/test_reconciliation_persistence.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Integration test verifying run summary and diff rows persist with correct statuses.",
+          "Ensure subsequent runs create distinct entries keyed by run_id."
+        ],
+        "dependencies": [
+          "PRD-6-002",
+          "PRD-6-001"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove persistence hooks and tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-6-004",
+        "title": "Add reconciliation CLI command",
+        "description": "Provide CLI entry to trigger reconciliation runs with sample size, market, and date range parameters, outputting summary stats and top failing samples.",
+        "source_prd_path": "docs/prd/PRD-6.md",
+        "code_targets": [
+          "vprism/cli/reconciliation.py",
+          "tests/cli/test_reconcile_command.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "CLI test ensuring summary table shows pass, warn, fail counts and p95 diff.",
+          "Test invalid parameter scenarios mapping to appropriate exit codes."
+        ],
+        "dependencies": [
+          "PRD-5-001",
+          "PRD-5-002",
+          "PRD-5-003",
+          "PRD-6-002"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove reconciliation CLI module and tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-7-001",
+        "title": "Define DomainError hierarchy and ErrorCode enum",
+        "description": "Introduce ErrorCode enumeration (VALIDATION, ROUTING, PROVIDER, DATA_QUALITY, RECONCILE, SYSTEM) and DomainError base class with layer, retryable flag, and context payloads.",
+        "source_prd_path": "docs/prd/PRD-7.md",
+        "code_targets": [
+          "vprism/core/exceptions/codes.py",
+          "vprism/core/exceptions/domain.py",
+          "tests/core/exceptions/test_domain_error.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit tests for each error code ensuring properties propagate to DomainError.",
+          "Test serialization of context payload and retryable flag."
+        ],
+        "dependencies": [],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove new error classes and tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-7-002",
+        "title": "Implement MetricsCollector and /metrics endpoint",
+        "description": "Create MetricsCollector capturing query latency histogram, failure counts, provider error rate, and expose Prometheus /metrics endpoint via FastAPI integration.",
+        "source_prd_path": "docs/prd/PRD-7.md",
+        "code_targets": [
+          "vprism/core/monitoring/metrics.py",
+          "vprism/web/metrics.py",
+          "tests/web/test_metrics_endpoint.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit tests verifying metrics collector increments counters and histograms properly.",
+          "Integration test hitting /metrics endpoint and checking expected metric names."
+        ],
+        "dependencies": [
+          "PRD-7-001"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove metrics collector and web endpoint modules.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-7-003",
+        "title": "Integrate structured JSON logging with trace_id propagation",
+        "description": "Configure logging to emit JSON records including timestamp, level, trace_id (uuid4), error codes, and provider context per observability requirements.",
+        "source_prd_path": "docs/prd/PRD-7.md",
+        "code_targets": [
+          "vprism/core/logging/config.py",
+          "tests/core/logging/test_structured_logging.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit tests verifying log records include trace_id and structured fields.",
+          "Test that trace_id propagates across multiple log entries within same context."
+        ],
+        "dependencies": [
+          "PRD-7-001"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Revert logging configuration and tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-7-004",
+        "title": "Expose symbol normalization hit-rate metrics",
+        "description": "Connect SymbolService counters to MetricsCollector, publishing vprism_symbol_normalization_total with status labels while respecting cardinality constraints.",
+        "source_prd_path": "docs/prd/PRD-7.md",
+        "code_targets": [
+          "vprism/core/services/symbols.py",
+          "vprism/core/monitoring/metrics.py",
+          "tests/core/services/test_symbol_metrics.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Integration tests ensuring normalization calls increment metrics via collector.",
+          "Verify metrics respect allowed labels (status only) and aggregate correctly."
+        ],
+        "dependencies": [
+          "PRD-1-001",
+          "PRD-7-002"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove metrics hookup and adjust tests.",
+        "effort": "S",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-7-005",
+        "title": "Implement slow query logging thresholds",
+        "description": "Add monitoring logic to log slow queries when latency exceeds configured p95 threshold, supporting Should-level observability goals.",
+        "source_prd_path": "docs/prd/PRD-7.md",
+        "code_targets": [
+          "vprism/core/monitoring/performance.py",
+          "tests/core/monitoring/test_slow_query_logging.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit tests triggering slow query threshold to assert WARN log emission.",
+          "Test normal queries do not produce slow log entries."
+        ],
+        "dependencies": [
+          "PRD-7-003"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove slow query logging hooks and tests.",
+        "effort": "S",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-8-001",
+        "title": "Implement ShadowController duplicating query paths",
+        "description": "Build ShadowController to execute old and new query paths in parallel, returning old result to users and capturing new result for comparison while respecting sampling policy.",
+        "source_prd_path": "docs/prd/PRD-8.md",
+        "code_targets": [
+          "vprism/core/services/shadow.py",
+          "tests/core/services/test_shadow_controller.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit tests verifying old path response matches return value while new path runs in background.",
+          "Test sampling configuration limiting execution to subset of symbols."
+        ],
+        "dependencies": [
+          "PRD-5-004"
+        ],
+        "risk_note": "HIGH",
+        "rollback_hint": "Remove ShadowController implementation and tests.",
+        "effort": "L",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-8-002",
+        "title": "Implement DiffEngine computing row and price differences",
+        "description": "Create DiffEngine to compare shadow run results, computing row_diff_pct, price_diff_bp statistics (including p95), and gap_ratio metrics for evaluation.",
+        "source_prd_path": "docs/prd/PRD-8.md",
+        "code_targets": [
+          "vprism/core/services/shadow_diff.py",
+          "tests/core/services/test_shadow_diff_engine.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit tests injecting synthetic datasets to trigger PASS and FAIL thresholds.",
+          "Verify computed metrics align with specified formulas (row diff, p95 bp, gap ratio)."
+        ],
+        "dependencies": [
+          "PRD-8-001"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove diff engine logic and tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-8-003",
+        "title": "Persist shadow run statistics and manage promote flag",
+        "description": "Add shadow_runs table persistence for aggregated metrics and implement promote and rollback flag handling to swap production paths manually.",
+        "source_prd_path": "docs/prd/PRD-8.md",
+        "code_targets": [
+          "vprism/core/data/schema.py",
+          "vprism/core/services/shadow.py",
+          "tests/core/services/test_shadow_persistence.py"
+        ],
+        "schema_changes": {
+          "tables": [
+            {
+              "name": "shadow_runs",
+              "columns": [
+                "run_id",
+                "start",
+                "end",
+                "asset",
+                "markets",
+                "created_at",
+                "row_diff_pct",
+                "price_diff_bp_p95",
+                "gap_ratio",
+                "status",
+                "sample_percent",
+                "lookback_days",
+                "force_full_run"
+              ],
+              "primary_key": [
+                "run_id"
+              ]
+            }
+          ]
+        },
+        "api_changes": [],
+        "test_plan": [
+          "Integration tests ensuring each shadow run writes summary rows with computed metrics.",
+          "Tests confirming promote and rollback toggles update active path state."
+        ],
+        "dependencies": [
+          "PRD-8-001",
+          "PRD-8-002",
+          "PRD-0-001"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove persistence and promote flag logic.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-8-004",
+        "title": "Implement shadow CLI commands",
+        "description": "Add CLI commands for shadow run, status, promote, and diff inspection, exposing sampling configuration and latest run metrics to operators.",
+        "source_prd_path": "docs/prd/PRD-8.md",
+        "code_targets": [
+          "vprism/cli/shadow.py",
+          "tests/cli/test_shadow_commands.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "CLI tests verifying run command triggers shadow execution and prints summary.",
+          "Tests for promote and rollback commands altering state and reflecting in status output."
+        ],
+        "dependencies": [
+          "PRD-5-001",
+          "PRD-5-002",
+          "PRD-5-003",
+          "PRD-8-001",
+          "PRD-8-002",
+          "PRD-8-003"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove shadow CLI modules and tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-8-005",
+        "title": "Implement auto promote readiness based on consecutive PASS runs",
+        "description": "Track consecutive PASS shadow runs and surface readiness indicator only after configured N successes (default 3) before permitting promote, enforcing safety gate and allowing overrides.",
+        "source_prd_path": "docs/prd/PRD-8.md",
+        "code_targets": [
+          "vprism/core/services/shadow.py",
+          "tests/core/services/test_shadow_promote_guard.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit tests verifying readiness flips to true only after N consecutive PASS runs with default 3.",
+          "Test that a FAIL resets the pass counter and configuration overrides adjust N."
+        ],
+        "dependencies": [
+          "PRD-8-003",
+          "PRD-8-002"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove pass-counter guard logic and tests.",
+        "effort": "S",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-9-001",
+        "title": "Create drift_metrics table and models",
+        "description": "Define drift_metrics schema capturing metric name, value, status, window, and run metadata for drift monitoring.",
+        "source_prd_path": "docs/prd/PRD-9.md",
+        "code_targets": [
+          "vprism/core/data/schema.py",
+          "tests/core/data/test_drift_metrics_schema.py"
+        ],
+        "schema_changes": {
+          "tables": [
+            {
+              "name": "drift_metrics",
+              "columns": [
+                "date",
+                "market",
+                "symbol",
+                "metric",
+                "value",
+                "status",
+                "window",
+                "run_id",
+                "created_at"
+              ],
+              "primary_key": [
+                "date",
+                "market",
+                "symbol",
+                "metric",
+                "window",
+                "run_id"
+              ]
+            }
+          ]
+        },
+        "api_changes": [],
+        "test_plan": [
+          "Schema tests ensuring columns and primary key align with specification.",
+          "Verify migrations produce table idempotently."
+        ],
+        "dependencies": [
+          "PRD-0-001"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove drift_metrics schema definitions and tests.",
+        "effort": "S",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-9-002",
+        "title": "Implement DriftService compute with z-score classification",
+        "description": "Build DriftService.compute to gather recent window data, calculate means and standard deviations, compute z-scores for latest values, and classify statuses using thresholds.",
+        "source_prd_path": "docs/prd/PRD-9.md",
+        "code_targets": [
+          "vprism/core/services/drift.py",
+          "tests/core/services/test_drift_service.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [
+          {
+            "method": "function",
+            "path": "DriftService.compute",
+            "req_schema": "{symbol: str, market: str, window: int}",
+            "resp_schema": "DriftResult",
+            "status_codes": []
+          }
+        ],
+        "test_plan": [
+          "Unit tests for OK, WARN, and FAIL scenarios based on z-score thresholds.",
+          "Edge case test with zero standard deviation resulting in z-score 0."
+        ],
+        "dependencies": [
+          "PRD-9-001",
+          "PRD-2-003"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove DriftService implementation and tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-9-003",
+        "title": "Add drift report CLI command",
+        "description": "Provide CLI command to invoke DriftService, rendering computed metrics and statuses for specified symbol, market, and window parameters.",
+        "source_prd_path": "docs/prd/PRD-9.md",
+        "code_targets": [
+          "vprism/cli/drift.py",
+          "tests/cli/test_drift_report_command.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "CLI test verifying table output includes z-score metrics and statuses.",
+          "Test jsonl output and exit codes for invalid input cases."
+        ],
+        "dependencies": [
+          "PRD-5-001",
+          "PRD-5-002",
+          "PRD-5-003",
+          "PRD-9-002"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove drift CLI module and tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-9-004",
+        "title": "Persist drift metrics with status and run metadata",
+        "description": "Ensure DriftService writes computed metrics into drift_metrics table including run_id, window size, and status for auditability.",
+        "source_prd_path": "docs/prd/PRD-9.md",
+        "code_targets": [
+          "vprism/core/services/drift.py",
+          "tests/core/services/test_drift_persistence.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Integration test verifying drift metrics table receives entries for each computed metric.",
+          "Test repeated runs with same parameters produce distinct run_ids."
+        ],
+        "dependencies": [
+          "PRD-9-002",
+          "PRD-9-001"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove persistence hook and adjust tests.",
+        "effort": "S",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-9-005",
+        "title": "Implement plugin loader framework with entry point discovery",
+        "description": "Create plugin loader scanning vprism.plugins entry points, invoking register(cli_app, services_registry), and skipping conflicts per specification.",
+        "source_prd_path": "docs/prd/PRD-9.md",
+        "code_targets": [
+          "vprism/core/plugins/loader.py",
+          "vprism/cli/main.py",
+          "tests/core/plugins/test_plugin_loader.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Unit tests loading sample plugins verifying commands register and appear in CLI help.",
+          "Ensure conflicting command names are skipped with logged warnings."
+        ],
+        "dependencies": [
+          "PRD-5-001",
+          "PRD-9-002"
+        ],
+        "risk_note": "MEDIUM",
+        "rollback_hint": "Remove plugin loader integration and tests.",
+        "effort": "M",
+        "status": "TODO"
+      },
+      {
+        "id": "PRD-9-006",
+        "title": "Add plugin conflict detection and logging",
+        "description": "Enhance plugin loader to log conflicts, maintain load order visibility, and guard against duplicate registrations as part of conflict management requirements.",
+        "source_prd_path": "docs/prd/PRD-9.md",
+        "code_targets": [
+          "vprism/core/plugins/loader.py",
+          "tests/core/plugins/test_plugin_conflicts.py"
+        ],
+        "schema_changes": {},
+        "api_changes": [],
+        "test_plan": [
+          "Tests injecting conflicting plugins verifying warnings emitted and later plugin skipped.",
+          "Ensure load order logging includes plugin identifiers."
+        ],
+        "dependencies": [
+          "PRD-9-005"
+        ],
+        "risk_note": "LOW",
+        "rollback_hint": "Remove conflict detection enhancements and tests.",
+        "effort": "S",
+        "status": "TODO"
+      }
+    ]
+  },
+  "archive_actions": []
+}

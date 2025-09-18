@@ -72,6 +72,21 @@ class DataValidationError(VPrismError):
         self.validation_errors = validation_errors or {}
 
 
+class AdjustmentInputError(VPrismError):
+    """Adjustment computation input is insufficient for processing."""
+
+    def __init__(
+        self,
+        message: str,
+        symbol: str,
+        market: str,
+        details: dict[str, Any] | None = None,
+    ):
+        super_details = details or {}
+        super_details.update({"symbol": symbol, "market": market})
+        super().__init__(message, "ADJUSTMENT_INPUT_ERROR", super_details)
+
+
 class NoCapableProviderError(VPrismError):
     """没有可用提供商异常."""
 
@@ -147,3 +162,28 @@ class NetworkError(ProviderError):
         if status_code is not None:
             super_details["status_code"] = status_code
         super().__init__(message, provider_name, "NETWORK_ERROR", super_details)
+
+
+class UnresolvedSymbolError(VPrismError):
+    """符号规范化失败异常."""
+
+    def __init__(
+        self,
+        message: str,
+        raw_symbol: str,
+        market: str,
+        asset_type: str,
+        details: dict[str, Any] | None = None,
+    ):
+        super_details = details or {}
+        super_details.update(
+            {
+                "raw_symbol": raw_symbol,
+                "market": market,
+                "asset_type": asset_type,
+            }
+        )
+        super().__init__(message, "SYMBOL_UNRESOLVED", super_details)
+        self.raw_symbol = raw_symbol
+        self.market = market
+        self.asset_type = asset_type

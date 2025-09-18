@@ -17,6 +17,7 @@ from vprism.core.data.providers.factory import (
 from vprism.core.data.providers.registry import ProviderRegistry
 
 # from .vprism import VPrism  # vprism provider no longer exists
+from vprism.core.data.providers.stub_provider import StubProviderRow, VPrismStubProvider
 from vprism.core.data.providers.yfinance import YFinance
 
 __all__ = [
@@ -33,4 +34,6 @@ __all__ = [
     "AkShare",
     # "VPrism",
     "AlphaVantage",
+    "VPrismStubProvider",
+    "StubProviderRow",
 ]
