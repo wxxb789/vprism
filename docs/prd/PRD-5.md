@@ -6,13 +6,14 @@ Goal
 Scope
 Must:
 - 基础命令组: data / quality / symbol / ca
-- data fetch --asset stock --market cn --symbols 000001,000002 --start 2020-01-01 --end 2020-12-31 --adjustment all --format table
-- data normalize --batch <batch_id>
-- data adjust --symbol 000001 --market cn --start 2020-01-01 --end 2020-12-31 --mode qfq|hfq|all
-- quality report --market cn --date 2024-09-10
+- Phase 1 核心交付: data fetch / symbol resolve / quality report
+- data fetch --asset stock --market cn --symbols 000001,000002 --start 2020-01-01 --end 2020-12-31 --format table
 - symbol resolve 000001 --market cn --asset stock
-- ca ingest --market cn --since 2020-01-01
-- 全局参数: --format (table|jsonl|csv|parquet), --output <path>, --log-level, --no-color
+- quality report --market cn --date 2024-09-10
+- data normalize --batch <batch_id> (Phase 2+)
+- data adjust --symbol 000001 --market cn --start 2020-01-01 --end 2020-12-31 --mode qfq|hfq|all (Phase 2+)
+- ca ingest --market cn --since 2020-01-01 (Phase 3)
+- 全局参数: Phase 1 支持 --format (table|jsonl), --output <path>, --log-level, --no-color；csv/parquet 等扩展输出延后
 - 退出码语义: 0 OK,10 VALIDATION,20 PROVIDER,30 DATA_QUALITY,40 RECONCILE,50 SYSTEM
 - 统一错误渲染: code,message,context(trace_id optional)
 - Rich/简单表渲染 (table), jsonl 流模式按行输出
@@ -30,7 +31,7 @@ Out of Scope:
 Design
 - Typer 或 click + Rich 渲染 (保持最小依赖)
 - Command 层不含业务逻辑，仅调用 service facade
-- OutputFormatter 接口 + 实现(TableFormatter/CSVFormatter/JSONLFormatter)
+- OutputFormatter 接口 + 实现(TableFormatter/JSONLFormatter)，CSV/Parquet Formatter 于后续阶段补充
 - ErrorHandler 中央化: 捕获已知 DomainError -> 退出码映射
 
 Testing Strategy
@@ -63,12 +64,12 @@ Risks & Mitigations
 - 格式多样化测试负担 → 抽象统一 formatter 接口
 
 Rollout Plan
-Phase 1: fetch/resolve/quality core
-Phase 2: adjust/ca ingest
-Phase 3: polish (completion/progress/parquet)
+Phase 1: 上线 data fetch / symbol resolve / quality report + table/jsonl formatter
+Phase 2: 扩展 data normalize + data adjust，并评估 csv 输出
+Phase 3: 引入 ca ingest、parquet 等高级输出以及 CLI polish (completion/progress)
 
 Next Steps
 1 定义 CLI 目录结构 & entry point
 2 Formatter 接口 + 最小实现
-3 集成 symbol + ingestion + adjustment 服务调用
+3 集成 symbol + fetch + quality 服务调用 (Phase 1)，规划后续 ingestion/adjustment 扩展
 4 错误映射与测试
