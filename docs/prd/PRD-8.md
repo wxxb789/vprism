@@ -11,6 +11,7 @@ Must:
 - 统计写 shadow_runs(run_id,start,end,asset,markets,created_at, row_diff_pct, price_diff_bp_p95, gap_ratio, status)
 - Promote 逻辑: 手动触发 promote() 切换 flag
 - 回滚: flag revert 即恢复旧路径
+- 影子运行默认按采样执行，基于 symbol 哈希选择 25% 高流动性标的，日更轮转一周全覆盖
 Should:
 - 自动多次连续 PASS (>=N 次) 才允许 promote
 - CLI: shadow run / shadow status / shadow promote / shadow diff show
@@ -19,6 +20,16 @@ Could:
 - 历史趋势 sparkline
 Out of Scope:
 - 自动自适应调参
+
+- Rolling 时间窗口采样: 默认 shadow run 仅拉取最近 30 天交易日数据，支持按需扩展
+
+Configuration & Controls
+- `shadow.sample.mode`: `symbols` / `date_range` / `full`，决定采样维度，默认 `symbols`
+- `shadow.sample.percent`: 0-100 的百分比，控制 symbol 采样比例，默认 25%，上限保护 50%
+- `shadow.sample.lookback_days`: 控制日期窗口大小，默认 30 天，0=不限制
+- `shadow.sample.max_rows`: 限制总行数上限 (如 5M) 防止资源爆炸，命中后自动降采样
+- `shadow.force_full_run`: 布尔开关，临时强制跑全量用于最终验证
+- 配置来源支持 env/CLI 覆盖，CLI 优先级最高
 
 Algorithm
 1 接收用户查询 -> 正常走旧路径(response 给用户)
@@ -32,6 +43,8 @@ Testing Strategy
 - 行数缺失 2% -> FAIL
 - 连续 PASS N 次后 promote 允许
 - 回滚后仅旧路径执行
+- 采样模式下仅执行采样子集，验证 shadow_runs 记录采样比例/窗口
+- 配置 `shadow.force_full_run=true` 跑全量，确认阈值逻辑一致且资源预算可接受
 
 Open Questions
 - N 次 PASS 默认值 (假设3)
