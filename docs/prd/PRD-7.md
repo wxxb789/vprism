@@ -32,6 +32,13 @@ Metrics Naming Conventions
 - vprism_provider_requests_total{provider,code}
 - vprism_symbol_normalization_total{status}
 
+Label Cardinality Rules
+- Latency histogram系列(`vprism_query_latency_ms_bucket`)仅允许 `{provider}` 标签，禁止添加 `symbol` 或其他自由文本标签以避免高基数。
+- 失败计数(`vprism_query_fail_total`)固定标签集合 `{provider, code}`；`code` 使用 ErrorCode 枚举值，`provider` 超出白名单时使用 `provider="__other__"` 聚合。
+- Provider 请求指标(`vprism_provider_requests_total`)复用 `{provider, code}` 组合；禁止新增 `symbol`、`region` 等标签。
+- 归一化命中率(`vprism_symbol_normalization_total`)仅保留 `{status}` 标签，任何其他标签（包括 `symbol`）均不可用。
+- 任意指标一旦检测到标签组合的基数超出 50（配置阈值），Fallback 策略为将该标签值归类为 `__other__` 并记录告警事件。
+
 Testing Strategy
 - 触发各类错误枚举断言日志 code 字段存在
 - 人造两次失败一次成功 -> provider_error_rate 计算
@@ -51,10 +58,12 @@ Acceptance Criteria
 Risks & Mitigations
 - 指标标签爆炸 → 限制 symbol 不作为高基数标签
 - 观测开销影响性能 → 延迟路径使用轻量计数 + 异步聚合 (后续)
+- 标签基数超限 → 触发 fallback 将超限标签聚合为 `__other__` 并在日志中输出 `metrics_cardinality_limit_exceeded`
 
 Rollout Plan
 Phase 1: 错误枚举 + 基础 metrics
 Phase 2: 慢查询 & 质量指标接入
+Phase 2.5: 启用前执行 metrics audit（校验标签组合、基数与阈值配置）
 Phase 3: OpenTelemetry 可选接入
 
 Next Steps
