@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Iterator, Mapping
+from typing import TYPE_CHECKING
 
 import duckdb
 
@@ -13,6 +12,11 @@ try:  # pragma: no cover - type checking compatibility
     from duckdb import DuckDBPyConnection
 except Exception:  # pragma: no cover
     DuckDBPyConnection = "DuckDBPyConnection"  # type: ignore[misc,assignment]
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator, Mapping
+    from pathlib import Path
 
 
 @dataclass(frozen=True)
