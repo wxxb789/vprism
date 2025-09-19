@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import duckdb
-
 from datetime import datetime
+
+import duckdb
 
 from vprism.core.data import schema
 from vprism.core.data.ingestion.models import RawRecord

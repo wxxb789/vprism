@@ -3,15 +3,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, Mapping
+from typing import TYPE_CHECKING
+
+from vprism.core.data.schema import ColumnDef, TableSchema, baseline_tables
+from vprism.core.exceptions.base import DataValidationError
 
 try:  # pragma: no cover - duckdb optional for type checking environments.
     from duckdb import DuckDBPyConnection
 except Exception:  # pragma: no cover
     DuckDBPyConnection = "DuckDBPyConnection"  # type: ignore[misc,assignment]
 
-from vprism.core.data.schema import ColumnDef, TableSchema, baseline_tables
-from vprism.core.exceptions.base import DataValidationError
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
 
 
 @dataclass(frozen=True)

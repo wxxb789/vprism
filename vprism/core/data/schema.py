@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence  # noqa: TC003
 from dataclasses import dataclass
+from enum import Enum
 
 try:  # pragma: no cover - duckdb is optional at import time for type checking.
     from duckdb import DuckDBPyConnection
@@ -167,6 +168,50 @@ def create_baseline_ddl() -> Iterable[str]:
 
     for table in baseline_tables():
         yield table.create_ddl()
+
+
+class VPrismQualityMetricStatus(str, Enum):
+    """Enumeration representing vprism quality metric status encodings."""
+
+    OK = "OK"
+    WARN = "WARN"
+    FAIL = "FAIL"
+
+
+vprism_quality_metrics_table = TableSchema(
+    name="quality_metrics",
+    columns=(
+        ColumnDef("date", "DATE", ("NOT NULL",)),
+        ColumnDef("market", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("supplier_symbol", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("metric", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("value", "DOUBLE", ("NOT NULL",)),
+        ColumnDef("status", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("run_id", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("created_at", "TIMESTAMP", ("NOT NULL",)),
+    ),
+    primary_key=("date", "market", "metric", "run_id", "supplier_symbol"),
+)
+
+
+def vprism_quality_metric_tables() -> Sequence[TableSchema]:
+    """Return the vprism quality metric table schemas."""
+
+    return (vprism_quality_metrics_table,)
+
+
+def vprism_ensure_quality_metric_tables(vprism_conn: DuckDBPyConnection) -> None:
+    """Create the vprism quality metric tables if they are absent."""
+
+    for vprism_table in vprism_quality_metric_tables():
+        vprism_table.ensure(vprism_conn)
+
+
+def vprism_create_quality_metric_ddl() -> Iterable[str]:
+    """Yield CREATE TABLE statements for vprism quality metric schemas."""
+
+    for vprism_table in vprism_quality_metric_tables():
+        yield vprism_table.create_ddl()
 
 
 def corporate_action_tables() -> Sequence[TableSchema]:

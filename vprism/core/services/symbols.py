@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from collections import OrderedDict, defaultdict
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
@@ -404,7 +404,7 @@ class SymbolService:
                 canonical.asset_type.value,
                 provider_hint,
                 canonical.rule_id,
-                datetime.now(datetime.UTC),
+                datetime.now(UTC),
             ],
         )
 

@@ -8,6 +8,7 @@ from vprism.core.models.query import Adjustment
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+
     from vprism.core.models.base import DataPoint  # noqa: TCH001
 
 

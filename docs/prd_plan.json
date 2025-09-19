@@ -15,9 +15,9 @@
   "plan": {
     "summary": {
       "total": 53,
-      "todo": 35,
+      "todo": 32,
       "in_progress": 0,
-      "done": 18,
+      "done": 21,
       "prd_count": 10
     },
     "tasks": [
@@ -721,7 +721,8 @@
         "risk_note": "LOW",
         "rollback_hint": "Drop table definition changes and tests.",
         "effort": "S",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "quality_metrics schema and VPrismQualityMetricStatus added with coverage in pytest tests/core/data/test_quality_metrics_schema.py"
       },
       {
         "id": "PRD-4-002",
@@ -742,7 +743,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove calendar provider module and tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "VPrismTradingCalendarProvider delivers built-in calendars with alias fallback verified by pytest tests/core/services/test_calendar_provider.py"
       },
       {
         "id": "PRD-4-003",
@@ -841,7 +843,8 @@
         "risk_note": "LOW",
         "rollback_hint": "Remove threshold helper module and tests.",
         "effort": "S",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Threshold utilities classify vprism metrics and handle overrides as tested in pytest tests/core/services/quality/test_thresholds.py"
       },
       {
         "id": "PRD-5-001",
