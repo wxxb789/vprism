@@ -15,9 +15,9 @@
   "plan": {
     "summary": {
       "total": 53,
-      "todo": 32,
+      "todo": 31,
       "in_progress": 0,
-      "done": 21,
+      "done": 22,
       "prd_count": 10
     },
     "tasks": [
@@ -527,7 +527,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove performance test file.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Corporate action merge utilities aggregate same-day events and AdjustmentEngine caches factor computations; covered by pytest tests/core/services/test_adjustment_merge.py"
       },
       {
         "id": "PRD-3-001",

@@ -66,6 +66,95 @@ class FactorComputation:
     gap_dates: tuple[date, ...]
 
 
+def _combine_metadata(
+    existing: dict[str, Any],
+    new: dict[str, Any],
+    count: int,
+) -> dict[str, Any]:
+    """Return merged metadata while annotating the aggregated event count."""
+
+    metadata = dict(existing)
+    metadata.update(new)
+    metadata["merged_event_count"] = count
+    return metadata
+
+
+def _merge_sources(*sources: str | None) -> str | None:
+    """Combine optional source strings into a deterministic representation."""
+
+    unique = {source for source in sources if source}
+    if not unique:
+        return None
+    return ",".join(sorted(unique))
+
+
+def merge_same_day_dividends(dividends: Sequence[DividendEvent]) -> tuple[DividendEvent, ...]:
+    """Merge dividends occurring on the same day into aggregated events."""
+
+    grouped: dict[tuple[str, MarketType, date, str | None], DividendEvent] = {}
+    counts: dict[tuple[str, MarketType, date, str | None], int] = {}
+    for event in dividends:
+        key = (event.symbol, event.market, event.ex_date, event.currency)
+        existing = grouped.get(key)
+        if existing is None:
+            grouped[key] = event
+            counts[key] = 1
+            continue
+
+        counts[key] += 1
+        pay_date = existing.pay_date
+        if event.pay_date and (pay_date is None or event.pay_date < pay_date):
+            pay_date = event.pay_date
+
+        grouped[key] = existing.model_copy(
+            update={
+                "cash_amount": existing.cash_amount + event.cash_amount,
+                "pay_date": pay_date,
+                "source": _merge_sources(existing.source, event.source),
+                "metadata": _combine_metadata(existing.metadata, event.metadata, counts[key]),
+            }
+        )
+
+    merged = sorted(grouped.values(), key=lambda item: item.ex_date)
+    return tuple(merged)
+
+
+def merge_same_day_splits(splits: Sequence[SplitEvent]) -> tuple[SplitEvent, ...]:
+    """Merge split events occurring on the same effective date."""
+
+    grouped: dict[tuple[str, MarketType, date], SplitEvent] = {}
+    counts: dict[tuple[str, MarketType, date], int] = {}
+    for event in splits:
+        key = (event.symbol, event.market, event.ex_date)
+        existing = grouped.get(key)
+        if existing is None:
+            grouped[key] = event
+            counts[key] = 1
+            continue
+
+        counts[key] += 1
+        grouped[key] = existing.model_copy(
+            update={
+                "numerator": existing.numerator * event.numerator,
+                "denominator": existing.denominator * event.denominator,
+                "source": _merge_sources(existing.source, event.source),
+                "metadata": _combine_metadata(existing.metadata, event.metadata, counts[key]),
+            }
+        )
+
+    merged = sorted(grouped.values(), key=lambda item: item.ex_date)
+    return tuple(merged)
+
+
+def merge_corporate_action_set(action_set: CorporateActionSet) -> CorporateActionSet:
+    """Return a new corporate action set with same-day events merged."""
+
+    return CorporateActionSet(
+        dividends=merge_same_day_dividends(action_set.dividends),
+        splits=merge_same_day_splits(action_set.splits),
+    )
+
+
 @dataclass(slots=True, frozen=True)
 class AdjustmentRow:
     """Single-day adjustment output containing raw and adjusted prices."""
@@ -109,12 +198,14 @@ def compute_corporate_action_factors(
         return FactorComputation(factors=[], gap_dates=())
 
     sorted_points = sorted(prices, key=lambda point: point.timestamp)
+    merged_dividends = merge_same_day_dividends(dividends)
+    merged_splits = merge_same_day_splits(splits)
     dividend_map: dict[date, list[DividendEvent]] = defaultdict(list)
-    for event in dividends:
+    for event in merged_dividends:
         dividend_map[event.ex_date].append(event)
 
     split_map: dict[date, list[SplitEvent]] = defaultdict(list)
-    for event in splits:
+    for event in merged_splits:
         split_map[event.ex_date].append(event)
 
     hfq_factor = Decimal("1")
@@ -152,7 +243,9 @@ def compute_corporate_action_factors(
         if point.close_price is not None:
             previous_close = point.close_price
 
-    event_dates = {event.ex_date for event in dividends} | {event.ex_date for event in splits}
+    event_dates = {event.ex_date for event in merged_dividends} | {
+        event.ex_date for event in merged_splits
+    }
     missing_dates = event_dates.difference(dates)
     gap_dates.update(missing_dates)
 
@@ -188,5 +281,8 @@ __all__ = [
     "FactorComputation",
     "AdjustmentRow",
     "AdjustmentResult",
+    "merge_same_day_dividends",
+    "merge_same_day_splits",
+    "merge_corporate_action_set",
     "compute_corporate_action_factors",
 ]

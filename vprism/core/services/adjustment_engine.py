@@ -16,6 +16,7 @@ from vprism.core.models.corporate_actions import (
     CorporateActionSet,
     FactorComputation,
     compute_corporate_action_factors,
+    merge_corporate_action_set,
 )
 from vprism.core.models.market import MarketType
 from vprism.core.models.query import Adjustment
@@ -79,6 +80,42 @@ class AdjustmentEngine:
         self._price_loader = price_loader
         self._action_loader = action_loader
         self._algorithm_version = algorithm_version
+        self._factor_cache: dict[str, FactorComputation] = {}
+
+    def _fingerprint_prices(self, prices: Sequence[DataPoint]) -> str:
+        hasher = hashlib.sha256()
+        for point in prices:
+            hasher.update(point.timestamp.isoformat().encode("utf-8"))
+            close_text = (
+                _format_decimal(point.close_price) if point.close_price is not None else "None"
+            )
+            hasher.update(close_text.encode("utf-8"))
+        return hasher.hexdigest()
+
+    def _cache_key(
+        self,
+        symbol: str,
+        market: MarketType,
+        start: date,
+        end: date,
+        mode: Adjustment,
+        price_fingerprint: str,
+        events_hash: str,
+        price_count: int,
+    ) -> str:
+        return "|".join(
+            (
+                symbol,
+                market.value,
+                start.isoformat(),
+                end.isoformat(),
+                mode.value,
+                str(self._algorithm_version),
+                str(price_count),
+                price_fingerprint,
+                events_hash,
+            )
+        )
 
     def compute(
         self,
@@ -97,15 +134,45 @@ class AdjustmentEngine:
             )
 
         prices.sort(key=lambda point: point.timestamp)
-        action_set = self._action_loader(symbol, market, start, end)
+        action_set = merge_corporate_action_set(
+            self._action_loader(symbol, market, start, end)
+        )
 
-        factor_result: FactorComputation = compute_corporate_action_factors(
+        price_fingerprint = self._fingerprint_prices(prices)
+        events_hash = _hash_events(action_set)
+        cache_key = self._cache_key(
             symbol,
             market,
-            prices,
-            action_set.dividends,
-            action_set.splits,
+            start,
+            end,
+            mode,
+            price_fingerprint,
+            events_hash,
+            len(prices),
         )
+
+        cached = self._factor_cache.get(cache_key)
+        if cached is None:
+            computed = compute_corporate_action_factors(
+                symbol,
+                market,
+                prices,
+                action_set.dividends,
+                action_set.splits,
+            )
+            factor_result = FactorComputation(
+                factors=list(computed.factors),
+                gap_dates=computed.gap_dates,
+            )
+            self._factor_cache[cache_key] = FactorComputation(
+                factors=list(factor_result.factors),
+                gap_dates=factor_result.gap_dates,
+            )
+        else:
+            factor_result = FactorComputation(
+                factors=list(cached.factors),
+                gap_dates=cached.gap_dates,
+            )
         factor_map: dict[date, CorporateActionFactor] = {
             factor.date: factor for factor in factor_result.factors
         }
@@ -130,7 +197,6 @@ class AdjustmentEngine:
                 )
             )
 
-        events_hash = _hash_events(action_set)
         version = f"{self._algorithm_version}:{events_hash[:12]}"
 
         return AdjustmentResult(
