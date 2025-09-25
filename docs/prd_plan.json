@@ -15,9 +15,9 @@
   "plan": {
     "summary": {
       "total": 53,
-      "todo": 31,
+      "todo": 29,
       "in_progress": 0,
-      "done": 22,
+      "done": 24,
       "prd_count": 10
     },
     "tasks": [
@@ -1452,7 +1452,8 @@
         "risk_note": "LOW",
         "rollback_hint": "Remove drift_metrics schema definitions and tests.",
         "effort": "S",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "drift_metrics schema with window/run_id columns created and covered by pytest tests/core/data/test_drift_metrics_schema.py"
       },
       {
         "id": "PRD-9-002",
@@ -1484,7 +1485,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove DriftService implementation and tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "DriftService computes means/std/z-scores with configurable thresholds and is tested in pytest tests/core/services/test_drift_service.py"
       },
       {
         "id": "PRD-9-003",

@@ -87,6 +87,21 @@ class AdjustmentInputError(VPrismError):
         super().__init__(message, "ADJUSTMENT_INPUT_ERROR", super_details)
 
 
+class DriftComputationError(VPrismError):
+    """Raised when drift computation inputs are insufficient or invalid."""
+
+    def __init__(
+        self,
+        message: str,
+        symbol: str,
+        market: str,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super_details = details or {}
+        super_details.update({"symbol": symbol, "market": market})
+        super().__init__(message, "DRIFT_COMPUTATION_ERROR", super_details)
+
+
 class NoCapableProviderError(VPrismError):
     """没有可用提供商异常."""
 

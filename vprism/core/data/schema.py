@@ -214,6 +214,43 @@ def vprism_create_quality_metric_ddl() -> Iterable[str]:
         yield vprism_table.create_ddl()
 
 
+vprism_drift_metrics_table = TableSchema(
+    name="drift_metrics",
+    columns=(
+        ColumnDef("date", "DATE", ("NOT NULL",)),
+        ColumnDef("market", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("symbol", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("metric", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("value", "DOUBLE", ("NOT NULL",)),
+        ColumnDef("status", "VARCHAR", ("NOT NULL",)),
+        ColumnDef('"window"', "INTEGER", ("NOT NULL",)),
+        ColumnDef("run_id", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("created_at", "TIMESTAMP", ("NOT NULL",)),
+    ),
+    primary_key=("date", "market", "symbol", "metric", '"window"', "run_id"),
+)
+
+
+def vprism_drift_metric_tables() -> Sequence[TableSchema]:
+    """Return the vprism drift metric table schemas."""
+
+    return (vprism_drift_metrics_table,)
+
+
+def vprism_ensure_drift_metric_tables(vprism_conn: DuckDBPyConnection) -> None:
+    """Create the vprism drift metric tables if they are absent."""
+
+    for vprism_table in vprism_drift_metric_tables():
+        vprism_table.ensure(vprism_conn)
+
+
+def vprism_create_drift_metric_ddl() -> Iterable[str]:
+    """Yield CREATE TABLE statements for vprism drift metric schemas."""
+
+    for vprism_table in vprism_drift_metric_tables():
+        yield vprism_table.create_ddl()
+
+
 def corporate_action_tables() -> Sequence[TableSchema]:
     """Return the schemas used for corporate action storage and factors."""
 
