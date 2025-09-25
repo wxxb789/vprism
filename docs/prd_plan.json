@@ -15,9 +15,9 @@
   "plan": {
     "summary": {
       "total": 53,
-      "todo": 27,
+      "todo": 25,
       "in_progress": 0,
-      "done": 26,
+      "done": 28,
       "prd_count": 10
     },
     "tasks": [
@@ -677,7 +677,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove persistence step and adjust tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "AdjustmentEngine now persists factor rows via DuckDB writer with deterministic timestamps; validated by pytest tests/core/services/test_adjustment_persistence.py"
       },
       {
         "id": "PRD-4-001",
@@ -796,7 +797,8 @@
         "risk_note": "LOW",
         "rollback_hint": "Remove duplicate detector logic and tests.",
         "effort": "S",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Duplicate detector aggregates duplicate_count metrics with threshold classification and writes quality_metrics rows; covered by pytest tests/core/services/quality/test_duplicate_detector.py"
       },
       {
         "id": "PRD-4-005",
