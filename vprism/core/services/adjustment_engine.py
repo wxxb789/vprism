@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Callable, Sequence
-from datetime import date
+from dataclasses import dataclass
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
+from duckdb import DuckDBPyConnection
+
+from vprism.core.data.schema import ADJUSTMENTS_TABLE
 from vprism.core.exceptions.base import AdjustmentInputError
 from vprism.core.models.base import DataPoint
 from vprism.core.models.corporate_actions import (
@@ -20,6 +24,51 @@ from vprism.core.models.corporate_actions import (
 )
 from vprism.core.models.market import MarketType
 from vprism.core.models.query import Adjustment
+
+
+@dataclass(frozen=True)
+class VPrismAdjustmentFactorRow:
+    """Row persisted into the ``adjustments`` DuckDB table."""
+
+    market: str
+    supplier_symbol: str
+    date: date
+    adj_factor_qfq: Decimal
+    adj_factor_hfq: Decimal
+    version: str
+    build_time: datetime
+    source_events_hash: str
+
+
+VPrismAdjustmentRowWriter = Callable[[VPrismAdjustmentFactorRow], None]
+
+
+class VPrismDuckDBAdjustmentWriter:
+    """Persist adjustment factor rows into DuckDB."""
+
+    def __init__(self, connection: DuckDBPyConnection) -> None:
+        self._connection = connection
+        ADJUSTMENTS_TABLE.ensure(connection)
+
+    def __call__(self, row: VPrismAdjustmentFactorRow) -> None:
+        self._connection.execute(
+            """
+            INSERT OR REPLACE INTO adjustments
+            (market, supplier_symbol, date, adj_factor_qfq, adj_factor_hfq, version, build_time, source_events_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                row.market,
+                row.supplier_symbol,
+                row.date,
+                float(row.adj_factor_qfq),
+                float(row.adj_factor_hfq),
+                row.version,
+                row.build_time,
+                row.source_events_hash,
+            ],
+        )
+
 
 PriceLoader = Callable[[str, MarketType, date, date], Sequence[DataPoint]]
 CorporateActionLoader = Callable[[str, MarketType, date, date], CorporateActionSet]
@@ -76,19 +125,22 @@ class AdjustmentEngine:
         price_loader: PriceLoader,
         action_loader: CorporateActionLoader,
         algorithm_version: int = 1,
+        *,
+        factor_writer: VPrismAdjustmentRowWriter | None = None,
+        clock: Callable[[], datetime] | None = None,
     ) -> None:
         self._price_loader = price_loader
         self._action_loader = action_loader
         self._algorithm_version = algorithm_version
         self._factor_cache: dict[str, FactorComputation] = {}
+        self._factor_writer = factor_writer
+        self._clock = clock or (lambda: datetime.now(UTC))
 
     def _fingerprint_prices(self, prices: Sequence[DataPoint]) -> str:
         hasher = hashlib.sha256()
         for point in prices:
             hasher.update(point.timestamp.isoformat().encode("utf-8"))
-            close_text = (
-                _format_decimal(point.close_price) if point.close_price is not None else "None"
-            )
+            close_text = _format_decimal(point.close_price) if point.close_price is not None else "None"
             hasher.update(close_text.encode("utf-8"))
         return hasher.hexdigest()
 
@@ -134,9 +186,7 @@ class AdjustmentEngine:
             )
 
         prices.sort(key=lambda point: point.timestamp)
-        action_set = merge_corporate_action_set(
-            self._action_loader(symbol, market, start, end)
-        )
+        action_set = merge_corporate_action_set(self._action_loader(symbol, market, start, end))
 
         price_fingerprint = self._fingerprint_prices(prices)
         events_hash = _hash_events(action_set)
@@ -173,9 +223,7 @@ class AdjustmentEngine:
                 factors=list(cached.factors),
                 gap_dates=cached.gap_dates,
             )
-        factor_map: dict[date, CorporateActionFactor] = {
-            factor.date: factor for factor in factor_result.factors
-        }
+        factor_map: dict[date, CorporateActionFactor] = {factor.date: factor for factor in factor_result.factors}
 
         rows: list[AdjustmentRow] = []
         for point in prices:
@@ -198,6 +246,21 @@ class AdjustmentEngine:
             )
 
         version = f"{self._algorithm_version}:{events_hash[:12]}"
+        build_time = self._clock()
+
+        if self._factor_writer is not None:
+            for row in rows:
+                factor_row = VPrismAdjustmentFactorRow(
+                    market=market.value,
+                    supplier_symbol=symbol,
+                    date=row.date,
+                    adj_factor_qfq=row.adj_factor_qfq,
+                    adj_factor_hfq=row.adj_factor_hfq,
+                    version=version,
+                    build_time=build_time,
+                    source_events_hash=events_hash,
+                )
+                self._factor_writer(factor_row)
 
         return AdjustmentResult(
             symbol=symbol,
@@ -211,4 +274,9 @@ class AdjustmentEngine:
         )
 
 
-__all__ = ["AdjustmentEngine"]
+__all__ = [
+    "AdjustmentEngine",
+    "VPrismAdjustmentFactorRow",
+    "VPrismAdjustmentRowWriter",
+    "VPrismDuckDBAdjustmentWriter",
+]
