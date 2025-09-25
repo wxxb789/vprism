@@ -15,9 +15,9 @@
   "plan": {
     "summary": {
       "total": 53,
-      "todo": 29,
+      "todo": 27,
       "in_progress": 0,
-      "done": 24,
+      "done": 26,
       "prd_count": 10
     },
     "tasks": [
@@ -652,7 +652,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove merge and caching enhancements and tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Corporate action merge utilities and factor caching implemented via AdjustmentEngine with coverage in pytest tests/core/services/test_adjustment_merge.py"
       },
       {
         "id": "PRD-3-004",
@@ -770,7 +771,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove gap detector implementation and tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "GapDetector computes gap_ratio with calendar-backed expectations and persists metrics using DuckDBQualityMetricWriter; verified by pytest tests/core/services/quality/test_gap_detector.py"
       },
       {
         "id": "PRD-4-004",
