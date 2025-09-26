@@ -15,9 +15,9 @@
   "plan": {
     "summary": {
       "total": 53,
-      "todo": 24,
+      "todo": 21,
       "in_progress": 0,
-      "done": 29,
+      "done": 32,
       "prd_count": 10
     },
     "tasks": [
@@ -872,7 +872,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove CLI entrypoint files and tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Typer-backed CLI entrypoint established with grouped commands, shared context wiring for global options, and pytest tests/cli/test_cli_entrypoint.py covering --help output and option propagation."
       },
       {
         "id": "PRD-5-002",
@@ -895,7 +896,8 @@
         "risk_note": "LOW",
         "rollback_hint": "Remove formatter implementations and tests.",
         "effort": "S",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "OutputFormatter protocol delivered with Rich table and JSONL implementations, honoring no-color/output options and validated by pytest tests/cli/test_cli_formatters.py."
       },
       {
         "id": "PRD-5-003",
@@ -919,7 +921,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove error handling module and tests.",
         "effort": "S",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Unified CLI error handler now maps DomainError codes to exit codes 10-50 and formats responses via active formatter; coverage added in pytest tests/cli/test_cli_error_handling.py."
       },
       {
         "id": "PRD-5-004",
