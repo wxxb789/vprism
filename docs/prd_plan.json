@@ -15,9 +15,9 @@
   "plan": {
     "summary": {
       "total": 53,
-      "todo": 25,
+      "todo": 24,
       "in_progress": 0,
-      "done": 28,
+      "done": 29,
       "prd_count": 10
     },
     "tasks": [
@@ -825,7 +825,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove quality CLI command and tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "DomainError base class with retryable/context payload implemented in vprism/core/exceptions/domain.py and covered by pytest tests/core/exceptions/test_domain_error.py"
       },
       {
         "id": "PRD-4-006",
@@ -1165,7 +1166,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove new error classes and tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "DomainError base class with retryable/context payload implemented in vprism/core/exceptions/domain.py and covered by pytest tests/core/exceptions/test_domain_error.py"
       },
       {
         "id": "PRD-7-002",

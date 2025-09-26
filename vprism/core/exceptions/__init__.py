@@ -12,6 +12,7 @@ from vprism.core.exceptions.base import (
     RateLimitError,
     VPrismError,
 )
+from vprism.core.exceptions.domain import DomainError
 from vprism.core.exceptions.codes import ErrorCode
 from vprism.core.exceptions.handler import (
     ErrorContextManager,
@@ -27,6 +28,7 @@ __all__ = [
     "VPrismError",
     "ProviderError",
     "RateLimitError",
+    "DomainError",
     "DataValidationError",
     "DriftComputationError",
     "NetworkError",
