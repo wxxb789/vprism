@@ -6,6 +6,14 @@ from enum import Enum
 class ErrorCode(str, Enum):
     """标准化的错误代码枚举."""
 
+    # Domain-level 分类
+    VALIDATION = "VALIDATION"
+    ROUTING = "ROUTING"
+    PROVIDER = "PROVIDER"
+    DATA_QUALITY = "DATA_QUALITY"
+    RECONCILE = "RECONCILE"
+    SYSTEM = "SYSTEM"
+
     # 通用错误
     GENERAL_ERROR = "GENERAL_ERROR"
     VALIDATION_ERROR = "VALIDATION_ERROR"
