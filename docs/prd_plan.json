@@ -948,7 +948,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove data fetch command module and tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Typer data fetch command streams DataService responses with table/jsonl output, symbol validation, and pytest coverage in tests/cli/test_data_fetch_command.py."
       },
       {
         "id": "PRD-5-005",
@@ -975,7 +976,8 @@
         "risk_note": "LOW",
         "rollback_hint": "Remove symbol command module and tests.",
         "effort": "S",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Symbol resolve CLI wired to SymbolService with formatter support and error handling validated via tests/cli/test_symbol_resolve_command.py."
       },
       {
         "id": "PRD-5-006",
@@ -998,7 +1000,8 @@
         "risk_note": "LOW",
         "rollback_hint": "Remove file option handling and tests.",
         "effort": "S",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Data fetch now supports --symbols-from file ingestion with validation, covered by pytest tests/cli/test_symbols_from_file.py."
       },
       {
         "id": "PRD-6-001",
