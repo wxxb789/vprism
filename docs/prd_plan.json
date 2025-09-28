@@ -15,9 +15,9 @@
   "plan": {
     "summary": {
       "total": 53,
-      "todo": 18,
+      "todo": 16,
       "in_progress": 0,
-      "done": 35,
+      "done": 37,
       "prd_count": 10
     },
     "tasks": [
@@ -1067,7 +1067,8 @@
         "risk_note": "LOW",
         "rollback_hint": "Remove reconciliation table definitions and tests.",
         "effort": "S",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Reconciliation run and diff tables defined in schema module with DuckDB tests covering structure."
       },
       {
         "id": "PRD-6-002",
@@ -1100,7 +1101,8 @@
         "risk_note": "HIGH",
         "rollback_hint": "Revert ReconciliationService implementation and tests.",
         "effort": "L",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "ReconciliationService performs sampling, computes bp/volume deltas, classifies statuses, and is validated by unit tests."
       },
       {
         "id": "PRD-6-003",

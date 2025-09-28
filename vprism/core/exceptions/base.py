@@ -202,3 +202,19 @@ class UnresolvedSymbolError(VPrismError):
         self.raw_symbol = raw_symbol
         self.market = market
         self.asset_type = asset_type
+
+
+class ReconciliationError(VPrismError):
+    """对账流程异常."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        symbol: str | None = None,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super_details = details or {}
+        if symbol is not None:
+            super_details.setdefault("symbol", symbol)
+        super().__init__(message, "RECONCILIATION_ERROR", super_details)
