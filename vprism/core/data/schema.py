@@ -150,6 +150,44 @@ ADJUSTMENTS_TABLE = TableSchema(
 )
 
 
+RECONCILIATION_RUNS_TABLE = TableSchema(
+    name="reconciliation_runs",
+    columns=(
+        ColumnDef("run_id", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("market", "VARCHAR", ("NOT NULL",)),
+        ColumnDef('"start"', "DATE", ("NOT NULL",)),
+        ColumnDef('"end"', "DATE", ("NOT NULL",)),
+        ColumnDef("source_a", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("source_b", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("sample_size", "INTEGER", ("NOT NULL",)),
+        ColumnDef("created_at", "TIMESTAMP", ("NOT NULL",)),
+        ColumnDef('"pass"', "INTEGER", ("NOT NULL",)),
+        ColumnDef('"warn"', "INTEGER", ("NOT NULL",)),
+        ColumnDef('"fail"', "INTEGER", ("NOT NULL",)),
+        ColumnDef("p95_bp_diff", "DOUBLE", ("NOT NULL",)),
+    ),
+    primary_key=("run_id",),
+)
+
+
+RECONCILIATION_DIFFS_TABLE = TableSchema(
+    name="reconciliation_diffs",
+    columns=(
+        ColumnDef("run_id", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("symbol", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("date", "DATE", ("NOT NULL",)),
+        ColumnDef("close_a", "DOUBLE"),
+        ColumnDef("close_b", "DOUBLE"),
+        ColumnDef("close_bp_diff", "DOUBLE"),
+        ColumnDef("volume_a", "DOUBLE"),
+        ColumnDef("volume_b", "DOUBLE"),
+        ColumnDef("volume_ratio", "DOUBLE"),
+        ColumnDef("status", "VARCHAR", ("NOT NULL",)),
+    ),
+    primary_key=("run_id", "symbol", "date"),
+)
+
+
 def baseline_tables() -> Sequence[TableSchema]:
     """Return the schemas that compose the PRD-0 baseline."""
 
@@ -268,4 +306,24 @@ def create_corporate_action_ddl() -> Iterable[str]:
     """Yield CREATE TABLE statements for corporate action storage."""
 
     for table in corporate_action_tables():
+        yield table.create_ddl()
+
+
+def reconciliation_tables() -> Sequence[TableSchema]:
+    """Return the schemas used for reconciliation runs and diffs."""
+
+    return (RECONCILIATION_RUNS_TABLE, RECONCILIATION_DIFFS_TABLE)
+
+
+def ensure_reconciliation_tables(conn: DuckDBPyConnection) -> None:
+    """Create reconciliation tables on the provided connection if needed."""
+
+    for table in reconciliation_tables():
+        table.ensure(conn)
+
+
+def create_reconciliation_ddl() -> Iterable[str]:
+    """Yield CREATE TABLE statements for reconciliation storage."""
+
+    for table in reconciliation_tables():
         yield table.create_ddl()
