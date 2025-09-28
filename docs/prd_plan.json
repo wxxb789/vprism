@@ -15,9 +15,9 @@
   "plan": {
     "summary": {
       "total": 53,
-      "todo": 21,
+      "todo": 18,
       "in_progress": 0,
-      "done": 32,
+      "done": 35,
       "prd_count": 10
     },
     "tasks": [
@@ -1570,7 +1570,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove plugin loader integration and tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "PluginLoader discovers vprism.plugins entry points, registering non-conflicting commands with Typer CLI"
       },
       {
         "id": "PRD-9-006",
@@ -1593,7 +1594,8 @@
         "risk_note": "LOW",
         "rollback_hint": "Remove conflict detection enhancements and tests.",
         "effort": "S",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Conflict detection now warns and skips plugins that redefine command names, preserving load order logs"
       }
     ]
   },
