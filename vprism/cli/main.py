@@ -11,6 +11,7 @@ import typer
 from vprism.core.plugins import PluginLoader
 
 from .data import register as register_data_commands
+from .drift import register as register_drift_commands
 from .formatters import create_formatter
 from .symbol import register as register_symbol_commands
 
@@ -67,6 +68,7 @@ def create_app() -> typer.Typer:
         _configure_logging(log_level)
 
     register_data_commands(app)
+    register_drift_commands(app)
     register_symbol_commands(app)
     return app
 

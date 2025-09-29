@@ -2,18 +2,21 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from datetime import UTC, date, datetime
 from decimal import Decimal
+from uuid import uuid4
 from typing import TYPE_CHECKING
 
-from vprism.core.data.schema import VPrismQualityMetricStatus
+from vprism.core.data.schema import VPrismQualityMetricStatus, vprism_drift_metrics_table
 from vprism.core.exceptions import DriftComputationError
 from vprism.core.models.base import DataPoint
 from vprism.core.models.market import MarketType
 
 if TYPE_CHECKING:
-    from datetime import datetime
+    from duckdb import DuckDBPyConnection
 
 PriceHistoryLoader = Callable[[str, MarketType, int], Sequence[DataPoint]]
+DriftMetricWriter = Callable[["DriftMetricRow"], None]
 
 
 @dataclass(frozen=True)
@@ -50,6 +53,50 @@ class DriftResult:
     window: int
     metrics: tuple[DriftMetric, ...]
     latest_timestamp: datetime
+    run_id: str
+
+
+@dataclass(frozen=True)
+class DriftMetricRow:
+    """Row persisted into the ``drift_metrics`` DuckDB table."""
+
+    date: date
+    market: str
+    symbol: str
+    metric: str
+    value: Decimal
+    status: VPrismQualityMetricStatus
+    window: int
+    run_id: str
+    created_at: datetime
+
+
+class DuckDBDriftMetricWriter:
+    """Persist drift metric rows into DuckDB."""
+
+    def __init__(self, connection: DuckDBPyConnection) -> None:
+        self._connection = connection
+        vprism_drift_metrics_table.ensure(connection)
+
+    def __call__(self, row: DriftMetricRow) -> None:
+        self._connection.execute(
+            """
+            INSERT INTO drift_metrics
+            (date, market, symbol, metric, value, status, "window", run_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                row.date,
+                row.market,
+                row.symbol,
+                row.metric,
+                float(row.value),
+                row.status.value,
+                row.window,
+                row.run_id,
+                row.created_at,
+            ],
+        )
 
 
 class DriftService:
@@ -59,11 +106,23 @@ class DriftService:
         self,
         price_loader: PriceHistoryLoader,
         thresholds: DriftThresholds | None = None,
+        *,
+        metric_writer: DriftMetricWriter | None = None,
+        clock: Callable[[], datetime] | None = None,
     ) -> None:
         self._price_loader = price_loader
         self._thresholds = thresholds or DriftThresholds()
+        self._metric_writer = metric_writer
+        self._clock = clock or (lambda: datetime.now(UTC))
 
-    def compute(self, symbol: str, market: MarketType, window: int = 30) -> DriftResult:
+    def compute(
+        self,
+        symbol: str,
+        market: MarketType,
+        window: int = 30,
+        *,
+        run_id: str | None = None,
+    ) -> DriftResult:
         history = list(self._price_loader(symbol, market, window + 1))
         if len(history) < window + 1:
             raise DriftComputationError(
@@ -106,12 +165,32 @@ class DriftService:
             ),
         )
 
+        current_run_id = run_id or uuid4().hex
+        latest_timestamp = latest_point.timestamp
+        if self._metric_writer is not None:
+            created_at = self._clock()
+            observation_date = latest_timestamp.date()
+            for metric in metrics:
+                metric_row = DriftMetricRow(
+                    date=observation_date,
+                    market=market.value,
+                    symbol=symbol,
+                    metric=metric.name,
+                    value=metric.value,
+                    status=metric.status,
+                    window=window,
+                    run_id=current_run_id,
+                    created_at=created_at,
+                )
+                self._metric_writer(metric_row)
+
         return DriftResult(
             symbol=symbol,
             market=market,
             window=window,
             metrics=metrics,
-            latest_timestamp=latest_point.timestamp,
+            latest_timestamp=latest_timestamp,
+            run_id=current_run_id,
         )
 
     @staticmethod
@@ -157,4 +236,11 @@ class DriftService:
         return (value - mean) / std
 
 
-__all__ = ["DriftMetric", "DriftResult", "DriftService", "DriftThresholds"]
+__all__ = [
+    "DriftMetric",
+    "DriftMetricRow",
+    "DriftResult",
+    "DriftService",
+    "DriftThresholds",
+    "DuckDBDriftMetricWriter",
+]

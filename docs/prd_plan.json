@@ -15,9 +15,9 @@
   "plan": {
     "summary": {
       "total": 53,
-      "todo": 16,
+      "todo": 14,
       "in_progress": 0,
-      "done": 37,
+      "done": 39,
       "prd_count": 10
     },
     "tasks": [
@@ -1526,7 +1526,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove drift CLI module and tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Typer drift report command renders metrics/status for table and jsonl formats with validation covered by pytest tests/cli/test_drift_report_command.py"
       },
       {
         "id": "PRD-9-004",
@@ -1550,7 +1551,8 @@
         "risk_note": "LOW",
         "rollback_hint": "Remove persistence hook and adjust tests.",
         "effort": "S",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "DriftService writes drift_metrics rows with unique run ids using DuckDBDriftMetricWriter validated by pytest tests/core/services/test_drift_persistence.py"
       },
       {
         "id": "PRD-9-005",
