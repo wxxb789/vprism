@@ -3,17 +3,24 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, datetime, date
 from decimal import Decimal, DivisionByZero, InvalidOperation
 from enum import Enum
 from random import Random
-from typing import Callable, Sequence
+from typing import TYPE_CHECKING, Callable, Sequence
+from uuid import uuid4
 
+from vprism.core.data.schema import ensure_reconciliation_tables
 from vprism.core.exceptions.base import ReconciliationError
 from vprism.core.models.base import DataPoint
 from vprism.core.models.market import MarketType
 
+if TYPE_CHECKING:
+    from duckdb import DuckDBPyConnection
+
 PriceSeriesLoader = Callable[[str, MarketType, date, date], Sequence[DataPoint]]
+RunWriter = Callable[["ReconciliationRunRow"], None]
+DiffWriter = Callable[["ReconciliationDiffRow"], None]
 
 
 class ReconciliationStatus(str, Enum):
@@ -69,9 +76,45 @@ class ReconciliationSummary:
 class ReconcileResult:
     """Reconciliation result set including samples and summary."""
 
+    run_id: str
+    created_at: datetime
     summary: ReconciliationSummary
     sampled_symbols: tuple[str, ...]
     samples: tuple[ReconciliationSample, ...]
+
+
+@dataclass(frozen=True)
+class ReconciliationRunRow:
+    """Row persisted into the ``reconciliation_runs`` DuckDB table."""
+
+    run_id: str
+    market: str
+    start: date
+    end: date
+    source_a: str
+    source_b: str
+    sample_size: int
+    created_at: datetime
+    pass_count: int
+    warn_count: int
+    fail_count: int
+    p95_bp_diff: Decimal
+
+
+@dataclass(frozen=True)
+class ReconciliationDiffRow:
+    """Row persisted into the ``reconciliation_diffs`` DuckDB table."""
+
+    run_id: str
+    symbol: str
+    date: date
+    close_a: Decimal | None
+    close_b: Decimal | None
+    close_bp_diff: Decimal | None
+    volume_a: Decimal | None
+    volume_b: Decimal | None
+    volume_ratio: Decimal | None
+    status: ReconciliationStatus
 
 
 class ReconciliationService:
@@ -87,6 +130,10 @@ class ReconciliationService:
         default_sample_size: int = 50,
         thresholds: ReconciliationThresholds | None = None,
         rng: Random | None = None,
+        run_writer: RunWriter | None = None,
+        diff_writer: DiffWriter | None = None,
+        clock: Callable[[], datetime] | None = None,
+        run_id_factory: Callable[[], str] | None = None,
     ) -> None:
         if default_sample_size <= 0:
             raise ReconciliationError("default sample size must be positive")
@@ -97,6 +144,10 @@ class ReconciliationService:
         self._default_sample_size = default_sample_size
         self._thresholds = thresholds or ReconciliationThresholds()
         self._rng = rng or Random()
+        self._run_writer = run_writer
+        self._diff_writer = diff_writer
+        self._clock = clock or (lambda: datetime.now(UTC))
+        self._run_id_factory = run_id_factory or (lambda: uuid4().hex)
 
     def reconcile(
         self,
@@ -152,7 +203,49 @@ class ReconciliationService:
             fail_count=fail_count,
             p95_close_bp_diff=p95,
         )
-        return ReconcileResult(summary=summary, sampled_symbols=sampled, samples=tuple(samples))
+        run_id = self._run_id_factory()
+        created_at = self._clock()
+
+        if self._run_writer is not None:
+            run_row = ReconciliationRunRow(
+                run_id=run_id,
+                market=market.value,
+                start=start,
+                end=end,
+                source_a=self._source_a,
+                source_b=self._source_b,
+                sample_size=len(sampled),
+                created_at=created_at,
+                pass_count=pass_count,
+                warn_count=warn_count,
+                fail_count=fail_count,
+                p95_bp_diff=p95,
+            )
+            self._run_writer(run_row)
+
+        if self._diff_writer is not None:
+            for sample in samples:
+                diff_row = ReconciliationDiffRow(
+                    run_id=run_id,
+                    symbol=sample.symbol,
+                    date=sample.date,
+                    close_a=sample.close_a,
+                    close_b=sample.close_b,
+                    close_bp_diff=sample.close_bp_diff,
+                    volume_a=sample.volume_a,
+                    volume_b=sample.volume_b,
+                    volume_ratio=sample.volume_ratio,
+                    status=sample.status,
+                )
+                self._diff_writer(diff_row)
+
+        return ReconcileResult(
+            run_id=run_id,
+            created_at=created_at,
+            summary=summary,
+            sampled_symbols=sampled,
+            samples=tuple(samples),
+        )
 
     def _reconcile_symbol(
         self,
@@ -194,9 +287,7 @@ class ReconciliationService:
         return samples
 
     @staticmethod
-    def _index_by_date(
-        points: Sequence[DataPoint], start: date, end: date
-    ) -> dict[date, DataPoint]:
+    def _index_by_date(points: Sequence[DataPoint], start: date, end: date) -> dict[date, DataPoint]:
         indexed: dict[date, DataPoint] = {}
         for point in points:
             point_date = point.timestamp.date()
@@ -280,12 +371,74 @@ class ReconciliationService:
         return lower_value + (upper_value - lower_value) * fraction
 
 
+class DuckDBReconciliationWriter:
+    """Persist reconciliation run summaries and diffs into DuckDB."""
+
+    def __init__(self, connection: DuckDBPyConnection) -> None:
+        self._connection = connection
+        ensure_reconciliation_tables(connection)
+
+    def write_run(self, row: ReconciliationRunRow) -> None:
+        self._connection.execute(
+            """
+            INSERT INTO reconciliation_runs
+            (run_id, market, "start", "end", source_a, source_b, sample_size, created_at,
+             "pass", "warn", "fail", p95_bp_diff)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                row.run_id,
+                row.market,
+                row.start,
+                row.end,
+                row.source_a,
+                row.source_b,
+                row.sample_size,
+                row.created_at,
+                row.pass_count,
+                row.warn_count,
+                row.fail_count,
+                float(row.p95_bp_diff),
+            ],
+        )
+
+    def write_diff(self, row: ReconciliationDiffRow) -> None:
+        self._connection.execute(
+            """
+            INSERT INTO reconciliation_diffs
+            (run_id, symbol, date, close_a, close_b, close_bp_diff, volume_a, volume_b, volume_ratio, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                row.run_id,
+                row.symbol,
+                row.date,
+                _to_float(row.close_a),
+                _to_float(row.close_b),
+                _to_float(row.close_bp_diff),
+                _to_float(row.volume_a),
+                _to_float(row.volume_b),
+                _to_float(row.volume_ratio),
+                row.status.value,
+            ],
+        )
+
+
+def _to_float(value: Decimal | None) -> float | None:
+    if value is None:
+        return None
+    return float(value)
+
+
 __all__ = [
     "PriceSeriesLoader",
     "ReconcileResult",
+    "ReconciliationDiffRow",
+    "ReconciliationRunRow",
     "ReconciliationSample",
     "ReconciliationService",
     "ReconciliationStatus",
     "ReconciliationSummary",
     "ReconciliationThresholds",
+    "DuckDBReconciliationWriter",
 ]

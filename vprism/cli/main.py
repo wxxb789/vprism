@@ -12,6 +12,7 @@ from vprism.core.plugins import PluginLoader
 
 from .data import register as register_data_commands
 from .drift import register as register_drift_commands
+from .reconciliation import register as register_reconciliation_commands
 from .formatters import create_formatter
 from .symbol import register as register_symbol_commands
 
@@ -70,6 +71,7 @@ def create_app() -> typer.Typer:
     register_data_commands(app)
     register_drift_commands(app)
     register_symbol_commands(app)
+    register_reconciliation_commands(app)
     return app
 
 
