@@ -72,6 +72,7 @@ def test_reconcile_all_pass() -> None:
 
     result = service.reconcile([symbol], MarketType.CN, (start, end))
 
+    assert result.run_id
     assert result.summary.pass_count == 3
     assert result.summary.warn_count == 0
     assert result.summary.fail_count == 0
@@ -109,6 +110,7 @@ def test_reconcile_warn_and_fail_classification() -> None:
     result = service.reconcile([symbol], MarketType.CN, (start, date(2024, 1, 3)))
 
     statuses = [sample.status for sample in result.samples]
+    assert result.run_id
     assert statuses.count(ReconciliationStatus.PASS) == 1
     assert statuses.count(ReconciliationStatus.WARN) == 1
     assert statuses.count(ReconciliationStatus.FAIL) == 1
@@ -141,6 +143,7 @@ def test_reconcile_missing_provider_data_marks_fail() -> None:
 
     assert all(sample.status is ReconciliationStatus.FAIL for sample in result.samples)
     assert result.summary.fail_count == 2
+    assert result.run_id
 
 
 def test_reconcile_validates_inputs() -> None:

@@ -15,9 +15,9 @@
   "plan": {
     "summary": {
       "total": 53,
-      "todo": 13,
+      "todo": 11,
       "in_progress": 0,
-      "done": 40,
+      "done": 42,
       "prd_count": 10
     },
     "tasks": [
@@ -1126,7 +1126,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove persistence hooks and tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "ReconciliationService persists run summaries and diffs via DuckDBReconciliationWriter with tests/core/services/test_reconciliation_persistence.py covering run_id uniqueness"
       },
       {
         "id": "PRD-6-004",
@@ -1152,7 +1153,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove reconciliation CLI module and tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "CLI reconcile run command renders summary and failing samples with validation/error handling backed by tests/cli/test_reconcile_command.py"
       },
       {
         "id": "PRD-7-001",
