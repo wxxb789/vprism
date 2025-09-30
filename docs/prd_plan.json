@@ -15,9 +15,9 @@
   "plan": {
     "summary": {
       "total": 53,
-      "todo": 14,
+      "todo": 13,
       "in_progress": 0,
-      "done": 39,
+      "done": 40,
       "prd_count": 10
     },
     "tasks": [
@@ -1208,6 +1208,7 @@
         "source_prd_path": "docs/prd/PRD-7.md",
         "code_targets": [
           "vprism/core/logging/config.py",
+          "vprism/core/logging/logger.py",
           "tests/core/logging/test_structured_logging.py"
         ],
         "schema_changes": {},
@@ -1222,7 +1223,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Revert logging configuration and tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Structured logger emits JSON lines with propagated trace IDs, provider/error codes and request context; covered by pytest tests/core/logging/test_structured_logging.py"
       },
       {
         "id": "PRD-7-004",
