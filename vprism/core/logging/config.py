@@ -1,25 +1,29 @@
-"""Logging configuration."""
+"""Logging configuration primitives for structured logging."""
+
+from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class LogConfig(BaseModel):
-    """Logging configuration model."""
+    """Configuration model used to initialise structured logging."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     level: str = "INFO"
-    format: str = "json"
     console_output: bool = True
+    console_stream: Any = None
     file_output: bool = False
     file_path: str | None = None
-    rotation: str | None = None
-    retention: str | None = None
-    compression: str | None = None
     serialize: bool = True
     enqueue: bool = False
     catch: bool = True
-    colorize: bool = True
-    backtrace: bool = True
-    diagnose: bool = True
+    colorize: bool = False
+    backtrace: bool = False
+    diagnose: bool = False
     extra: dict[str, Any] = {}
+
+
+__all__ = ["LogConfig"]
