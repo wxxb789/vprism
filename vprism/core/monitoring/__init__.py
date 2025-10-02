@@ -7,6 +7,11 @@ from vprism.core.monitoring.health import (
     get_health_checker,
 )
 from vprism.core.monitoring.logging import PerformanceLogger, StructuredLogger, bind
+from vprism.core.monitoring.metrics import (
+    MetricsCollector,
+    configure_metrics_collector,
+    get_metrics_collector,
+)
 
 __all__ = [
     "HealthChecker",
@@ -16,4 +21,7 @@ __all__ = [
     "StructuredLogger",
     "PerformanceLogger",
     "bind",
+    "MetricsCollector",
+    "get_metrics_collector",
+    "configure_metrics_collector",
 ]
