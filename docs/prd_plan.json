@@ -15,9 +15,9 @@
   "plan": {
     "summary": {
       "total": 53,
-      "todo": 10,
+      "todo": 6,
       "in_progress": 0,
-      "done": 43,
+      "done": 47,
       "prd_count": 10
     },
     "tasks": [
@@ -1252,7 +1252,8 @@
         "risk_note": "LOW",
         "rollback_hint": "Remove metrics hookup and adjust tests.",
         "effort": "S",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "SymbolService now emits vprism_symbol_normalization_total counters for total, cache hits, misses, resolved, and unresolved events via MetricsCollector integration with Prometheus-backed tests in tests/core/services/test_symbol_metrics.py"
       },
       {
         "id": "PRD-7-005",
