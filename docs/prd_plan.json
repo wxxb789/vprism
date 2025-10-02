@@ -15,9 +15,9 @@
   "plan": {
     "summary": {
       "total": 53,
-      "todo": 11,
+      "todo": 10,
       "in_progress": 0,
-      "done": 42,
+      "done": 43,
       "prd_count": 10
     },
     "tasks": [
@@ -1201,7 +1201,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove metrics collector and web endpoint modules.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Prometheus MetricsCollector with query latency, failure counters, and FastAPI /metrics endpoint implemented with coverage in pytest tests/core/monitoring/test_metrics_collector.py and tests/web/test_metrics_endpoint.py"
       },
       {
         "id": "PRD-7-003",
