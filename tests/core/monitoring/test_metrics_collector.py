@@ -56,3 +56,29 @@ def test_increment_failure_without_latency_updates_counters() -> None:
     assert total_requests == 1.0
     assert total_failures == 1.0
     assert error_rate == 1.0
+
+
+def test_record_symbol_normalization_tracks_allowed_statuses() -> None:
+    registry = CollectorRegistry()
+    collector = MetricsCollector(registry=registry)
+
+    collector.record_symbol_normalization("cache_hit")
+    collector.record_symbol_normalization("resolved")
+    collector.record_symbol_normalization("unexpected")
+
+    cache_hit = registry.get_sample_value(
+        "vprism_symbol_normalization_total",
+        {"status": "cache_hit"},
+    )
+    resolved = registry.get_sample_value(
+        "vprism_symbol_normalization_total",
+        {"status": "resolved"},
+    )
+    other = registry.get_sample_value(
+        "vprism_symbol_normalization_total",
+        {"status": "__other__"},
+    )
+
+    assert cache_hit == 1.0
+    assert resolved == 1.0
+    assert other == 1.0

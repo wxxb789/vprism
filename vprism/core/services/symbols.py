@@ -19,6 +19,7 @@ from vprism.core.models.symbols import (
     RuleTransform,
     SymbolRule,
 )
+from vprism.core.monitoring.metrics import MetricsCollector, get_metrics_collector
 
 if TYPE_CHECKING:
     from duckdb import DuckDBPyConnection
@@ -191,6 +192,7 @@ class SymbolService:
         rules: Sequence[SymbolRule] | None = None,
         cache_size: int = 10_000,
         persistence_conn: DuckDBPyConnection | None = None,
+        metrics_collector: MetricsCollector | None = None,
     ) -> None:
         self._cache_size = max(cache_size, 0)
         resolved_rules = rules if rules is not None else default_rules()
@@ -206,6 +208,13 @@ class SymbolService:
         self._persistence_conn = persistence_conn
         if self._persistence_conn is not None:
             SYMBOL_MAP_TABLE.ensure(self._persistence_conn)
+        self._metrics_collector = metrics_collector
+        if self._metrics_collector is None:
+            try:
+                self._metrics_collector = get_metrics_collector()
+            except Exception:
+                # Metrics collection is best-effort; avoid construction failures in offline contexts.
+                self._metrics_collector = None
 
     @property
     def rules(self) -> tuple[SymbolRule, ...]:
@@ -225,14 +234,19 @@ class SymbolService:
         normalized_raw = raw_symbol.strip()
         cache_key: CacheKey = (normalized_raw, market, asset_type)
         self._metrics["total_requests"] = int(self._metrics["total_requests"]) + 1
+        self._record_normalization_status("total")
 
         cached = self._cache_get(cache_key)
         if cached is not None:
             self._metrics["cache_hits"] = int(self._metrics["cache_hits"]) + 1
+            self._record_normalization_status("cache_hit")
+            self._record_normalization_status("resolved")
             return cached
 
         self._metrics["cache_misses"] = int(self._metrics["cache_misses"]) + 1
+        self._record_normalization_status("cache_miss")
         canonical = self._evaluate_rules(normalized_raw, market, asset_type)
+        self._record_normalization_status("resolved")
         self._persist_normalization(canonical, provider_hint)
         self._cache_set(cache_key, canonical)
         return canonical
@@ -350,6 +364,7 @@ class SymbolService:
             return canonical
 
         self._metrics["unresolved_count"] = int(self._metrics["unresolved_count"]) + 1
+        self._record_normalization_status("unresolved")
         raise UnresolvedSymbolError(
             message=(f"Unable to normalize symbol '{raw_symbol}' for market '{market.value}' and asset '{asset_type.value}'."),
             raw_symbol=raw_symbol,
@@ -357,6 +372,11 @@ class SymbolService:
             asset_type=asset_type.value,
             details={"rules_evaluated": [rule.id for rule in self._rules]},
         )
+
+    def _record_normalization_status(self, status: str) -> None:
+        if self._metrics_collector is None:
+            return
+        self._metrics_collector.record_symbol_normalization(status)
 
     def _compose_canonical(self, market: MarketType, asset_type: AssetType, core_value: str) -> str:
         market_prefix = market.value.upper()

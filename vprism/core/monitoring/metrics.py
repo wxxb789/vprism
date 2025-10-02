@@ -46,7 +46,19 @@ class MetricsCollector:
             ("provider",),
             registry=self.registry,
         )
+        self.symbol_normalization_total = Counter(
+            "vprism_symbol_normalization_total",
+            "Symbol normalization outcomes grouped by cache and resolution status.",
+            ("status",),
+            registry=self.registry,
+        )
         self._provider_stats: DefaultDict[str, _ProviderStats] = defaultdict(_ProviderStats)
+
+    def record_symbol_normalization(self, status: str) -> None:
+        """Track symbol normalization activity with constrained status labels."""
+
+        label = status if status in _ALLOWED_SYMBOL_STATUSES else "__other__"
+        self.symbol_normalization_total.labels(status=label).inc()
 
     def observe_query(self, provider: str, latency_seconds: float, *, success: bool = True) -> None:
         """Record a provider query execution."""
@@ -92,3 +104,12 @@ def configure_metrics_collector(collector: MetricsCollector | None) -> None:
 
     global _DEFAULT_COLLECTOR
     _DEFAULT_COLLECTOR = collector
+
+
+_ALLOWED_SYMBOL_STATUSES = {
+    "total",
+    "cache_hit",
+    "cache_miss",
+    "resolved",
+    "unresolved",
+}
