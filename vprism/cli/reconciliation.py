@@ -15,7 +15,8 @@ from vprism.core.services.reconciliation import (
     ReconciliationStatus,
 )
 
-from .constants import RECONCILE_EXIT_CODE, SYSTEM_EXIT_CODE, VALIDATION_EXIT_CODE
+from .constants import SYSTEM_EXIT_CODE, VALIDATION_EXIT_CODE
+from .errors import handle_cli_error
 from .utils import emit_error, prepare_output
 
 
@@ -105,11 +106,9 @@ def run_command(
             sample_size=sample_size,
         )
     except ReconciliationError as error:
-        emit_error(error.message, error.error_code, details=error.details)
-        raise typer.Exit(code=RECONCILE_EXIT_CODE) from error
+        raise typer.Exit(code=handle_cli_error(error)) from error
     except VPrismError as error:
-        emit_error(error.message, error.error_code, details=error.details)
-        raise typer.Exit(code=SYSTEM_EXIT_CODE) from error
+        raise typer.Exit(code=handle_cli_error(error)) from error
     except Exception as error:  # pragma: no cover - defensive fallback
         emit_error(str(error), "UNEXPECTED_ERROR")
         raise typer.Exit(code=SYSTEM_EXIT_CODE) from error

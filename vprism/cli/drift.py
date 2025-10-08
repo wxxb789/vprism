@@ -12,7 +12,8 @@ from vprism.core.models.market import MarketType, TimeFrame
 from vprism.core.services.data import DataService
 from vprism.core.services.drift import DriftResult, DriftService
 
-from .constants import DATA_QUALITY_EXIT_CODE, SYSTEM_EXIT_CODE, VALIDATION_EXIT_CODE
+from .constants import SYSTEM_EXIT_CODE, VALIDATION_EXIT_CODE
+from .errors import handle_cli_error
 from .utils import emit_error, prepare_output
 
 
@@ -90,11 +91,9 @@ def report_command(
     try:
         result = service.compute(symbol=symbol, market=market_type, window=window)
     except DriftComputationError as error:
-        emit_error(error.message, error.error_code, details=error.details)
-        raise typer.Exit(code=DATA_QUALITY_EXIT_CODE) from error
+        raise typer.Exit(code=handle_cli_error(error)) from error
     except VPrismError as error:
-        emit_error(error.message, error.error_code, details=error.details)
-        raise typer.Exit(code=SYSTEM_EXIT_CODE) from error
+        raise typer.Exit(code=handle_cli_error(error)) from error
     except Exception as error:  # pragma: no cover - defensive guard
         emit_error(str(error), "UNEXPECTED_ERROR")
         raise typer.Exit(code=SYSTEM_EXIT_CODE) from error

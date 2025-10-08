@@ -19,7 +19,8 @@ from vprism.core.models.response import DataResponse
 from vprism.core.services.data import DataService
 from vprism.core.services.symbol_normalization import get_symbol_normalizer
 
-from .constants import PROVIDER_EXIT_CODE, SYSTEM_EXIT_CODE, VALIDATION_EXIT_CODE
+from .constants import VALIDATION_EXIT_CODE
+from .errors import handle_cli_error
 from .utils import emit_error, prepare_output
 
 
@@ -90,8 +91,7 @@ def fetch_command(
     try:
         _ensure_symbols_resolvable(collected, market_type, asset_type)
     except UnresolvedSymbolError as error:
-        emit_error(error.message, error.error_code, details=error.details)
-        raise typer.Exit(code=VALIDATION_EXIT_CODE) from error
+        raise typer.Exit(code=handle_cli_error(error)) from error
 
     service = get_data_service()
     try:
@@ -106,14 +106,11 @@ def fetch_command(
             )
         )
     except DataValidationError as error:
-        emit_error(error.message, error.error_code, details=error.details)
-        raise typer.Exit(code=VALIDATION_EXIT_CODE) from error
+        raise typer.Exit(code=handle_cli_error(error)) from error
     except ProviderError as error:
-        emit_error(error.message, error.error_code, details=error.details)
-        raise typer.Exit(code=PROVIDER_EXIT_CODE) from error
+        raise typer.Exit(code=handle_cli_error(error)) from error
     except VPrismError as error:
-        emit_error(error.message, error.error_code, details=error.details)
-        raise typer.Exit(code=SYSTEM_EXIT_CODE) from error
+        raise typer.Exit(code=handle_cli_error(error)) from error
     except ValueError as error:
         emit_error(str(error), "VALIDATION_ERROR")
         raise typer.Exit(code=VALIDATION_EXIT_CODE) from error
