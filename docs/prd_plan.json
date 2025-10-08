@@ -1276,7 +1276,8 @@
         "risk_note": "LOW",
         "rollback_hint": "Remove slow query logging hooks and tests.",
         "effort": "S",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "SlowQueryLogger now emits warnings via vprism/core/monitoring/performance.py with coverage in tests/core/monitoring/test_slow_query_logging.py"
       },
       {
         "id": "PRD-8-001",
@@ -1299,7 +1300,8 @@
         "risk_note": "HIGH",
         "rollback_hint": "Remove ShadowController implementation and tests.",
         "effort": "L",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "ShadowController executes dual paths with sampling controls in vprism/core/services/shadow.py and is validated by tests/core/services/test_shadow_controller.py"
       },
       {
         "id": "PRD-8-002",
@@ -1322,7 +1324,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove diff engine logic and tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "DiffEngine compares results and classifies metrics in vprism/core/services/shadow_diff.py backed by tests/core/services/test_shadow_diff_engine.py"
       },
       {
         "id": "PRD-8-003",
@@ -1372,7 +1375,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove persistence and promote flag logic.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Shadow run persistence via vprism_shadow_runs_table and DuckDB writer implemented with tests/core/services/test_shadow_persistence.py"
       },
       {
         "id": "PRD-8-004",
@@ -1400,7 +1404,8 @@
         "risk_note": "MEDIUM",
         "rollback_hint": "Remove shadow CLI modules and tests.",
         "effort": "M",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "Typer shadow commands added in vprism/cli/shadow.py with coverage from tests/cli/test_shadow_commands.py"
       },
       {
         "id": "PRD-8-005",
@@ -1424,7 +1429,8 @@
         "risk_note": "LOW",
         "rollback_hint": "Remove pass-counter guard logic and tests.",
         "effort": "S",
-        "status": "TODO"
+        "status": "DONE",
+        "completion_note": "ShadowPromoteGuard enforces consecutive PASS runs in vprism/core/services/shadow.py with verification in tests/core/services/test_shadow_promote_guard.py"
       },
       {
         "id": "PRD-9-001",

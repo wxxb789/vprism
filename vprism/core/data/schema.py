@@ -188,6 +188,29 @@ RECONCILIATION_DIFFS_TABLE = TableSchema(
 )
 
 
+vprism_shadow_runs_table = TableSchema(
+    name="shadow_runs",
+    columns=(
+        ColumnDef("run_id", "VARCHAR", ("NOT NULL",)),
+        ColumnDef('"start"', "DATE", ("NOT NULL",)),
+        ColumnDef('"end"', "DATE", ("NOT NULL",)),
+        ColumnDef("asset", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("markets", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("created_at", "TIMESTAMP", ("NOT NULL",)),
+        ColumnDef("row_diff_pct", "DOUBLE", ("NOT NULL",)),
+        ColumnDef("price_diff_bp_p95", "DOUBLE", ("NOT NULL",)),
+        ColumnDef("gap_ratio", "DOUBLE", ("NOT NULL",)),
+        ColumnDef("status", "VARCHAR", ("NOT NULL",)),
+        ColumnDef("sample_percent", "DOUBLE", ("NOT NULL",)),
+        ColumnDef("lookback_days", "INTEGER", ("NOT NULL",)),
+        ColumnDef("force_full_run", "BOOLEAN", ("NOT NULL",)),
+        ColumnDef("primary_duration_ms", "DOUBLE", ("NOT NULL",)),
+        ColumnDef("candidate_duration_ms", "DOUBLE", ("NOT NULL",)),
+    ),
+    primary_key=("run_id",),
+)
+
+
 def baseline_tables() -> Sequence[TableSchema]:
     """Return the schemas that compose the PRD-0 baseline."""
 
@@ -326,4 +349,24 @@ def create_reconciliation_ddl() -> Iterable[str]:
     """Yield CREATE TABLE statements for reconciliation storage."""
 
     for table in reconciliation_tables():
+        yield table.create_ddl()
+
+
+def shadow_tables() -> Sequence[TableSchema]:
+    """Return the schemas used for shadow run persistence."""
+
+    return (vprism_shadow_runs_table,)
+
+
+def ensure_shadow_tables(conn: DuckDBPyConnection) -> None:
+    """Create the shadow tables on the provided connection."""
+
+    for table in shadow_tables():
+        table.ensure(conn)
+
+
+def create_shadow_ddl() -> Iterable[str]:
+    """Yield CREATE TABLE statements for shadow persistence."""
+
+    for table in shadow_tables():
         yield table.create_ddl()
