@@ -15,6 +15,7 @@ from vprism.core.services.shadow import (
 )
 
 from .constants import SYSTEM_EXIT_CODE, VALIDATION_EXIT_CODE
+from .errors import handle_cli_error
 from .utils import emit_error, prepare_output
 
 
@@ -127,8 +128,7 @@ def promote_command(
     try:
         controller.promote(force=force)
     except DomainError as exc:
-        emit_error(exc.message, exc.error_code, details=exc.details)
-        raise typer.Exit(code=VALIDATION_EXIT_CODE) from exc
+        raise typer.Exit(code=handle_cli_error(exc)) from exc
 
     typer.echo("Shadow path promoted.")
 

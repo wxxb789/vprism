@@ -11,8 +11,8 @@ from vprism.core.models.market import AssetType, MarketType
 from vprism.core.models.symbols import CanonicalSymbol
 from vprism.core.services.symbols import SymbolService
 
-from .constants import VALIDATION_EXIT_CODE
-from .utils import emit_error, prepare_output
+from .errors import handle_cli_error
+from .utils import prepare_output
 
 
 symbol_app = typer.Typer(help="Symbol utilities.")
@@ -50,8 +50,7 @@ def resolve_command(
     try:
         canonical = service.normalize(symbol, market_type, asset_type)
     except UnresolvedSymbolError as error:
-        emit_error(error.message, error.error_code, details=error.details)
-        raise typer.Exit(code=VALIDATION_EXIT_CODE) from error
+        raise typer.Exit(code=handle_cli_error(error)) from error
 
     rows = [_canonical_to_row(canonical)]
     try:
