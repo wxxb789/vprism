@@ -1,10 +1,10 @@
-"""vprism核心异常类."""
+"""vprism core exception hierarchy."""
 
 from typing import Any
 
 
 class VPrismError(Exception):
-    """vprism基础异常类."""
+    """Base vprism exception."""
 
     def __init__(
         self,
@@ -12,13 +12,6 @@ class VPrismError(Exception):
         error_code: str = "GENERAL_ERROR",
         details: dict[str, Any] | None = None,
     ):
-        """初始化异常.
-
-        Args:
-            message: 错误消息
-            error_code: 错误代码
-            details: 额外详情
-        """
         super().__init__(message)
         self.message = message
         self.error_code = error_code
@@ -26,7 +19,7 @@ class VPrismError(Exception):
 
 
 class ProviderError(VPrismError):
-    """数据提供商相关异常."""
+    """Data provider exception."""
 
     def __init__(
         self,
@@ -39,25 +32,8 @@ class ProviderError(VPrismError):
         self.provider_name = provider_name
 
 
-class RateLimitError(ProviderError):
-    """速率限制异常."""
-
-    def __init__(
-        self,
-        message: str,
-        provider_name: str,
-        retry_after: int | None = None,
-        details: dict[str, Any] | None = None,
-    ):
-        super_details = details or {}
-        if retry_after is not None:
-            super_details["retry_after"] = retry_after
-        super().__init__(message, provider_name, "RATE_LIMIT_ERROR", super_details)
-        self.retry_after = retry_after
-
-
 class DataValidationError(VPrismError):
-    """数据验证异常."""
+    """Data validation exception."""
 
     def __init__(
         self,
@@ -72,83 +48,8 @@ class DataValidationError(VPrismError):
         self.validation_errors = validation_errors or {}
 
 
-class AdjustmentInputError(VPrismError):
-    """Adjustment computation input is insufficient for processing."""
-
-    def __init__(
-        self,
-        message: str,
-        symbol: str,
-        market: str,
-        details: dict[str, Any] | None = None,
-    ):
-        super_details = details or {}
-        super_details.update({"symbol": symbol, "market": market})
-        super().__init__(message, "ADJUSTMENT_INPUT_ERROR", super_details)
-
-
-class DriftComputationError(VPrismError):
-    """Raised when drift computation inputs are insufficient or invalid."""
-
-    def __init__(
-        self,
-        message: str,
-        symbol: str,
-        market: str,
-        details: dict[str, Any] | None = None,
-    ) -> None:
-        super_details = details or {}
-        super_details.update({"symbol": symbol, "market": market})
-        super().__init__(message, "DRIFT_COMPUTATION_ERROR", super_details)
-
-
-class NoCapableProviderError(VPrismError):
-    """没有可用提供商异常."""
-
-    def __init__(
-        self,
-        message: str,
-        query_details: dict[str, Any] | None = None,
-        details: dict[str, Any] | None = None,
-    ):
-        super_details = details or {}
-        if query_details:
-            super_details["query"] = query_details
-        super().__init__(message, "NO_PROVIDER_ERROR", super_details)
-
-
-class NoAvailableProviderError(VPrismError):
-    """所有提供商都失败异常."""
-
-    def __init__(
-        self,
-        message: str,
-        failed_providers: list[dict[str, Any]] | None = None,
-        details: dict[str, Any] | None = None,
-    ):
-        super_details = details or {}
-        if failed_providers:
-            super_details["failed_providers"] = failed_providers
-        super().__init__(message, "ALL_PROVIDERS_FAILED", super_details)
-
-
-class CacheError(VPrismError):
-    """缓存相关异常."""
-
-    def __init__(
-        self,
-        message: str,
-        cache_type: str | None = None,
-        details: dict[str, Any] | None = None,
-    ):
-        super_details = details or {}
-        if cache_type:
-            super_details["cache_type"] = cache_type
-        super().__init__(message, "CACHE_ERROR", super_details)
-
-
 class AuthenticationError(ProviderError):
-    """认证异常."""
+    """Authentication exception."""
 
     def __init__(
         self,
@@ -164,7 +65,7 @@ class AuthenticationError(ProviderError):
 
 
 class NetworkError(ProviderError):
-    """网络异常."""
+    """Network exception."""
 
     def __init__(
         self,
@@ -179,42 +80,84 @@ class NetworkError(ProviderError):
         super().__init__(message, provider_name, "NETWORK_ERROR", super_details)
 
 
-class UnresolvedSymbolError(VPrismError):
-    """符号规范化失败异常."""
+class RateLimitError(ProviderError):
+    """Rate limit exception."""
 
     def __init__(
         self,
         message: str,
-        raw_symbol: str,
-        market: str,
-        asset_type: str,
+        provider_name: str,
+        retry_after: int | None = None,
         details: dict[str, Any] | None = None,
     ):
         super_details = details or {}
-        super_details.update(
-            {
-                "raw_symbol": raw_symbol,
-                "market": market,
-                "asset_type": asset_type,
-            }
-        )
-        super().__init__(message, "SYMBOL_UNRESOLVED", super_details)
-        self.raw_symbol = raw_symbol
-        self.market = market
-        self.asset_type = asset_type
+        if retry_after is not None:
+            super_details["retry_after"] = retry_after
+        super().__init__(message, provider_name, "RATE_LIMIT_ERROR", super_details)
+        self.retry_after = retry_after
 
 
-class ReconciliationError(VPrismError):
-    """对账流程异常."""
+class NoCapableProviderError(VPrismError):
+    """No capable provider exception."""
 
     def __init__(
         self,
         message: str,
-        *,
-        symbol: str | None = None,
+        query_details: dict[str, Any] | None = None,
         details: dict[str, Any] | None = None,
-    ) -> None:
+    ):
         super_details = details or {}
-        if symbol is not None:
-            super_details.setdefault("symbol", symbol)
-        super().__init__(message, "RECONCILIATION_ERROR", super_details)
+        if query_details:
+            super_details["query"] = query_details
+        super().__init__(message, "NO_PROVIDER_ERROR", super_details)
+
+
+class NoAvailableProviderError(VPrismError):
+    """All providers failed exception."""
+
+    def __init__(
+        self,
+        message: str,
+        failed_providers: list[dict[str, Any]] | None = None,
+        details: dict[str, Any] | None = None,
+    ):
+        super_details = details or {}
+        if failed_providers:
+            super_details["failed_providers"] = failed_providers
+        super().__init__(message, "ALL_PROVIDERS_FAILED", super_details)
+
+
+class CacheError(VPrismError):
+    """Cache exception."""
+
+    def __init__(
+        self,
+        message: str,
+        cache_type: str | None = None,
+        details: dict[str, Any] | None = None,
+    ):
+        super_details = details or {}
+        if cache_type:
+            super_details["cache_type"] = cache_type
+        super().__init__(message, "CACHE_ERROR", super_details)
+
+
+class UnresolvedSymbolError(VPrismError):
+    """Symbol could not be resolved to a canonical form."""
+
+    def __init__(
+        self,
+        message: str,
+        raw_symbol: str | None = None,
+        market: str | None = None,
+        asset_type: str | None = None,
+        details: dict[str, Any] | None = None,
+    ):
+        super_details = details or {}
+        if raw_symbol:
+            super_details["raw_symbol"] = raw_symbol
+        if market:
+            super_details["market"] = market
+        if asset_type:
+            super_details["asset_type"] = asset_type
+        super().__init__(message, "UNRESOLVED_SYMBOL", super_details)

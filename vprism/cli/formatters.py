@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Mapping, MutableSequence, Sequence, TextIO
-
 import json
+from collections.abc import Mapping, MutableSequence, Sequence
+from dataclasses import dataclass
+from typing import TextIO
+
 from rich.box import SIMPLE
 from rich.console import Console
 from rich.table import Table
@@ -93,10 +94,7 @@ class JSONLFormatter(OutputFormatter):
         columns: Sequence[str] | None = None,
     ) -> None:
         if columns:
-            filtered = [
-                {column: row.get(column) for column in columns}
-                for row in rows
-            ]
+            filtered = [{column: row.get(column) for column in columns} for row in rows]
         else:
             filtered = list(rows)
 

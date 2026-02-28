@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Mapping
+from collections.abc import Mapping
 
 import typer
 
@@ -13,7 +13,6 @@ from vprism.core.services.symbols import SymbolService
 
 from .errors import handle_cli_error
 from .utils import prepare_output
-
 
 symbol_app = typer.Typer(help="Symbol utilities.")
 

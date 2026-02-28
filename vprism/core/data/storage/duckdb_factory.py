@@ -25,9 +25,7 @@ class DuckDBFactoryConfig:
 
     database: str | Path = ":memory:"
     read_only: bool = False
-    pragmas: Mapping[str, object] = field(
-        default_factory=lambda: {"threads": 1}
-    )
+    pragmas: Mapping[str, object] = field(default_factory=lambda: {"threads": 1})
 
 
 class VPrismDuckDBFactory:
@@ -39,9 +37,7 @@ class VPrismDuckDBFactory:
     def create_connection(self) -> DuckDBPyConnection:
         """Create and return a configured DuckDB connection."""
 
-        conn = duckdb.connect(
-            database=str(self._config.database), read_only=self._config.read_only
-        )
+        conn = duckdb.connect(database=str(self._config.database), read_only=self._config.read_only)
         self._apply_pragmas(conn)
         return conn
 

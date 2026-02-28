@@ -20,7 +20,7 @@ from vprism.core.client import VPrismClient
 from vprism.core.config import ConfigManager
 from vprism.core.exceptions import VPrismError
 from vprism.web.models import ErrorResponse
-from vprism.web.routes import data_router, health_router, metrics_router
+from vprism.web.routes import data_router, health_router
 
 
 # Custom JSON encoder for datetime and Decimal
@@ -153,7 +153,6 @@ def _setup_routes(app: FastAPI) -> None:
     """注册路由"""
     app.include_router(data_router, prefix="/api/v1/data", tags=["data"])
     app.include_router(health_router, prefix="/api/v1", tags=["health"])
-    app.include_router(metrics_router, tags=["metrics"])
 
 
 def _setup_exception_handlers(app: FastAPI) -> None:

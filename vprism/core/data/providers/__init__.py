@@ -1,7 +1,9 @@
-"""数据提供商适配器框架."""
+"""Data provider adapter framework."""
 
-from vprism.core.data.providers.akshare import AkShare
-from vprism.core.data.providers.alpha_vantage import AlphaVantage
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from vprism.core.data.providers.base import (
     AuthConfig,
     AuthType,
@@ -10,15 +12,15 @@ from vprism.core.data.providers.base import (
     RateLimitConfig,
 )
 from vprism.core.data.providers.factory import (
-    ProviderFactory,
     create_default_providers,
-    get_provider,
+    create_provider,
 )
 from vprism.core.data.providers.registry import ProviderRegistry
 
-# from .vprism import VPrism  # vprism provider no longer exists
-from vprism.core.data.providers.stub_provider import StubProviderRow, VPrismStubProvider
-from vprism.core.data.providers.yfinance import YFinance
+if TYPE_CHECKING:
+    from vprism.core.data.providers.akshare import AkShare
+    from vprism.core.data.providers.alpha_vantage import AlphaVantage
+    from vprism.core.data.providers.yfinance import YFinance
 
 __all__ = [
     "DataProvider",
@@ -27,13 +29,26 @@ __all__ = [
     "AuthConfig",
     "AuthType",
     "ProviderRegistry",
-    "ProviderFactory",
-    "get_provider",
+    "create_provider",
     "create_default_providers",
     "YFinance",
     "AkShare",
-    # "VPrism",
     "AlphaVantage",
-    "VPrismStubProvider",
-    "StubProviderRow",
 ]
+
+
+def __getattr__(name: str) -> type:
+    """Lazy-load concrete provider classes on first access."""
+    if name == "YFinance":
+        from vprism.core.data.providers.yfinance import YFinance
+
+        return YFinance
+    if name == "AkShare":
+        from vprism.core.data.providers.akshare import AkShare
+
+        return AkShare
+    if name == "AlphaVantage":
+        from vprism.core.data.providers.alpha_vantage import AlphaVantage
+
+        return AlphaVantage
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

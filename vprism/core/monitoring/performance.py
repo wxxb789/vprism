@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from time import perf_counter
-from typing import Any, Iterator
+from typing import Any
 
 from loguru import logger
 

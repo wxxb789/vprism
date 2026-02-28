@@ -8,9 +8,12 @@ import os
 import sys
 from contextlib import contextmanager
 from contextvars import ContextVar
-from datetime import datetime
-from typing import Any, IO, Iterator
+from datetime import UTC, datetime
+from typing import IO, TYPE_CHECKING, Any
 from uuid import uuid4
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 from vprism.core.logging.config import LogConfig
 
@@ -25,7 +28,7 @@ except ImportError:  # pragma: no cover - fallback for environments without logu
 
 
 _TRACE_ID_VAR: ContextVar[str | None] = ContextVar("vprism_trace_id", default=None)
-_CONTEXT_VAR: ContextVar[dict[str, Any]] = ContextVar("vprism_log_context", default={})
+_CONTEXT_VAR: ContextVar[dict[str, Any] | None] = ContextVar("vprism_log_context", default=None)
 
 
 def _ensure_trace_id() -> str:
@@ -70,13 +73,13 @@ def _format_payload(record: dict[str, Any]) -> dict[str, Any]:
     if isinstance(level_value, dict):
         level_name = level_value.get("name")
     elif hasattr(level_value, "name"):
-        level_name = getattr(level_value, "name")
+        level_name = level_value.name
     elif level_value is None:
         level_name = "INFO"
     else:
         level_name = str(level_value)
     payload: dict[str, Any] = {
-        "timestamp": record["time"].isoformat() if "time" in record else datetime.utcnow().isoformat(),
+        "timestamp": record["time"].isoformat() if "time" in record else datetime.now(UTC).isoformat(),
         "level": level_name,
         "message": record.get("message"),
         "trace_id": extra.get("trace_id"),

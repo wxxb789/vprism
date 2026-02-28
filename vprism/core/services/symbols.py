@@ -7,7 +7,7 @@ from collections import OrderedDict, defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from functools import lru_cache
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from vprism.core.data.schema import SYMBOL_MAP_TABLE
 from vprism.core.exceptions.base import UnresolvedSymbolError
@@ -19,7 +19,6 @@ from vprism.core.models.symbols import (
     RuleTransform,
     SymbolRule,
 )
-from vprism.core.monitoring.metrics import MetricsCollector, get_metrics_collector
 
 if TYPE_CHECKING:
     from duckdb import DuckDBPyConnection
@@ -192,11 +191,15 @@ class SymbolService:
         rules: Sequence[SymbolRule] | None = None,
         cache_size: int = 10_000,
         persistence_conn: DuckDBPyConnection | None = None,
-        metrics_collector: MetricsCollector | None = None,
+        metrics_collector: Any | None = None,
     ) -> None:
         self._cache_size = max(cache_size, 0)
         resolved_rules = rules if rules is not None else default_rules()
-        self._rules: tuple[SymbolRule, ...] = tuple(sorted(resolved_rules, key=lambda rule: (rule.priority, rule.id)))
+        # default_rules() returns pre-sorted tuple; only re-sort when custom rules provided
+        if rules is not None:
+            self._rules: tuple[SymbolRule, ...] = tuple(sorted(resolved_rules, key=lambda rule: (rule.priority, rule.id)))
+        else:
+            self._rules = tuple(resolved_rules)
         self._cache: OrderedDict[CacheKey, CanonicalSymbol] = OrderedDict()
         self._metrics: dict[str, object] = {
             "total_requests": 0,
@@ -209,12 +212,6 @@ class SymbolService:
         if self._persistence_conn is not None:
             SYMBOL_MAP_TABLE.ensure(self._persistence_conn)
         self._metrics_collector = metrics_collector
-        if self._metrics_collector is None:
-            try:
-                self._metrics_collector = get_metrics_collector()
-            except Exception:
-                # Metrics collection is best-effort; avoid construction failures in offline contexts.
-                self._metrics_collector = None
 
     @property
     def rules(self) -> tuple[SymbolRule, ...]:
@@ -275,9 +272,7 @@ class SymbolService:
                 hint_value = provider_hint
 
             try:
-                canonical = self.normalize(
-                    normalized_input, market, asset_type, provider_hint=hint_value
-                )
+                canonical = self.normalize(normalized_input, market, asset_type, provider_hint=hint_value)
             except UnresolvedSymbolError as error:
                 items.append(
                     BatchNormalizationItem(
@@ -394,9 +389,8 @@ class SymbolService:
     def _cache_set(self, key: CacheKey, value: CanonicalSymbol) -> None:
         if self._cache_size == 0:
             return
-        if key in self._cache:
-            self._cache.move_to_end(key)
         self._cache[key] = value
+        self._cache.move_to_end(key)
         if len(self._cache) > self._cache_size:
             self._cache.popitem(last=False)
 

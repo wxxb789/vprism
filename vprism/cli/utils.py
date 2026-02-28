@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Mapping, Sequence
 from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping, Sequence, TextIO
+from typing import TextIO
 
 import typer
 

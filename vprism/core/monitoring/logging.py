@@ -1,7 +1,7 @@
 """Logging utilities for monitoring and performance tracking."""
 
-import asyncio
 import functools
+import inspect
 import time
 from collections.abc import Callable
 from typing import Any
@@ -12,13 +12,6 @@ from loguru import logger
 def bind(**kwargs: Any) -> Any:
     """Bind context to logger."""
     return logger.bind(**kwargs)
-
-
-class StructuredLogger:
-    """Structured logger wrapper."""
-
-    def __init__(self) -> None:
-        self.logger = logger
 
 
 class PerformanceLogger:
@@ -36,23 +29,14 @@ class PerformanceLogger:
                 duration = time.time() - start_time
                 logger.info(
                     f"{self.operation} completed",
-                    extra={
-                        "operation": self.operation,
-                        "duration_ms": round(duration * 1000, 2),
-                        "status": "success",
-                    },
+                    extra={"operation": self.operation, "duration_ms": round(duration * 1000, 2), "status": "success"},
                 )
                 return result
             except Exception as e:
                 duration = time.time() - start_time
                 logger.error(
                     f"{self.operation} failed",
-                    extra={
-                        "operation": self.operation,
-                        "duration_ms": round(duration * 1000, 2),
-                        "status": "error",
-                        "error": str(e),
-                    },
+                    extra={"operation": self.operation, "duration_ms": round(duration * 1000, 2), "error": str(e)},
                 )
                 raise
 
@@ -64,26 +48,17 @@ class PerformanceLogger:
                 duration = time.time() - start_time
                 logger.info(
                     f"{self.operation} completed",
-                    extra={
-                        "operation": self.operation,
-                        "duration_ms": round(duration * 1000, 2),
-                        "status": "success",
-                    },
+                    extra={"operation": self.operation, "duration_ms": round(duration * 1000, 2), "status": "success"},
                 )
                 return result
             except Exception as e:
                 duration = time.time() - start_time
                 logger.error(
                     f"{self.operation} failed",
-                    extra={
-                        "operation": self.operation,
-                        "duration_ms": round(duration * 1000, 2),
-                        "status": "error",
-                        "error": str(e),
-                    },
+                    extra={"operation": self.operation, "duration_ms": round(duration * 1000, 2), "error": str(e)},
                 )
                 raise
 
-        if asyncio.iscoroutinefunction(func):
+        if inspect.iscoroutinefunction(func):
             return async_wrapper
         return sync_wrapper

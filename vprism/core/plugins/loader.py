@@ -92,9 +92,7 @@ class PluginLoader:
     def _iter_entry_points(self) -> list[metadata.EntryPoint]:
         eps = metadata.entry_points()
         selected = (
-            eps.select(group=self.group)
-            if hasattr(eps, "select")
-            else eps.get(self.group, [])  # type: ignore[assignment]
+            eps.select(group=self.group) if hasattr(eps, "select") else eps.get(self.group, [])  # type: ignore[assignment]
         )
         return list(selected)
 
@@ -105,9 +103,7 @@ class PluginLoader:
             return f"{module}:{attr}"
         return module
 
-    def _resolve_register_callable(
-        self, plugin: object, plugin_id: str
-    ) -> Callable[[TyperLike, MutableMapping[str, object]], None] | None:
+    def _resolve_register_callable(self, plugin: object, plugin_id: str) -> Callable[[TyperLike, MutableMapping[str, object]], None] | None:
         if isinstance(plugin, Callable):
             return plugin
         register = getattr(plugin, "register", None)

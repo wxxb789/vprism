@@ -243,9 +243,7 @@ def compute_corporate_action_factors(
         if point.close_price is not None:
             previous_close = point.close_price
 
-    event_dates = {event.ex_date for event in merged_dividends} | {
-        event.ex_date for event in merged_splits
-    }
+    event_dates = {event.ex_date for event in merged_dividends} | {event.ex_date for event in merged_splits}
     missing_dates = event_dates.difference(dates)
     gap_dates.update(missing_dates)
 

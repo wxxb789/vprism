@@ -1,12 +1,14 @@
 """akshare数据提供商实现."""
 
+from __future__ import annotations
+
 import asyncio
 from collections.abc import AsyncIterator, Callable
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-import pandas as pd  # type: ignore[import-untyped]
+from loguru import logger
 from pydantic import ValidationError
 
 from vprism.core.data.providers.base import (
@@ -21,9 +23,6 @@ from vprism.core.models.base import DataPoint
 from vprism.core.models.market import AssetType, MarketType
 from vprism.core.models.query import Adjustment, DataQuery
 from vprism.core.models.response import DataResponse, ProviderInfo, ResponseMetadata
-from vprism.core.monitoring import StructuredLogger
-
-logger = StructuredLogger().logger
 
 
 class AkShare(DataProvider):
@@ -128,6 +127,7 @@ class AkShare(DataProvider):
         # apply post-fetch adjustment if provider returned raw or needs alignment
         if query.adjustment and query.adjustment != Adjustment.NONE:
             from vprism.core.services.adjustment import adjust_prices
+
             data_points = adjust_prices(data_points, query.adjustment)
         end_time = asyncio.get_event_loop().time()
 
@@ -141,7 +141,7 @@ class AkShare(DataProvider):
             source=ProviderInfo(name=self.name),
         )
 
-    async def _get_stock_data(self, query: DataQuery) -> pd.DataFrame:
+    async def _get_stock_data(self, query: DataQuery) -> Any:
         """Fetch stock data."""
         if not query.symbols:
             raise ProviderError("No symbols provided for stock data", self.name)
@@ -166,7 +166,7 @@ class AkShare(DataProvider):
             return self._ak.stock_hk_daily(symbol=symbol, adjust=adjust)
         raise ProviderError(f"Unsupported market for stocks: {query.market}", self.name)
 
-    async def _get_etf_data(self, query: DataQuery) -> pd.DataFrame:
+    async def _get_etf_data(self, query: DataQuery) -> Any:
         """Fetch ETF data."""
         if not query.symbols:
             raise ProviderError("No symbols provided for ETF data", self.name)
@@ -180,7 +180,7 @@ class AkShare(DataProvider):
             end_date=query.end_date.strftime("%Y%m%d") if query.end_date else datetime.now().strftime("%Y%m%d"),
         )
 
-    async def _get_fund_data(self, query: DataQuery) -> pd.DataFrame:
+    async def _get_fund_data(self, query: DataQuery) -> Any:
         """Fetch Fund data."""
         if not query.symbols:
             raise ProviderError("No symbols provided for fund data", self.name)
@@ -193,8 +193,10 @@ class AkShare(DataProvider):
         """Return placeholder corporate action events (dividends, splits)."""
         return [], []
 
-    def _df_to_datapoints(self, df: pd.DataFrame, query: DataQuery) -> list[DataPoint]:
+    def _df_to_datapoints(self, df: Any, query: DataQuery) -> list[DataPoint]:
         """Convert pandas DataFrame to a list of DataPoint objects."""
+        import pandas as pd  # type: ignore[import-untyped]
+
         data_points = []
 
         column_map = {

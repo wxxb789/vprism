@@ -1,11 +1,13 @@
 """Yahoo Finance数据提供商实现."""
 
+from __future__ import annotations
+
 from collections.abc import AsyncIterator
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-import yfinance as yf  # type: ignore
+from loguru import logger
 
 from vprism.core.data.providers.base import (
     AuthConfig,
@@ -19,9 +21,20 @@ from vprism.core.models.base import DataPoint
 from vprism.core.models.market import MarketType
 from vprism.core.models.query import DataQuery
 from vprism.core.models.response import DataResponse, ProviderInfo, ResponseMetadata
-from vprism.core.monitoring import StructuredLogger
 
-logger = StructuredLogger().logger
+
+def _ensure_yfinance() -> Any:
+    """Lazily import and return the yfinance module."""
+    try:
+        import yfinance as yf  # type: ignore[import-untyped]
+
+        return yf
+    except ImportError as e:
+        raise ProviderError(
+            "yfinance package not installed. Install with: pip install yfinance",
+            provider_name="yfinance",
+            error_code="DEPENDENCY_MISSING",
+        ) from e
 
 
 class YFinance(DataProvider):
@@ -90,6 +103,7 @@ class YFinance(DataProvider):
         """
         try:
             # 测试连接
+            yf = _ensure_yfinance()
             ticker = yf.Ticker("AAPL")
             hist = ticker.history(period="1d")
             if hist is not None and not hist.empty:
@@ -182,6 +196,7 @@ class YFinance(DataProvider):
         yf_timeframe = timeframe_map.get(query.timeframe.value, "1d")
 
         try:
+            yf = _ensure_yfinance()
             ticker = yf.Ticker(symbol)
 
             data = ticker.history(start=query.start_date, end=query.end_date, interval=yf_timeframe)
@@ -234,6 +249,7 @@ class YFinance(DataProvider):
             return None
 
         try:
+            yf = _ensure_yfinance()
             ticker = yf.Ticker(symbol)
             info = ticker.info
 
@@ -262,6 +278,7 @@ class YFinance(DataProvider):
             return None
 
         try:
+            yf = _ensure_yfinance()
             ticker = yf.Ticker(symbol)
             info = ticker.info
 

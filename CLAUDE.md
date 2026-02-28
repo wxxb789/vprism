@@ -40,68 +40,118 @@ Dev Loop Suggestion:
 
 Layered core with explicit boundaries; avoid cross-layer leakage.
 
+```
 core/
-  client/ -> VPrismClient builds DataQuery, delegates to services.DataRouter
-  config/ -> Environment + override settings
+  client/       -> VPrismClient builds DataQuery, delegates to DataRouter
+  config/       -> Environment + override settings (unified settings.py)
   data/
-    providers/ -> External source adapters (capability + fetch)
+    providers/  -> External source adapters (capability + fetch); lazy imports
     repositories/ -> Persistence abstraction over storage
-    storage/ -> DuckDB schema + DatabaseManager
-    cache/ -> Multi-level caching (planned / partial)
-    routing.py -> Legacy utilities (prefer services.data_router)
-  services/ -> Orchestration (routing, batching, health loop)
-  models/ -> Typed domain entities (queries, responses, points, enums)
-  patterns/ -> Resilience primitives (retry, circuit breaker)
-  monitoring/, logging/ -> Operational telemetry
-  validation/ -> Quality & consistency checks
-  exceptions/ -> Domain error hierarchy
-web/ -> FastAPI app (vprism.web.main:app) modular routes
-mcp/ -> MCP server exposing internal data access
-tests/ -> Unit + integration across providers, routing, persistence, quality, web, MCP
+    storage/    -> DuckDB schema (6 tables) + DatabaseManager + DatabaseSchema
+    cache/      -> Multi-level caching (DuckDB-backed)
+    routing.py  -> DataRouter with scoring-based provider selection
+  services/     -> Orchestration: symbols, data, adjustment
+  models/       -> Typed domain entities (queries, responses, points, enums)
+  patterns/     -> Resilience primitives (retry, circuit breaker)
+  monitoring/   -> Health checks, performance logging
+  logging/      -> Structured logging with loguru
+  exceptions/   -> Domain error hierarchy (5 core exception types)
+cli/            -> Typer CLI: data + symbol commands
+web/            -> FastAPI app (vprism.web.main:app) modular routes
+mcp/            -> MCP server: 2 tools (get_financial_data, get_market_overview)
+tests/          -> Unit + integration: providers, routing, schema, symbols, CLI, web, MCP
+```
+
+## Database Schema (6 tables)
+
+The DuckDB schema uses DECIMAL(18,8) for prices, composite natural keys, FK/CHECK constraints:
+
+| Table | Purpose | Primary Key |
+|-------|---------|------------|
+| `assets` | Master asset data | (symbol, market) |
+| `ohlcv` | Unified price data | (symbol, market, ts, timeframe, provider) |
+| `symbol_mappings` | Raw→canonical mappings | (canonical, raw_symbol, market, source) |
+| `provider_health` | Provider status/metrics | (name) |
+| `cache` | Query result cache | (key) |
+| `query_log` | Query audit trail | (id) |
+
+Schema is managed by `core/data/storage/schema.py` (DatabaseSchema class).
 
 ## Core Data Flow
 
 1. VPrismClient.get / get_async builds DataQuery
-2. DataRouter asks ProviderRegistry for first healthy capable provider
+2. DataRouter scores providers by capability + historical performance
 3. Provider validates capability, fetches, returns DataResponse/DataPoints
-4. Optional: repository persists/queries via DuckDB -> DataRecord
-5. Validation enforces quality & consistency
-6. Resilience patterns wrap provider calls
-7. Web (FastAPI) or MCP layer serializes outward
+4. Optional: repository persists/queries via DuckDB
+5. Resilience patterns wrap provider calls (retry, circuit breaker)
+6. Web (FastAPI) or MCP layer serializes outward
 
-## Provider Selection & Health
-ProviderRegistry: instances + lazy capability + health flags.
-Health loop: start_health_check updates provider_health periodically.
-Routing heuristic: first healthy capable provider (candidate future scoring: latency, historical success, capability breadth).
+## Provider System
+
+### Lazy Imports
+All provider dependencies (yfinance, akshare, aiohttp) use lazy imports via `_ensure_*()` helper functions. This ensures `import vprism` works without provider packages installed.
+
+### Provider Selection
+DataRouter uses scoring: capability match (0.2 per dimension) + latency penalty + historical success rate. Scores are updated via `update_provider_score()` after each request.
+
+### Adding a Provider
+Subclass `DataProvider` (capability property, get_data, authenticate) → register in `factory/create_default_providers`.
+
+## Symbol Normalization
+
+`SymbolService` normalizes raw symbols (e.g., "000001.SZ", "sh600519") into canonical form (e.g., "CN:STOCK:SZ000001"). Uses priority-ordered rules with LRU cache (10K entries). Batch normalization via `normalize_batch()`.
+
+## Exception Hierarchy
+
+5 core exception types:
+- `VPrismError` → base
+- `ProviderError` → data source failures
+- `DataValidationError` → input/output validation
+- `NetworkError` → connectivity issues
+- `AuthenticationError` → auth failures
+- `UnresolvedSymbolError` → symbol normalization failures
+
+## MCP Server
+
+2 tools:
+- `get_financial_data(symbol, start_date, end_date, timeframe, market, asset_type)` — historical/real-time data
+- `get_market_overview(market, date)` — major index overview
+
+## CLI
+
+2 command groups:
+- `data fetch` — fetch market data with configurable output (table/jsonl)
+- `symbol resolve` — normalize a raw symbol
 
 ## Persistence & Caching
-storage/database.py + models.py: DuckDB schema + access patterns.
-repositories/data.py: DataPoint -> DataRecord mapping & filtered queries.
-cache/: planned multi-level short‑circuiting; inspect integration points before adding logic.
+
+- `storage/database.py`: DatabaseManager for CRUD operations
+- `storage/schema.py`: DatabaseSchema — creates/validates 6-table schema
+- `repositories/data.py`: DataPoint ↔ OHLCVRecord mapping
+- `cache/duckdb.py`: DuckDB-backed query cache with TTL
 
 ## Testing Guidance
+
 Async: rely on pytest asyncio_mode=auto (write async tests directly).
-Focused tests around providers, routing, resilience, validation.
+Focused tests around providers, routing, schema, symbols, resilience.
 Tests excluded from mypy; keep strict typing in library code.
+Optional provider tests (yfinance) automatically skip when package unavailable.
 
 ## Type & Style Conventions
+
 Strict mypy on vprism/ (retain full annotations).
 Ruff enforces imports, style, line length 160; run fix + format in dev loop.
-(See also: Prime Directives of Code Craft section below for extended philosophy.)
 
-## Extension Points
-Providers: subclass DataProvider (capability property, get_data, authenticate) + register in factory/create_default_providers.
-Routing: evolve DataRouter.route_query with scoring (latency, health %, capability richness).
-Persistence: extend DatabaseManager + repositories (keep services thin).
+## Dependencies
 
-## MCP & Web Service
-MCP: uv run python -m vprism.mcp exposes internal data.
-FastAPI: uv run uvicorn vprism.web.main:app --reload (routes in web/routes/).
+Runtime deps in `[project.dependencies]`. Provider packages (akshare, yfinance, aiohttp) in `[project.optional-dependencies].providers`. Dev tools in `[project.optional-dependencies].dev`.
 
 ## Notes for Future Automation (Claude)
+
 Maintain Python 3.13+ compatibility; update pyproject.toml for deps.
 Preserve layering; avoid unsolicited large refactors.
 Prefer existing resilience primitives over ad-hoc try/except.
+All provider imports must be lazy (inside functions, not module-level).
 
 ---
 
@@ -124,7 +174,7 @@ Prefer existing resilience primitives over ad-hoc try/except.
   - Enforce timeouts on all network + I/O boundaries
 3. Verification Level
   - Static: mypy strict (no ignores except third-party stubs with justification)
-  - Behavioral: pytest focuses on externally observable outcomes; avoid over‑specifying internals
+  - Behavioral: pytest focuses on externally observable outcomes; avoid over-specifying internals
   - Contract: Pydantic validation at ingress (web, mcp, public client)
 4. Operational Level
   - Structured logging (no print) with contextual fields (provider, symbol, latency_ms)
@@ -149,6 +199,7 @@ Prefer existing resilience primitives over ad-hoc try/except.
 
 ## Dependency Hygiene
 - All runtime deps declared in [project.dependencies]
+- Provider packages in [project.optional-dependencies].providers (lazy imported at runtime)
 - dev extras only for tooling (lint, type, test)
 - Remove unused deps quarterly (script TODO)
 - Pin minimum versions only; rely on uv.lock for resolution
@@ -164,6 +215,7 @@ Prefer existing resilience primitives over ad-hoc try/except.
 - Direct datetime.utcnow() without timezone awareness
 - Inlined JSON/YAML longer than 10 lines (extract resource file if needed)
 - Boolean parameter explosion (prefer small strategy objects)
+- Module-level imports of optional provider packages (use lazy imports)
 
 ## Automation Roadmap
 - Add pre-commit with ruff + mypy + minimal import cycles check
@@ -210,7 +262,7 @@ class User(BaseModel):
 ```
 
 ## III. Absolute Clarity
-Optimize for the reader. No magic numbers; extract constants. Keep functions single‑purpose. Use precise typing; prefer modern union syntax (X | Y). Avoid silent exception suppression—use contextlib.suppress intentionally.
+Optimize for the reader. No magic numbers; extract constants. Keep functions single-purpose. Use precise typing; prefer modern union syntax (X | Y). Avoid silent exception suppression—use contextlib.suppress intentionally.
 ```python
 import contextlib
 from typing import Sequence
@@ -261,4 +313,3 @@ def list_users() -> None:
 Think about algorithmic complexity, batching vs per-item I/O, memory footprint (stream instead of load-all where practical). Avoid premature micro-optimizations; design for observability so scaling decisions are data-driven later.
 
 ---
-
