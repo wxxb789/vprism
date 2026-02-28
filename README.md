@@ -4,207 +4,159 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-vprism is a comprehensive financial data platform that provides unified access to multiple financial data sources through consistent, high-performance APIs. It abstracts away the complexity of managing multiple data providers, rate limits, and data format inconsistencies.
+vprism is a financial data platform that provides unified access to multiple data sources through consistent, high-performance APIs. It abstracts away the complexity of managing multiple data providers, rate limits, and data format inconsistencies.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 ```bash
 pip install vprism
+
+# With provider packages
+pip install vprism[providers]
 ```
 
-### Basic Usage
+### Python Library
 ```python
-from vprism import VPrismClient
+from vprism.core.services.data import DataService
 
-# Create client
-client = VPrismClient()
+service = DataService()
 
-# Get stock data
-data = await client.get_stock_data("AAPL", period="1y")
-print(data.head())
+# Simple API
+response = await service.get("AAPL", start="2024-01-01", end="2024-12-31")
 
-# Use MCP server
-# Start: python -m vprism.mcp
+# Chinese market
+response = await service.get("000001", market=MarketType.CN)
+
+# Fluent API
+response = await service.query() \
+    .symbols(["AAPL", "GOOGL"]) \
+    .start("2024-01-01") \
+    .period("1y") \
+    .get()
 ```
 
-### Docker Deployment
+### MCP Server (for AI assistants)
 ```bash
-docker-compose up -d
-```
-
-## 🏗️ Architecture
-
-vprism is built with a modular, scalable architecture:
-
-```
-vprism/
-├── vprism/core/              # Core business logic
-├── vprism/web/               # FastAPI web service
-├── vprism/mcp/               # MCP server
-├── vprism/docker/            # Docker configuration
-├── tests/                    # Comprehensive test suite
-└── docs/                     # Documentation
-```
-
-### Core Components
-
-#### 1. Data Layer (`vprism/core/data/`)
-- **Multi-level caching** (memory, DuckDB, file-based)
-- **Provider abstraction** (Yahoo Finance, Alpha Vantage, AkShare)
-- **Rate limiting** and **circuit breaker** patterns
-- **Data validation** and **quality checks**
-
-#### 2. Service Layer (`vprism/core/services/`)
-- **Batch processing** for large data requests
-- **Data routing** between providers
-- **Query optimization** and **caching**
-
-#### 3. API Layer
-- **MCP Server**: Native Model Context Protocol support
-- **Web API**: RESTful FastAPI service
-- **Python Library**: Simple, intuitive interface
-
-## 📊 Features
-
-### Data Sources
-- ✅ **Yahoo Finance**: Real-time and historical stock data
-- ✅ **Alpha Vantage**: Comprehensive financial data with fundamentals
-- ✅ **AkShare**: Chinese market data and alternative sources
-- ✅ **Extensible**: Easy to add new providers
-
-### Performance & Reliability
-- **Multi-level caching** for optimal performance
-- **Automatic failover** between providers
-- **Rate limit management** with exponential backoff
-- **Circuit breaker** pattern for resilience
-- **Health monitoring** and **metrics**
-
-### Developer Experience
-- **MCP Server**: AI-native design for chatbots and AI assistants
-- **Comprehensive documentation** with examples
-- **Docker support** for easy deployment
-- **Type hints** and **async/await** support
-
-## 🎯 Use Cases
-
-### 1. AI Financial Assistant
-```python
-# MCP server provides data to AI chatbots
 python -m vprism.mcp
 ```
 
-### 2. Algorithmic Trading
-```python
-from vprism import VPrismClient
-
-client = VPrismClient()
-data = await client.get_stock_data("TSLA", period="1d", interval="1m")
-```
-
-### 3. Financial Research
-```python
-# Batch processing for large datasets
-batch = client.create_batch()
-batch.add_request("AAPL", "1y")
-batch.add_request("GOOGL", "1y")
-results = await batch.execute()
-```
-
-### 4. Web Applications
+### Web API
 ```bash
-# Start web service
-uvicorn src.web.main:app --reload
+uvicorn vprism.web.main:app --reload
 ```
 
-## 📁 Project Structure
+### CLI
+```bash
+# Fetch market data
+vprism data fetch --symbols AAPL --start 2024-01-01 --format table
+
+# Resolve a symbol
+vprism symbol resolve --raw-symbol 000001.SZ
+```
+
+## Architecture
 
 ```
 vprism/
-├── vprism/
-│   ├── core/                    # Core business logic
-│   │   ├── client/              # Client implementation
-│   │   ├── config/              # Configuration management
-│   │   ├── data/                # Data layer
-│   │   │   ├── cache/           # Multi-level caching
-│   │   │   ├── providers/       # Data providers
-│   │   │   ├── repositories/    # Data access patterns
-│   │   │   └── storage/         # Database abstraction
-│   │   ├── exceptions/          # Error handling
-│   │   ├── models/              # Data models
-│   │   ├── services/            # Business services
-│   │   └── validation/          # Data validation
-│   ├── web/                     # FastAPI web service
-│   ├── mcp/                     # MCP server
-│   └── docker/                  # Docker configuration
-├── tests/                       # Test suite
-├── docs/                        # Documentation
-└── examples/                    # Usage examples
+├── core/
+│   ├── client/          # VPrismClient — high-level entry point
+│   ├── config/          # Unified settings (VPrismConfig)
+│   ├── data/
+│   │   ├── providers/   # Yahoo Finance, Alpha Vantage, AkShare
+│   │   ├── repositories/# DataRepository (DataPoint ↔ OHLCVRecord)
+│   │   ├── storage/     # DuckDB (6 tables) + DatabaseManager
+│   │   ├── cache/       # Multi-level cache (memory + DuckDB)
+│   │   └── routing.py   # Provider scoring and selection
+│   ├── services/        # DataService, SymbolService, PriceAdjuster
+│   ├── models/          # DataQuery, DataResponse, DataPoint, enums
+│   ├── patterns/        # Retry, CircuitBreaker, ResilientExecutor
+│   ├── health/          # Component health checks
+│   ├── monitoring/      # Performance logging, slow query tracking
+│   ├── logging/         # Structured logging (loguru)
+│   └── exceptions/      # Domain error hierarchy
+├── cli/                 # Typer CLI: data fetch, symbol resolve
+├── web/                 # FastAPI with data + health routes
+├── mcp/                 # MCP server: get_financial_data, get_market_overview
+└── tests/               # Unit + integration tests
 ```
 
-## 🛠️ Development
+### Data Flow
 
-### Setup Development Environment
+```
+Request → Cache check → Provider (via DataRouter scoring) → Cache + Store → Response
+                                                      ↘ On failure: Storage fallback
+```
+
+1. **DataService** checks multi-level cache (memory → DuckDB)
+2. On cache miss, **DataRouter** scores providers by capability + historical performance
+3. Best provider fetches data; result is cached and persisted
+4. On provider failure, falls back to previously stored data
+
+## Data Sources
+
+| Provider | Markets | Auth |
+|----------|---------|------|
+| **Yahoo Finance** | US, global stocks, forex, crypto | None |
+| **Alpha Vantage** | US, global stocks, forex, crypto | API key |
+| **AkShare** | Chinese A-shares, indices | None |
+
+All provider dependencies use lazy imports — `import vprism` works without any provider packages installed.
+
+### Adding a Provider
+
+Subclass `DataProvider`, implement `capability`, `get_data`, and `authenticate`, then register in `factory/create_default_providers`.
+
+## Resilience
+
+- **Exponential backoff retry** with configurable attempts, delay, and exceptions
+- **Circuit breaker** with CLOSED → OPEN → HALF_OPEN state machine
+- **ResilientExecutor** combining both patterns
+- **Automatic failover** to stored data when providers are unavailable
+
+## Database
+
+DuckDB with 6 tables using DECIMAL(18,8) for prices:
+
+| Table | Purpose |
+|-------|---------|
+| `assets` | Master asset data |
+| `ohlcv` | Unified OHLCV price data |
+| `symbol_mappings` | Raw → canonical symbol mappings |
+| `provider_health` | Provider status and metrics |
+| `cache` | Query result cache with TTL |
+| `query_log` | Query audit trail |
+
+## Development
+
 ```bash
-# Clone repository
-git clone https://github.com/your-repo/vprism.git
+# Setup
+git clone https://github.com/wxxb789/vprism.git
 cd vprism
+uv run pip install -e ".[dev]"
 
-# Install with development dependencies
-pip install -e ".[dev]"
-
-# Run tests
-pytest
-
-# Run linting
-ruff check .
+# Dev loop
+uv run mypy ./vprism
+uv run ruff check --fix . && uv run ruff format .
+uv run pytest
 ```
 
-### Configuration
-```toml
-# vprism.toml
-[cache]
-memory_ttl = 300
-file_ttl = 86400
+### Tools
+- **uv** for environment and dependency management
+- **ruff** for linting and formatting (line length 160)
+- **mypy** strict mode on vprism/
+- **pytest** with asyncio_mode=auto
 
-[providers]
-yfinance = { enabled = true }
-alpha_vantage = { api_key = "your_key" }
-
-[logging]
-level = "INFO"
-```
-
-## 📚 Documentation
-
-- **[Quick Start](docs/quickstart.md)** - Get started in 5 minutes
-- **[API Documentation](docs/api/)** - Complete API reference
-- **[Deployment Guide](docs/deployment/)** - Production deployment
-- **[Examples](examples/)** - Real-world usage examples
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🔗 Links
+## Links
 
-- **[Documentation](https://vprism.readthedocs.io/)**
-- **[PyPI Package](https://pypi.org/project/vprism/)**
-- **[Docker Hub](https://hub.docker.com/r/vprism/vprism)**
-- **[GitHub Issues](https://github.com/your-repo/vprism/issues)**
+- **[GitHub](https://github.com/wxxb789/vprism)**
+- **[Issues](https://github.com/wxxb789/vprism/issues)**
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- Built with [FastAPI](https://fastapi.tiangolo.com/)
+- Built with [FastAPI](https://fastapi.tiangolo.com/), [DuckDB](https://duckdb.org/), [loguru](https://github.com/Delgan/loguru)
 - Data providers: Yahoo Finance, Alpha Vantage, AkShare
-- Inspired by the need for reliable, unified financial data access
