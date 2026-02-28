@@ -64,8 +64,8 @@ def test_symbol_resolve_jsonl_output(runner: CliRunner, monkeypatch: pytest.Monk
     result = runner.invoke(app, ["--format", "jsonl", "symbol", "resolve", "600519"])
 
     assert result.exit_code == 0, result.output
-    assert result.output.strip().startswith("{\"raw_symbol\": \"600519\"")
-    assert "\"rule_id\": \"cn-rule\"" in result.output
+    assert result.output.strip().startswith('{"raw_symbol": "600519"')
+    assert '"rule_id": "cn-rule"' in result.output
 
 
 def test_symbol_resolve_unresolved_symbol(runner: CliRunner, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -83,5 +83,5 @@ def test_symbol_resolve_unresolved_symbol(runner: CliRunner, monkeypatch: pytest
     result = runner.invoke(app, ["symbol", "resolve", "BAD"])
 
     assert result.exit_code == 10
-    assert "SYMBOL_UNRESOLVED" in result.output
+    assert "UNRESOLVED_SYMBOL" in result.output
     assert "BAD" in result.output

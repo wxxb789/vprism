@@ -5,6 +5,8 @@ import contextlib
 from datetime import UTC, datetime
 from typing import Any, TypedDict
 
+from loguru import logger as _logger
+
 from vprism.core.data.providers.base import DataProvider
 from vprism.core.models.query import DataQuery
 
@@ -182,7 +184,7 @@ class ProviderRegistry:
                 break
             except Exception as e:
                 # 记录错误但不中断健康检查
-                print(f"Health check error: {e}")
+                _logger.error(f"Health check error: {e}")
 
     async def _check_all_providers_health(self) -> None:
         """检查所有提供商的健康状态."""

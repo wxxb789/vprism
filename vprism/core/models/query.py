@@ -1,15 +1,15 @@
 """Query models and builders."""
 
 from datetime import date, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from vprism.core.models.market import AssetType, MarketType, TimeFrame
 
 
-class Adjustment(str, Enum):
+class Adjustment(StrEnum):
     """Price adjustment type."""
 
     NONE = "none"
@@ -18,12 +18,16 @@ class Adjustment(str, Enum):
 
 
 class DataQuery(BaseModel):
-    """数据查询模型."""
+    """Data query model.
+
+    Supports both datetime (start/end) and date (start_date/end_date) fields.
+    They are kept in sync: setting one automatically derives the other.
+    """
 
     asset: AssetType
     market: MarketType | None = None
     provider: str | None = None
-    timeframe: TimeFrame = TimeFrame.DAY_1  # 默认日线
+    timeframe: TimeFrame = TimeFrame.DAY_1
     start: datetime | None = None
     end: datetime | None = None
     start_date: date | None = None
@@ -31,6 +35,21 @@ class DataQuery(BaseModel):
     symbols: list[str] | None = None
     raw_symbols: list[str] | None = None
     adjustment: Adjustment | None = Field(default=Adjustment.NONE, description="Price adjustment type")
+
+    @model_validator(mode="after")
+    def _sync_date_fields(self) -> "DataQuery":
+        """Keep start/end and start_date/end_date in sync."""
+        if self.start and not self.start_date:
+            object.__setattr__(self, "start_date", self.start.date())
+        elif self.start_date and not self.start:
+            object.__setattr__(self, "start", datetime.combine(self.start_date, datetime.min.time()))
+
+        if self.end and not self.end_date:
+            object.__setattr__(self, "end_date", self.end.date())
+        elif self.end_date and not self.end:
+            object.__setattr__(self, "end", datetime.combine(self.end_date, datetime.max.time()))
+
+        return self
 
 
 class QueryBuilder:
@@ -70,15 +89,21 @@ class QueryBuilder:
         return self
 
     def date_range(self, start: datetime | date, end: datetime | date) -> "QueryBuilder":
-        """设置日期范围."""
+        """Set date range.
+
+        Accepts both datetime and date objects. The model_validator
+        on DataQuery will keep start/end and start_date/end_date in sync.
+        """
         if isinstance(start, datetime):
             self._query["start"] = start
         else:
+            self._query["start"] = datetime.combine(start, datetime.min.time())
             self._query["start_date"] = start
 
         if isinstance(end, datetime):
             self._query["end"] = end
         else:
+            self._query["end"] = datetime.combine(end, datetime.max.time())
             self._query["end_date"] = end
         return self
 

@@ -6,9 +6,9 @@ from unittest.mock import Mock
 import pytest
 
 from vprism.core.data.providers.base import DataProvider
+from vprism.core.data.routing import DataRouter
 from vprism.core.exceptions import NoCapableProviderError
 from vprism.core.models import AssetType, DataQuery, MarketType, TimeFrame
-from vprism.core.services.routing import DataRouter
 
 
 class MockProvider(DataProvider):

@@ -20,9 +20,7 @@ from vprism.core.services.symbols import SymbolService
         ("sz399001", AssetType.INDEX, "CN:INDEX:SZ399001"),
     ],
 )
-def test_default_rules_cover_cn_assets(
-    raw_symbol: str, asset_type: AssetType, expected: str
-) -> None:
+def test_default_rules_cover_cn_assets(raw_symbol: str, asset_type: AssetType, expected: str) -> None:
     service = SymbolService()
 
     result = service.normalize(raw_symbol, MarketType.CN, asset_type)

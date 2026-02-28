@@ -63,11 +63,11 @@ class TestProviderBase:
         provider = AkShare()
 
         # 在测试环境中，认证应该成功
-        with patch.object(provider, "_initialize_akshare", return_value=None), \
-            patch.object(provider, "_ak", create=True) as ak_mock:
+        with patch.object(provider, "_initialize_akshare", return_value=None), patch.object(provider, "_ak", create=True) as ak_mock:
             # stub a minimal DataFrame-like object
             class _DF:
                 empty = False
+
             ak_mock.stock_zh_a_spot_em.return_value = _DF()
             result = await provider.authenticate()
 
@@ -100,18 +100,24 @@ class TestAkShare:
             class _AkStub:
                 def stock_zh_a_hist(self, **kwargs):
                     import pandas as pd
-                    return pd.DataFrame({
-                        "date": [datetime(2024, 1, 2)],
-                        "open": [10.0],
-                        "high": [11.0],
-                        "low": [9.0],
-                        "close": [10.5],
-                        "volume": [1000],
-                    })
+
+                    return pd.DataFrame(
+                        {
+                            "date": [datetime(2024, 1, 2)],
+                            "open": [10.0],
+                            "high": [11.0],
+                            "low": [9.0],
+                            "close": [10.5],
+                            "volume": [1000],
+                        }
+                    )
+
                 def stock_us_daily(self, **kwargs):
                     raise AssertionError("Should not be called in this test")
+
                 def stock_hk_daily(self, **kwargs):
                     raise AssertionError("Should not be called in this test")
+
             provider._ak = _AkStub()
             provider._initialized = True
             provider._is_authenticated = True
@@ -148,6 +154,9 @@ class TestYFinance:
     async def test_yfinance_get_data(self):
         """测试YFinance获取数据."""
         provider = YFinance()
+        # Skip if yfinance not installed (optional dependency)
+        if not provider._is_authenticated:
+            pytest.skip("yfinance package not installed")
 
         query = DataQuery(
             asset=AssetType.STOCK,

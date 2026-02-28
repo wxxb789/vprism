@@ -1,413 +1,273 @@
-"""测试数据库表结构和功能"""
+"""Test unified database schema (6 tables with proper types and constraints)."""
 
-from datetime import date, datetime
-
+import duckdb
 import pytest
 
-from vprism.core.data.storage.schema import DatabaseSchema
+from vprism.core.data.storage.schema import (
+    TABLE_NAMES,
+    DatabaseSchema,
+    create_all_tables,
+    drop_all_tables,
+)
 
 
 class TestDatabaseSchema:
-    """测试数据库表结构设计"""
+    """Test new 6-table schema design."""
 
     @pytest.fixture
-    def temp_db(self) -> str:
-        """创建临时内存数据库"""
-        return ":memory:"
+    def schema(self) -> DatabaseSchema:
+        """Create in-memory schema."""
+        s = DatabaseSchema(":memory:")
+        yield s
+        s.close()
 
-    def test_database_connection(self, temp_db: str) -> None:
-        """测试数据库连接"""
-        schema = DatabaseSchema(temp_db)
-        assert schema.conn is not None
-        schema.close()
-
-    def test_table_creation(self, temp_db: str) -> None:
-        """测试表结构创建"""
-        schema = DatabaseSchema(temp_db)
+    def test_database_connection(self, schema: DatabaseSchema) -> None:
+        """Test database connection works."""
         assert schema.conn is not None
 
-        # 验证表存在
-        tables = schema.conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'").fetchall()
+    def test_all_six_tables_exist(self, schema: DatabaseSchema) -> None:
+        """Verify exactly 6 tables are created."""
+        tables = schema.conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'main' AND table_type = 'BASE TABLE'").fetchall()
+        table_names = sorted(t[0] for t in tables)
 
-        table_names = [t[0] for t in tables]
-        expected_tables = [
-            "asset_info",
-            "daily_ohlcv",
-            "intraday_ohlcv",
-            "real_time_quotes",
-            "cache_entries",
-            "data_quality",
-            "provider_status",
-        ]
+        expected = sorted(TABLE_NAMES)
+        assert table_names == expected
 
-        for table in expected_tables:
-            assert table in table_names, f"Table {table} not found"
-
-        schema.close()
-
-    def test_indexes_creation(self, temp_db: str) -> None:
-        """测试索引创建"""
-        schema = DatabaseSchema(temp_db)
-        assert schema.conn is not None
-
-        # 验证索引创建 - 检查表结构
-        indexes = schema.conn.execute("""
-            SELECT table_name, index_name
-            FROM duckdb_indexes()
-            WHERE table_name IN ('asset_info', 'daily_ohlcv', 'intraday_ohlcv')
-        """).fetchall()
-
-        # 应该有索引存在
-        assert len(indexes) >= 0, "Index verification completed"
-
-        schema.close()
-
-    def test_table_stats(self, temp_db: str) -> None:
-        """测试表统计信息"""
-        schema = DatabaseSchema(temp_db)
-        assert schema.conn is not None
-
+    def test_table_stats(self, schema: DatabaseSchema) -> None:
+        """Test get_table_stats returns all tables."""
         stats = schema.get_table_stats()
-        expected_tables = [
-            "asset_info",
-            "daily_ohlcv",
-            "intraday_ohlcv",
-            "real_time_quotes",
-            "cache_entries",
-            "data_quality",
-        ]
+        for table in TABLE_NAMES:
+            assert table in stats
+            assert stats[table] == 0
 
-        for table in expected_tables:
-            assert table in stats, f"Table {table} not in stats"
-            assert isinstance(stats[table], int)
+    # ── assets table ────────────────────────────────────────────────────────
 
-        schema.close()
-
-    def test_insert_and_query_asset_info(self, temp_db: str) -> None:
-        """测试资产信息表的插入和查询"""
-        schema = DatabaseSchema(temp_db)
-        assert schema.conn is not None
-
-        # 插入测试数据
+    def test_insert_and_query_asset(self, schema: DatabaseSchema) -> None:
+        """Test assets table insert and query."""
         schema.conn.execute("""
-            INSERT INTO asset_info
-            (symbol, market, name, asset_type, currency, exchange, provider)
-            VALUES
-            ('TEST001', 'cn', '测试股票', 'stock', 'CNY', 'SZSE', 'tushare')
+            INSERT INTO assets (symbol, market, name, asset_type, currency, exchange_tz)
+            VALUES ('AAPL', 'us', 'Apple Inc.', 'stock', 'USD', 'America/New_York')
         """)
 
-        # 查询测试
-        result = schema.conn.execute("SELECT symbol, name, asset_type FROM asset_info WHERE symbol = 'TEST001'").fetchone()
+        result = schema.conn.execute("SELECT symbol, name, currency, exchange_tz FROM assets WHERE symbol = 'AAPL'").fetchone()
 
         assert result is not None
-        assert result[0] == "TEST001"
-        assert result[1] == "测试股票"
-        assert result[2] == "stock"
+        assert result[0] == "AAPL"
+        assert result[1] == "Apple Inc."
+        assert result[2] == "USD"
+        assert result[3] == "America/New_York"
 
-        schema.close()
-
-    def test_insert_and_query_daily_ohlcv(self, temp_db: str) -> None:
-        """测试日线OHLCV数据的插入和查询"""
-        schema = DatabaseSchema(temp_db)
-        assert schema.conn is not None
-
-        # 插入测试数据
-        test_date = date(2024, 1, 1)
-        schema.conn.execute(
-            """
-            INSERT INTO daily_ohlcv
-            (id, symbol, market, trade_date, open_price, high_price, low_price, close_price, volume, provider)
-            VALUES
-            ('daily-001', 'TEST001', 'cn', ?, 10.50, 10.80, 10.30, 10.60, 1000000, 'tushare')
-        """,
-            [test_date],
-        )
-
-        # 查询测试
-        result = schema.conn.execute(
-            """SELECT symbol, close_price, volume, trade_date
-               FROM daily_ohlcv
-               WHERE symbol = 'TEST001' AND trade_date = ?""",
-            [test_date],
-        ).fetchone()
-
-        assert result is not None
-        assert result[0] == "TEST001"
-        assert float(result[1]) == 10.60
-        assert result[2] == 1000000
-        assert result[3] == test_date
-
-        schema.close()
-
-    def test_insert_and_query_intraday_ohlcv(self, temp_db: str) -> None:
-        """测试分钟级OHLCV数据的插入和查询"""
-        schema = DatabaseSchema(temp_db)
-        assert schema.conn is not None
-
-        # 插入测试数据
-        test_timestamp = datetime(2024, 1, 1, 9, 30, 0)
-        schema.conn.execute(
-            """
-            INSERT INTO intraday_ohlcv
-            (id, symbol, market, timeframe, timestamp, open_price, high_price, low_price, close_price, volume, provider)
-            VALUES
-            ('intraday-001', 'TEST001', 'cn', '1m', ?, 10.50, 10.52, 10.49, 10.51, 10000, 'tushare')
-        """,
-            [test_timestamp],
-        )
-
-        # 查询测试
-        result = schema.conn.execute(
-            """SELECT symbol, close_price, volume, timeframe
-               FROM intraday_ohlcv
-               WHERE symbol = 'TEST001' AND timeframe = '1m'"""
-        ).fetchone()
-
-        assert result is not None
-        assert result[0] == "TEST001"
-        assert float(result[1]) == 10.51
-        assert result[2] == 10000
-        assert result[3] == "1m"
-
-        schema.close()
-
-    def test_insert_and_query_real_time_quotes(self, temp_db: str) -> None:
-        """测试实时报价数据的插入和查询"""
-        schema = DatabaseSchema(temp_db)
-        assert schema.conn is not None
-
-        # 插入测试数据
-        test_timestamp = datetime.now()
-        schema.conn.execute(
-            """
-            INSERT INTO real_time_quotes
-            (id, symbol, market, price, change_amount, change_percent, volume, timestamp, provider)
-            VALUES
-            ('realtime-001', 'TEST001', 'cn', 10.55, 0.05, 0.47, 500000, ?, 'tushare')
-        """,
-            [test_timestamp],
-        )
-
-        # 查询测试
-        result = schema.conn.execute("SELECT symbol, price, change_percent FROM real_time_quotes WHERE symbol = 'TEST001'").fetchone()
-
-        assert result is not None
-        assert result[0] == "TEST001"
-        assert float(result[1]) == 10.55
-        assert float(result[2]) == 0.47
-
-        schema.close()
-
-    def test_primary_key_constraints(self, temp_db: str) -> None:
-        """测试主键约束"""
-        schema = DatabaseSchema(temp_db)
-        assert schema.conn is not None
-
-        # 测试资产信息表的主键约束
+    def test_assets_composite_pk(self, schema: DatabaseSchema) -> None:
+        """Test composite primary key (symbol, market) on assets."""
         schema.conn.execute("""
-            INSERT INTO asset_info (symbol, market, name, asset_type, currency, exchange, provider)
-            VALUES ('TEST001', 'cn', '测试股票1', 'stock', 'CNY', 'SZSE', 'tushare')
+            INSERT INTO assets (symbol, market, name, asset_type, currency, exchange_tz)
+            VALUES ('000001', 'cn', 'Ping An Bank', 'stock', 'CNY', 'Asia/Shanghai')
         """)
 
-        # 再次插入相同主键应该失败 - 使用try-catch处理异常
-        try:
+        # Same symbol, different market should work
+        schema.conn.execute("""
+            INSERT INTO assets (symbol, market, name, asset_type, currency, exchange_tz)
+            VALUES ('000001', 'hk', 'Some HK Stock', 'stock', 'HKD', 'Asia/Hong_Kong')
+        """)
+
+        count = schema.conn.execute("SELECT COUNT(*) FROM assets WHERE symbol = '000001'").fetchone()
+        assert count[0] == 2
+
+        # Duplicate (symbol, market) should fail
+        with pytest.raises(duckdb.Error):
             schema.conn.execute("""
-                INSERT INTO asset_info (symbol, market, name, asset_type, currency, exchange, provider)
-                VALUES ('TEST001', 'cn', '测试股票2', 'stock', 'CNY', 'SZSE', 'tushare')
+                INSERT INTO assets (symbol, market, name, asset_type, currency, exchange_tz)
+                VALUES ('000001', 'cn', 'Duplicate', 'stock', 'CNY', 'Asia/Shanghai')
             """)
-            # 如果执行到这里，说明主键约束没有生效，这是不应该的
-            raise AssertionError("Primary key constraint should have failed")
-        except Exception:
-            # 这是预期的行为，主键约束生效
-            pass
 
-        schema.close()
+    def test_assets_no_default_currency(self, schema: DatabaseSchema) -> None:
+        """Currency must be explicit - no default CNY problem."""
+        with pytest.raises(duckdb.Error):
+            schema.conn.execute("""
+                INSERT INTO assets (symbol, market, name, asset_type, exchange_tz)
+                VALUES ('MSFT', 'us', 'Microsoft', 'stock', 'America/New_York')
+            """)
 
-    def test_foreign_key_like_behavior(self, temp_db: str) -> None:
-        """测试类似外键的行为（通过应用层实现）"""
-        schema = DatabaseSchema(temp_db)
-        assert schema.conn is not None
+    # ── ohlcv table ─────────────────────────────────────────────────────────
 
-        # 先插入资产信息
+    def test_insert_and_query_ohlcv(self, schema: DatabaseSchema) -> None:
+        """Test ohlcv table with DECIMAL prices."""
+        # Insert prerequisite asset
         schema.conn.execute("""
-            INSERT INTO asset_info (symbol, market, name, asset_type, currency, exchange, provider)
-            VALUES ('TEST001', 'cn', '测试股票', 'stock', 'CNY', 'SZSE', 'tushare')
+            INSERT INTO assets (symbol, market, name, asset_type, currency, exchange_tz)
+            VALUES ('AAPL', 'us', 'Apple Inc.', 'stock', 'USD', 'America/New_York')
         """)
 
-        # 然后插入对应的日线数据
-        test_date = date(2024, 1, 1)
-        schema.conn.execute(
-            """
-            INSERT INTO daily_ohlcv
-            (id, symbol, market, trade_date, open_price, high_price, low_price, close_price, volume, provider)
-            VALUES
-            ('daily-002', 'TEST001', 'cn', ?, 10.50, 10.80, 10.30, 10.60, 1000000, 'tushare')
-        """,
-            [test_date],
-        )
-
-        # 验证数据关联
-        result = schema.conn.execute("""
-            SELECT a.symbol, a.name, d.close_price, d.trade_date
-            FROM asset_info a
-            JOIN daily_ohlcv d ON a.symbol = d.symbol AND a.market = d.market
-            WHERE a.symbol = 'TEST001'
-        """).fetchone()
-
-        assert result is not None
-        assert result[0] == "TEST001"
-        assert result[1] == "测试股票"
-        assert float(result[2]) == 10.60
-
-        schema.close()
-
-    def test_materialized_views(self, temp_db: str) -> None:
-        """测试物化视图创建"""
-        schema = DatabaseSchema(temp_db)
-        assert schema.conn is not None
-
-        # 直接创建物化视图
-        schema.create_materialized_views()
-
-        # 验证视图存在
-        views = schema.conn.execute("SELECT table_name FROM information_schema.tables WHERE table_type = 'VIEW'").fetchall()
-
-        view_names = [v[0] for v in views]
-
-        # 检查是否创建了视图
-        expected_views = ["latest_prices", "monthly_stats"]
-        for view in expected_views:
-            assert view in view_names, f"View {view} not found"
-
-        schema.close()
-
-    def test_partitioned_views(self, temp_db: str) -> None:
-        """测试分区视图创建"""
-        schema = DatabaseSchema(temp_db)
-        assert schema.conn is not None
-
-        # 创建分区视图
-        schema.create_partitioned_tables()
-
-        # 验证视图存在
-        views = schema.conn.execute("SELECT table_name FROM information_schema.tables WHERE table_type = 'VIEW'").fetchall()
-
-        [v[0] for v in views]
-
-        # 检查是否创建了分区表（注意：这些是表，不是视图）
-        tables = schema.conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'").fetchall()
-        table_names = [t[0] for t in tables]
-
-        expected_tables = ["daily_ohlcv_2024", "daily_ohlcv_2023"]
-        for table in expected_tables:
-            assert table in table_names, f"Table {table} not found"
-
-        schema.close()
-
-    def test_data_quality_table(self, temp_db: str) -> None:
-        """测试数据质量表"""
-        schema = DatabaseSchema(temp_db)
-        assert schema.conn is not None
-
-        # 插入测试数据质量记录
         schema.conn.execute("""
-            INSERT INTO data_quality
-            (id, symbol, market, date_range_start, date_range_end, completeness_score,
-             accuracy_score, consistency_score, total_records, provider)
-            VALUES
-            ('quality-001', 'TEST001', 'cn', '2024-01-01', '2024-01-31', 98.5, 99.2, 97.8, 22, 'tushare')
+            INSERT INTO ohlcv (symbol, market, ts, timeframe, provider, open, high, low, close, volume)
+            VALUES ('AAPL', 'us', '2024-01-02 09:30:00', '1d', 'yahoo',
+                    185.12345678, 186.99999999, 184.00000001, 185.50000000, 50000000)
         """)
 
-        # 查询测试
-        result = schema.conn.execute(
-            """SELECT symbol, completeness_score, total_records
-               FROM data_quality
-               WHERE symbol = 'TEST001'"""
-        ).fetchone()
+        result = schema.conn.execute("SELECT open, high, low, close, volume FROM ohlcv WHERE symbol = 'AAPL'").fetchone()
 
         assert result is not None
-        assert result[0] == "TEST001"
-        assert result[1] == 98.5
-        assert result[2] == 22
+        # DECIMAL(18,8) preserves precision
+        assert float(result[0]) == pytest.approx(185.12345678)
+        assert float(result[1]) == pytest.approx(186.99999999)
+        assert result[4] == 50000000
 
-        schema.close()
-
-    def test_provider_status_table(self, temp_db: str) -> None:
-        """测试提供商状态表"""
-        schema = DatabaseSchema(temp_db)
-        assert schema.conn is not None
-
-        # 插入测试提供商状态
+    def test_ohlcv_composite_pk(self, schema: DatabaseSchema) -> None:
+        """Test composite PK prevents duplicate OHLCV records."""
         schema.conn.execute("""
-            INSERT INTO provider_status
-            (provider_name, status, last_success, uptime_percent, avg_response_time_ms)
-            VALUES
-            ('tushare', 'healthy', CURRENT_TIMESTAMP, 99.5, 150)
+            INSERT INTO assets (symbol, market, name, asset_type, currency, exchange_tz)
+            VALUES ('AAPL', 'us', 'Apple', 'stock', 'USD', 'America/New_York')
         """)
 
-        # 查询测试
-        result = schema.conn.execute("SELECT provider_name, status, uptime_percent FROM provider_status WHERE provider_name = 'tushare'").fetchone()
+        schema.conn.execute("""
+            INSERT INTO ohlcv (symbol, market, ts, timeframe, provider, close, volume)
+            VALUES ('AAPL', 'us', '2024-01-02', '1d', 'yahoo', 185.50, 1000)
+        """)
+
+        # Same provider, same time, same timeframe → should fail
+        with pytest.raises(duckdb.Error):
+            schema.conn.execute("""
+                INSERT INTO ohlcv (symbol, market, ts, timeframe, provider, close, volume)
+                VALUES ('AAPL', 'us', '2024-01-02', '1d', 'yahoo', 186.00, 2000)
+            """)
+
+        # Different provider → should succeed
+        schema.conn.execute("""
+            INSERT INTO ohlcv (symbol, market, ts, timeframe, provider, close, volume)
+            VALUES ('AAPL', 'us', '2024-01-02', '1d', 'alpha_vantage', 185.51, 999)
+        """)
+
+    def test_ohlcv_check_constraints(self, schema: DatabaseSchema) -> None:
+        """Test CHECK constraints: low <= high, open > 0."""
+        schema.conn.execute("""
+            INSERT INTO assets (symbol, market, name, asset_type, currency, exchange_tz)
+            VALUES ('TEST', 'us', 'Test', 'stock', 'USD', 'America/New_York')
+        """)
+
+        # low > high should fail
+        with pytest.raises(duckdb.Error):
+            schema.conn.execute("""
+                INSERT INTO ohlcv (symbol, market, ts, timeframe, provider, open, high, low, close)
+                VALUES ('TEST', 'us', '2024-01-02', '1d', 'test', 10.0, 9.0, 11.0, 10.0)
+            """)
+
+        # open = 0 should fail
+        with pytest.raises(duckdb.Error):
+            schema.conn.execute("""
+                INSERT INTO ohlcv (symbol, market, ts, timeframe, provider, open, high, low, close)
+                VALUES ('TEST', 'us', '2024-01-03', '1d', 'test', 0.0, 10.0, 9.0, 10.0)
+            """)
+
+        # NULL open should be OK
+        schema.conn.execute("""
+            INSERT INTO ohlcv (symbol, market, ts, timeframe, provider, high, low, close)
+            VALUES ('TEST', 'us', '2024-01-04', '1d', 'test', 10.0, 9.0, 10.0)
+        """)
+
+    def test_ohlcv_fk_to_assets(self, schema: DatabaseSchema) -> None:
+        """Test foreign key from ohlcv to assets."""
+        # Insert without parent asset should fail
+        with pytest.raises(duckdb.Error):
+            schema.conn.execute("""
+                INSERT INTO ohlcv (symbol, market, ts, timeframe, provider, close)
+                VALUES ('NONEXISTENT', 'us', '2024-01-02', '1d', 'yahoo', 100.0)
+            """)
+
+    # ── provider_health table ───────────────────────────────────────────────
+
+    def test_provider_health(self, schema: DatabaseSchema) -> None:
+        """Test provider_health table."""
+        schema.conn.execute("""
+            INSERT INTO provider_health (name, status, req_count, err_count, p95_ms)
+            VALUES ('yahoo', 'healthy', 1000, 5, 150.25)
+        """)
+
+        result = schema.conn.execute("SELECT name, status, req_count, err_count FROM provider_health WHERE name = 'yahoo'").fetchone()
 
         assert result is not None
-        assert result[0] == "tushare"
         assert result[1] == "healthy"
-        assert result[2] == 99.5
+        assert result[2] == 1000
+        assert result[3] == 5
 
-        schema.close()
+    def test_provider_health_status_check(self, schema: DatabaseSchema) -> None:
+        """Test CHECK constraint on status column."""
+        with pytest.raises(duckdb.Error):
+            schema.conn.execute("""
+                INSERT INTO provider_health (name, status)
+                VALUES ('test', 'invalid_status')
+            """)
 
-    def test_optimization_functions(self, temp_db: str) -> None:
-        """测试优化功能"""
-        schema = DatabaseSchema(temp_db)
-        assert schema.conn is not None
+    # ── cache table ─────────────────────────────────────────────────────────
 
-        # 测试优化函数不会崩溃
-        try:
-            schema.optimize_tables()
-            optimization_success = True
-        except Exception as e:
-            optimization_success = False
-            print(f"Optimization failed: {e}")
+    def test_cache_table(self, schema: DatabaseSchema) -> None:
+        """Test cache table with JSON value and expiry."""
+        schema.conn.execute("""
+            INSERT INTO cache (key, value, expires_at)
+            VALUES ('test_key', '{"data": [1, 2, 3]}', '2025-12-31 23:59:59')
+        """)
 
-        assert optimization_success
+        result = schema.conn.execute("SELECT key, value, hits FROM cache WHERE key = 'test_key'").fetchone()
 
-        schema.close()
+        assert result is not None
+        assert result[0] == "test_key"
+        assert result[2] == 0  # default hits
 
-    def test_migration_tool(self, temp_db: str) -> None:
-        """测试迁移工具"""
-        from vprism.core.data.storage.database_schema import DatabaseMigration
+    # ── query_log table ─────────────────────────────────────────────────────
 
-        migration = DatabaseMigration(temp_db)
+    def test_query_log(self, schema: DatabaseSchema) -> None:
+        """Test query_log table."""
+        schema.conn.execute("""
+            INSERT INTO query_log (id, query_hash, asset_type, market, symbols, provider, status, latency_ms)
+            VALUES ('q-001', 'abc123', 'stock', 'us', 'AAPL,MSFT', 'yahoo', 'ok', 150)
+        """)
 
-        # 测试迁移不会崩溃
-        try:
-            migration.migrate_v1_to_v2()
-            migration_success = True
-        except Exception:
-            # 迁移可能已经应用或失败，这是可以接受的
-            migration_success = True  # 我们主要测试不崩溃
+        result = schema.conn.execute("SELECT id, status, latency_ms FROM query_log WHERE id = 'q-001'").fetchone()
 
-        assert migration_success
+        assert result is not None
+        assert result[1] == "ok"
+        assert result[2] == 150
 
-    def test_setup_test_data(self, temp_db: str) -> None:
-        """测试测试数据设置"""
-        schema = DatabaseSchema(temp_db)
-        assert schema.conn is not None
+    def test_query_log_status_check(self, schema: DatabaseSchema) -> None:
+        """Test CHECK constraint on query_log status."""
+        with pytest.raises(duckdb.Error):
+            schema.conn.execute("""
+                INSERT INTO query_log (id, query_hash, status)
+                VALUES ('q-bad', 'hash', 'invalid')
+            """)
 
-        # 直接插入测试数据
-        from vprism.core.data.storage.database_schema import DatabaseMigration
+    # ── symbol_mappings table ───────────────────────────────────────────────
 
-        migration = DatabaseMigration(temp_db)
-        try:
-            migration.setup_test_data()
+    def test_symbol_mappings(self, schema: DatabaseSchema) -> None:
+        """Test symbol_mappings with FK to assets."""
+        schema.conn.execute("""
+            INSERT INTO assets (symbol, market, name, asset_type, currency, exchange_tz)
+            VALUES ('000001', 'cn', 'Ping An', 'stock', 'CNY', 'Asia/Shanghai')
+        """)
 
-            # 验证数据
-            asset_count = schema.conn.execute("SELECT COUNT(*) FROM asset_info").fetchone()[0]
-            daily_count = schema.conn.execute("SELECT COUNT(*) FROM daily_ohlcv").fetchone()[0]
+        schema.conn.execute("""
+            INSERT INTO symbol_mappings (canonical, raw_symbol, market, source, confidence)
+            VALUES ('000001', '000001.SZ', 'cn', 'akshare', 0.95)
+        """)
 
-            assert asset_count >= 0
-            assert daily_count >= 0
-        except Exception:
-            # 如果测试数据设置失败，跳过验证
-            pass
+        result = schema.conn.execute("SELECT canonical, raw_symbol, confidence FROM symbol_mappings").fetchone()
 
-        schema.close()
+        assert result is not None
+        assert result[0] == "000001"
+        assert result[1] == "000001.SZ"
+        assert float(result[2]) == pytest.approx(0.95)
+
+    # ── drop and recreate ───────────────────────────────────────────────────
+
+    def test_drop_and_recreate(self, schema: DatabaseSchema) -> None:
+        """Test drop_all_tables and create_all_tables."""
+        drop_all_tables(schema.conn)
+
+        # Tables should be gone
+        tables = schema.conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'main' AND table_type = 'BASE TABLE'").fetchall()
+        assert len(tables) == 0
+
+        # Recreate
+        create_all_tables(schema.conn)
+
+        tables = schema.conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'main' AND table_type = 'BASE TABLE'").fetchall()
+        assert len(tables) == 6

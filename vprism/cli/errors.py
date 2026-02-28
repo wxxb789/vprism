@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Mapping
+from collections.abc import Mapping
 
 from vprism.core.exceptions.base import VPrismError
 from vprism.core.exceptions.codes import ErrorCode
@@ -26,7 +26,7 @@ _ERROR_CODE_TO_EXIT: dict[str, int] = {
     ErrorCode.INVALID_QUERY.value: VALIDATION_EXIT_CODE,
     ErrorCode.UNSUPPORTED_PARAMETERS.value: VALIDATION_EXIT_CODE,
     ErrorCode.QUERY_ERROR.value: VALIDATION_EXIT_CODE,
-    "SYMBOL_UNRESOLVED": VALIDATION_EXIT_CODE,
+    "UNRESOLVED_SYMBOL": VALIDATION_EXIT_CODE,
     ErrorCode.PROVIDER.value: PROVIDER_EXIT_CODE,
     ErrorCode.PROVIDER_ERROR.value: PROVIDER_EXIT_CODE,
     ErrorCode.PROVIDER_NOT_FOUND.value: PROVIDER_EXIT_CODE,

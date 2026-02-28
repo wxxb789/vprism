@@ -9,8 +9,6 @@ from vprism.core.patterns.resilient import ResilientExecutor
 from vprism.core.patterns.retry import (
     ExponentialBackoffRetry,
     RetryConfig,
-    RetryRegistry,
-    retry,
 )
 
 __all__ = [
@@ -19,7 +17,5 @@ __all__ = [
     "CircuitBreakerConfig",
     "ExponentialBackoffRetry",
     "RetryConfig",
-    "RetryRegistry",
-    "retry",
     "ResilientExecutor",
 ]

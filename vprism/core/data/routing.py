@@ -1,7 +1,5 @@
 """智能数据路由器，实现基于性能和能力的提供商选择."""
 
-import asyncio
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, TypedDict
 
@@ -9,17 +7,6 @@ from vprism.core.data.providers.base import DataProvider
 from vprism.core.data.providers.registry import ProviderRegistry
 from vprism.core.exceptions import NoCapableProviderError
 from vprism.core.models import DataQuery
-
-
-@dataclass
-class ProviderScore:
-    """提供商性能评分."""
-
-    provider_name: str
-    score: float
-    latency_ms: int
-    success_rate: float
-    last_updated: datetime
 
 
 class DecisionLog(TypedDict):
@@ -44,7 +31,12 @@ class DataRouter:
         self.registry = registry
         self.provider_scores: dict[str, float] = {}
         self.provider_stats: dict[str, dict[str, Any]] = {}
-        self._lock = asyncio.Lock()
+
+    def refresh_scores(self) -> None:
+        """Reset provider scores to defaults for all registered providers."""
+        for provider in self.registry.get_all_providers():
+            if provider.name not in self.provider_scores:
+                self.provider_scores[provider.name] = 1.0
 
     async def route_query(self, query: DataQuery) -> DataProvider:
         """根据查询条件选择最佳提供商.
@@ -68,9 +60,9 @@ class DataRouter:
             return capable_providers[0]
 
         # 使用评分系统选择最佳提供商
-        return await self._select_best_provider(capable_providers, query)
+        return self._select_best_provider(capable_providers, query)
 
-    async def _select_best_provider(self, providers: list[DataProvider], query: DataQuery) -> DataProvider:
+    def _select_best_provider(self, providers: list[DataProvider], query: DataQuery) -> DataProvider:
         """根据评分系统选择最佳提供商.
 
         Args:
@@ -80,19 +72,18 @@ class DataRouter:
         Returns:
             评分最高的提供商
         """
-        async with self._lock:
-            # 计算每个提供商的评分
-            provider_ratings = []
+        # 计算每个提供商的评分
+        provider_ratings = []
 
-            for provider in providers:
-                score = self._calculate_provider_score(provider, query)
-                provider_ratings.append((provider, score))
+        for provider in providers:
+            score = self._calculate_provider_score(provider, query)
+            provider_ratings.append((provider, score))
 
-            # 按评分排序，选择最高分的提供商
-            provider_ratings.sort(key=lambda x: x[1], reverse=True)
-            best_provider = provider_ratings[0][0]
+        # 按评分排序，选择最高分的提供商
+        provider_ratings.sort(key=lambda x: x[1], reverse=True)
+        best_provider = provider_ratings[0][0]
 
-            return best_provider
+        return best_provider
 
     def _calculate_provider_score(self, provider: DataProvider, query: DataQuery) -> float:
         """计算提供商对特定查询的评分.

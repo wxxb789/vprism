@@ -11,7 +11,6 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
-
 from vprism.core.validation.consistency import DataConsistencyValidator
 from vprism.core.validation.quality import DataCleaner, DataQualityScorer, DataQualityValidator
 

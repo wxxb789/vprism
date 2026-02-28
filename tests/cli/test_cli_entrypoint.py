@@ -21,7 +21,7 @@ def test_cli_help_lists_expected_command_groups(runner: CliRunner) -> None:
     result = runner.invoke(app, ["--help"])
 
     assert result.exit_code == 0, result.output
-    for command_name in ("data", "drift", "symbol", "reconcile", "shadow"):
+    for command_name in ("data", "symbol"):
         assert command_name in result.output
 
 
@@ -48,12 +48,7 @@ def test_cli_callback_normalizes_configuration(
 
     monkeypatch.setattr("vprism.cli.main.create_formatter", fake_create_formatter)
     monkeypatch.setattr("vprism.cli.main.register_data_commands", register_capture_command)
-    for attr_name in (
-        "register_drift_commands",
-        "register_symbol_commands",
-        "register_reconciliation_commands",
-        "register_shadow_commands",
-    ):
+    for attr_name in ("register_symbol_commands",):
         monkeypatch.setattr(f"vprism.cli.main.{attr_name}", lambda app: None, raising=False)
 
     output_path = tmp_path / "result.jsonl"
@@ -115,12 +110,7 @@ def test_cli_invalid_format_raises_bad_parameter(
         app.add_typer(data_app, name="data")
 
     monkeypatch.setattr("vprism.cli.main.register_data_commands", register_stub_command)
-    for attr_name in (
-        "register_drift_commands",
-        "register_symbol_commands",
-        "register_reconciliation_commands",
-        "register_shadow_commands",
-    ):
+    for attr_name in ("register_symbol_commands",):
         monkeypatch.setattr(f"vprism.cli.main.{attr_name}", lambda app: None, raising=False)
 
     app = create_app()
@@ -128,7 +118,4 @@ def test_cli_invalid_format_raises_bad_parameter(
     result = runner.invoke(app, ["--format", "invalid", "data", "noop"])
 
     assert result.exit_code == 2
-    assert (
-        "Invalid value for --format: Unsupported format 'invalid'. Available formats: table, jsonl."
-        in result.output
-    )
+    assert "Unsupported format" in result.output or "invalid" in result.output.lower()

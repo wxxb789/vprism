@@ -1,11 +1,12 @@
 """
-数据相关 API 路由
-提供股票数据、市场数据、批量数据查询接口
+Data API routes.
+Provides stock data, market data, and batch query endpoints.
 """
 
 import asyncio
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
+from loguru import logger
 
 from vprism.core.client.client import VPrismClient
 from vprism.core.models.query import DataQuery
@@ -248,4 +249,4 @@ async def _process_batch_async(client: VPrismClient, queries: list[DataQuery]) -
     # 例如：将结果存储到数据库或缓存，供后续查询
     results = await asyncio.gather(*[client.execute(q) for q in queries])
     # (示例) 打印结果
-    print(f"Async batch processing completed with {len(results)} results.")
+    logger.info(f"Async batch processing completed with {len(results)} results.")

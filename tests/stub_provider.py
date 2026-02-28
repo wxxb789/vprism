@@ -77,36 +77,21 @@ class VPrismStubProvider:
         self._table_schema.ensure(self._conn)
         column_names = [column.name for column in self._table_schema.columns]
         placeholders = ", ".join(["?"] * len(column_names))
-        insert_sql = (
-            f"INSERT INTO {self._table_schema.name} "
-            f"({', '.join(column_names)}) VALUES ({placeholders})"
-        )
+        insert_sql = f"INSERT INTO {self._table_schema.name} ({', '.join(column_names)}) VALUES ({placeholders})"
         parameters = [[row.get(name) for name in column_names] for row in normalized_rows]
         if parameters:
             self._conn.executemany(insert_sql, parameters)
 
-    def _normalize_row(
-        self, row: Mapping[str, object] | StubProviderRow
-    ) -> Mapping[str, object]:
+    def _normalize_row(self, row: Mapping[str, object] | StubProviderRow) -> Mapping[str, object]:
         if isinstance(row, StubProviderRow):
             return row.as_mapping()
         return dict(row)
 
-    def _validate_rows(
-        self, rows: Iterable[Mapping[str, object]]
-    ) -> Iterable[Mapping[str, object]]:
-        required_columns = {
-            column.name
-            for column in self._table_schema.columns
-            if "NOT NULL" in {constraint.upper() for constraint in column.constraints}
-        }
+    def _validate_rows(self, rows: Iterable[Mapping[str, object]]) -> Iterable[Mapping[str, object]]:
+        required_columns = {column.name for column in self._table_schema.columns if "NOT NULL" in {constraint.upper() for constraint in column.constraints}}
         valid_columns = {column.name for column in self._table_schema.columns}
         for index, row in enumerate(rows):
-            missing_required = [
-                column
-                for column in required_columns
-                if row.get(column) is None
-            ]
+            missing_required = [column for column in required_columns if row.get(column) is None]
             unexpected = sorted(set(row.keys()) - valid_columns)
             if missing_required or unexpected:
                 error_payload: dict[str, object] = {"index": index}

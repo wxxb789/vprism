@@ -1,4 +1,6 @@
-"""vprism主客户端 - 提供同步和异步接口"""
+"""vprism main client - synchronous and asynchronous API."""
+
+from __future__ import annotations
 
 import asyncio
 from collections.abc import Coroutine
@@ -13,61 +15,44 @@ from vprism.core.models.response import DataResponse
 
 
 class VPrismClient:
-    """vprism主客户端 - 提供同步和异步接口"""
+    """vprism main client - synchronous and asynchronous financial data access."""
 
     def __init__(self, config: dict[str, Any] | None = None) -> None:
-        """初始化客户端
+        """Initialize the client.
 
         Args:
-            config: 可选配置字典
+            config: Optional configuration dictionary.
         """
-        # 初始化配置管理器
         self.config_manager = ConfigManager()
 
-        # 加载环境变量配置
         env_config = load_config_from_env()
         if env_config:
             self.config_manager.update_config(**env_config)
 
-        # 加载用户提供的配置
         if config:
             self.config_manager.update_config(**config)
 
-        # 初始化核心组件
         from vprism.core.data.providers.registry import ProviderRegistry
-        from vprism.core.services.routing import DataRouter
+        from vprism.core.data.routing import DataRouter
 
         self.registry = ProviderRegistry()
         self.router = DataRouter(self.registry)
         self._configured = True
-
-        # 应用配置
         self._apply_config()
 
     def configure(self, **config: Any) -> None:
-        """配置客户端
+        """Update client configuration.
 
         Args:
-            **config: 配置参数
-
-        支持的配置项:
-            cache.enabled: 是否启用缓存 (bool)
-            cache.memory_size: 内存缓存大小 (int)
-            cache.disk_path: 磁盘缓存路径 (str)
-            providers.timeout: 提供商超时时间 (int)
-            providers.max_retries: 最大重试次数 (int)
-            providers.rate_limit: 是否启用速率限制 (bool)
-            logging.level: 日志级别 (str)
-            logging.file: 日志文件路径 (str)
+            **config: Configuration key-value pairs.
         """
         self.config_manager.update_config(**config)
         self._apply_config()
 
     def _apply_config(self) -> None:
-        """应用配置到各个组件"""
+        """Apply configuration to components."""
         from vprism.core.data.providers.factory import create_default_providers
 
-        # 注册默认提供商（如果注册表为空）
         if len(self.registry) == 0:
             providers = create_default_providers()
             for _name, provider in providers.items():
@@ -75,11 +60,18 @@ class VPrismClient:
             self.router.refresh_scores()
 
     def query(self) -> QueryBuilder:
-        """获取查询构建器"""
+        """Get a query builder instance."""
         return QueryBuilder()
 
     async def execute(self, query: DataQuery) -> DataResponse:
-        """执行查询"""
+        """Execute a data query.
+
+        Args:
+            query: The query to execute.
+
+        Returns:
+            DataResponse with the query results.
+        """
         if not self._configured:
             self._apply_config()
 
@@ -89,50 +81,42 @@ class VPrismClient:
 
     def get(
         self,
-        asset: str,
-        market: str | None = None,
+        asset: str | AssetType,
+        market: str | MarketType | None = None,
         symbols: list[str] | None = None,
-        timeframe: str | None = None,
+        timeframe: str | TimeFrame | None = None,
         start: str | None = None,
         end: str | None = None,
         provider: str | None = None,
         **kwargs: Any,
-    ) -> Any:
-        """简单API - 同步获取数据
+    ) -> DataResponse:
+        """Synchronous data access API.
 
         Args:
-            asset: 资产类型 (stock, bond, etf, fund, futures, options, forex, crypto)
-            market: 市场 (cn, us, hk, eu, jp, global)
-            symbols: 股票代码列表
-            timeframe: 时间框架 (tick, 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w, 1M)
-            start: 开始日期 (YYYY-MM-DD)
-            end: 结束日期 (YYYY-MM-DD)
-            provider: 数据提供商 (可选)
-            **kwargs: 其他参数
+            asset: Asset type (stock, etf, crypto, etc.)
+            market: Market identifier (cn, us, hk, etc.)
+            symbols: List of ticker symbols.
+            timeframe: Data timeframe (1d, 1h, 5m, etc.)
+            start: Start date YYYY-MM-DD.
+            end: End date YYYY-MM-DD.
+            provider: Preferred provider name.
+            **kwargs: Additional parameters.
 
         Returns:
-            金融数据
-
-        Examples:
-            >>> import vprism
-            >>> # 获取中国A股日线数据
-            >>> data = vprism.get(
-            ...     asset="stock",
-            ...     market="cn",
-            ...     symbols=["000001", "000002"],
-            ...     timeframe="1d",
-            ...     start="2024-01-01",
-            ...     end="2024-12-31"
-            ... )
-            >>> print(data)
+            DataResponse containing financial data.
         """
         start_dt = datetime.fromisoformat(start) if start else None
         end_dt = datetime.fromisoformat(end) if end else None
+
+        asset_type = AssetType(asset) if isinstance(asset, str) else asset
+        market_type = MarketType(market) if isinstance(market, str) else market
+        tf = TimeFrame(timeframe) if isinstance(timeframe, str) else (timeframe or TimeFrame.DAY_1)
+
         query = DataQuery(
-            asset=AssetType(asset) if asset else AssetType.STOCK,
-            market=MarketType(market) if market else None,
+            asset=asset_type,
+            market=market_type,
             symbols=symbols,
-            timeframe=TimeFrame(timeframe) if timeframe else TimeFrame.DAY_1,
+            timeframe=tf,
             start=start_dt,
             end=end_dt,
             provider=provider,
@@ -142,52 +126,42 @@ class VPrismClient:
 
     async def get_async(
         self,
-        asset: str,
-        market: str | None = None,
+        asset: str | AssetType,
+        market: str | MarketType | None = None,
         symbols: list[str] | None = None,
-        timeframe: str | None = None,
+        timeframe: str | TimeFrame | None = None,
         start: str | None = None,
         end: str | None = None,
         provider: str | None = None,
         **kwargs: Any,
-    ) -> Any:
-        """异步简单API - 异步获取数据
+    ) -> DataResponse:
+        """Asynchronous data access API.
 
         Args:
-            asset: 资产类型
-            market: 市场
-            symbols: 股票代码列表
-            timeframe: 时间框架
-            start: 开始日期
-            end: 结束日期
-            provider: 数据提供商
-            **kwargs: 其他参数
+            asset: Asset type.
+            market: Market identifier.
+            symbols: List of ticker symbols.
+            timeframe: Data timeframe.
+            start: Start date YYYY-MM-DD.
+            end: End date YYYY-MM-DD.
+            provider: Preferred provider name.
+            **kwargs: Additional parameters.
 
         Returns:
-            金融数据
-
-        Examples:
-            >>> import asyncio
-            >>> import vprism
-            >>>
-            >>> async def main():
-            ...     data = await vprism.get_async(
-            ...         asset="crypto",
-            ...         market="global",
-            ...         symbols=["BTC", "ETH"],
-            ...         timeframe="1h"
-            ...     )
-            ...     print(data)
-            >>>
-            >>> asyncio.run(main())
+            DataResponse containing financial data.
         """
         start_dt = datetime.fromisoformat(start) if start else None
         end_dt = datetime.fromisoformat(end) if end else None
+
+        asset_type = AssetType(asset) if isinstance(asset, str) else asset
+        market_type = MarketType(market) if isinstance(market, str) else market
+        tf = TimeFrame(timeframe) if isinstance(timeframe, str) else (timeframe or TimeFrame.DAY_1)
+
         query = DataQuery(
-            asset=AssetType(asset) if asset else AssetType.STOCK,
-            market=MarketType(market) if market else None,
+            asset=asset_type,
+            market=market_type,
             symbols=symbols,
-            timeframe=TimeFrame(timeframe) if timeframe else TimeFrame.DAY_1,
+            timeframe=tf,
             start=start_dt,
             end=end_dt,
             provider=provider,
@@ -195,19 +169,21 @@ class VPrismClient:
 
         return await self.execute(query)
 
-    def _run_sync(self, coro: Coroutine[Any, Any, Any]) -> Any:
-        """运行异步协程的同步包装器"""
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # 在已有事件循环中运行
-                import nest_asyncio  # type: ignore
+    def _run_sync(self, coro: Coroutine[Any, Any, DataResponse]) -> DataResponse:
+        """Run an async coroutine synchronously.
 
-                nest_asyncio.apply()
-                return loop.run_until_complete(coro)
-            else:
-                return loop.run_until_complete(coro)
+        Uses asyncio.run() as primary strategy with nest_asyncio fallback
+        for environments with an already-running event loop.
+        """
+        try:
+            # Try get_running_loop first to detect if we're inside an event loop
+            loop = asyncio.get_running_loop()
         except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            return loop.run_until_complete(coro)
+            # No running loop - safe to use asyncio.run()
+            return asyncio.run(coro)
+
+        # We're inside a running loop - use nest_asyncio to allow nesting
+        import nest_asyncio  # type: ignore[import-untyped]
+
+        nest_asyncio.apply()
+        return loop.run_until_complete(coro)

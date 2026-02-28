@@ -63,7 +63,7 @@ def test_normalize_raises_unresolved_with_diagnostics(sample_rules: list[SymbolR
         service.normalize("@@INVALID@@", MarketType.CN, AssetType.STOCK)
 
     error = exc_info.value
-    assert error.error_code == "SYMBOL_UNRESOLVED"
+    assert error.error_code == "UNRESOLVED_SYMBOL"
     assert error.details["raw_symbol"] == "@@INVALID@@"
     assert error.details["market"] == MarketType.CN.value
     assert error.details["asset_type"] == AssetType.STOCK.value

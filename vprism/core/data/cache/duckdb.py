@@ -1,12 +1,18 @@
 """DuckDB缓存实现."""
 
+from __future__ import annotations
+
 import contextlib
 import json
 import time
 from typing import Any
 
-import duckdb
-from duckdb import DuckDBPyConnection
+try:
+    import duckdb
+    from duckdb import DuckDBPyConnection
+except ImportError:  # pragma: no cover
+    duckdb = None  # type: ignore[assignment]
+    DuckDBPyConnection = None  # type: ignore[assignment, misc]
 
 from vprism.core.data.cache.base import CacheStrategy
 
@@ -22,6 +28,8 @@ class SimpleDuckDBCache(CacheStrategy):
 
     def _init_database(self) -> None:
         """初始化数据库表结构."""
+        if duckdb is None:
+            return
         self._conn = duckdb.connect(self.db_path)
 
         # 创建缓存表

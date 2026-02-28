@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from vprism.core.data.routing import DataRouter
 from vprism.core.models import (
     AssetType,
     DataPoint,
@@ -17,7 +18,6 @@ from vprism.core.models import (
     TimeFrame,
 )
 from vprism.core.services.data import DataService
-from vprism.core.services.routing import DataRouter
 
 
 class TestDataService:

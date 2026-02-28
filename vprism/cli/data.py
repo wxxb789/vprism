@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Iterable, Mapping
 from pathlib import Path
-from typing import Iterable, Mapping
 
 import typer
 
@@ -17,12 +17,11 @@ from vprism.core.exceptions.base import (
 from vprism.core.models.market import AssetType, MarketType, TimeFrame
 from vprism.core.models.response import DataResponse
 from vprism.core.services.data import DataService
-from vprism.core.services.symbol_normalization import get_symbol_normalizer
+from vprism.core.services.symbols import SymbolService
 
-from .constants import VALIDATION_EXIT_CODE
+from .constants import SYSTEM_EXIT_CODE, VALIDATION_EXIT_CODE
 from .errors import handle_cli_error
 from .utils import emit_error, prepare_output
-
 
 data_app = typer.Typer(help="Data operations.")
 
@@ -134,11 +133,10 @@ def _collect_symbols(symbols: str | None, symbols_from: Path | None) -> list[str
                 collected.append(value)
 
     if symbols_from is not None:
-        if not symbols_from.exists() or not symbols_from.is_file():
-            msg = f"Symbols file '{symbols_from}' does not exist or is not a file."
-            raise OSError(msg)
         try:
             contents = symbols_from.read_text(encoding="utf-8")
+        except FileNotFoundError as exc:
+            raise OSError(f"Symbols file '{symbols_from}' does not exist or is not a file.") from exc
         except OSError as exc:
             raise OSError(f"Unable to read symbols file '{symbols_from}': {exc}") from exc
         for line in contents.splitlines():
@@ -185,16 +183,14 @@ def _parse_timeframe(value: str) -> TimeFrame:
         ) from exc
 
 
-def _ensure_symbols_resolvable(
-    symbols: Iterable[str], market: MarketType, asset: AssetType
-) -> None:
-    normalizer = get_symbol_normalizer()
-    normalized = asyncio.run(normalizer.normalize(list(symbols), market=market))
-    unresolved = [item.raw for item in normalized if getattr(item, "unresolved", False)]
-    if unresolved:
-        message = "Unable to resolve symbol(s): " + ", ".join(unresolved)
+def _ensure_symbols_resolvable(symbols: Iterable[str], market: MarketType, asset: AssetType) -> None:
+    service = SymbolService()
+    result = service.normalize_batch(list(symbols), market=market, asset_type=asset)
+    if result.failures:
+        unresolved = [err.details.get("raw_symbol", "unknown") for err in result.failures]
+        message = "Unable to resolve symbol(s): " + ", ".join(str(s) for s in unresolved)
         details = {"symbols": unresolved, "market": market.value, "asset": asset.value}
-        raise UnresolvedSymbolError(message, unresolved[0], market.value, asset.value, details=details)
+        raise UnresolvedSymbolError(message, str(unresolved[0]), market.value, asset.value, details=details)
 
 
 def _response_to_rows(response: DataResponse) -> list[Mapping[str, object]]:

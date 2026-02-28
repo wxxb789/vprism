@@ -1,10 +1,12 @@
-"""配置管理模块 - 处理vprism客户端的配置"""
+"""Configuration management module."""
 
 import os
 import tomllib
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
+
+from loguru import logger
 
 
 @dataclass
@@ -95,7 +97,7 @@ class ConfigManager:
             return VPrismConfig.from_dict(config_dict)
         except Exception as e:
             # 如果配置文件有问题，使用默认配置
-            print(f"Warning: Failed to load config from {self.config_path}: {e}")
+            logger.warning(f"Failed to load config from {self.config_path}: {e}")
             return VPrismConfig()
 
     def get_config(self) -> VPrismConfig:
@@ -128,7 +130,7 @@ class ConfigManager:
             with open(self.config_path, "wb") as f:
                 tomli_w.dump(self.config.to_dict(), f)
         except Exception as e:
-            print(f"Warning: Failed to save config to {self.config_path}: {e}")
+            logger.warning(f"Failed to save config to {self.config_path}: {e}")
 
 
 def get_default_config() -> VPrismConfig:

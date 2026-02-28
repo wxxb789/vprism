@@ -96,7 +96,7 @@ class TestVPrismClient:
         assert query.timeframe == TimeFrame.DAY_1
 
     @patch(
-        "vprism.core.services.routing.DataRouter.route_query",
+        "vprism.core.data.routing.DataRouter.route_query",
         new_callable=AsyncMock,
     )
     @patch("vprism.core.data.providers.base.DataProvider.get_data")
@@ -118,7 +118,7 @@ class TestVPrismClient:
         assert result == {"data": "test"}
 
     @patch(
-        "vprism.core.services.routing.DataRouter.route_query",
+        "vprism.core.data.routing.DataRouter.route_query",
         new_callable=AsyncMock,
     )
     @patch("vprism.core.data.providers.base.DataProvider.get_data")
@@ -140,7 +140,7 @@ class TestVPrismClient:
         assert result == {"data": "sync_test"}
 
     @patch(
-        "vprism.core.services.routing.DataRouter.route_query",
+        "vprism.core.data.routing.DataRouter.route_query",
         new_callable=AsyncMock,
     )
     @patch("vprism.core.data.providers.base.DataProvider.get_data")
@@ -162,7 +162,7 @@ class TestGlobalInterface:
     """测试全局接口"""
 
     @patch(
-        "vprism.core.services.routing.DataRouter.route_query",
+        "vprism.core.data.routing.DataRouter.route_query",
         new_callable=AsyncMock,
     )
     @patch("vprism.core.data.providers.base.DataProvider.get_data")
@@ -181,7 +181,7 @@ class TestGlobalInterface:
         assert result == {"data": "mock_data"}
 
     @patch(
-        "vprism.core.services.routing.DataRouter.route_query",
+        "vprism.core.data.routing.DataRouter.route_query",
         new_callable=AsyncMock,
     )
     @patch("vprism.core.data.providers.base.DataProvider.get_data")
@@ -197,7 +197,7 @@ class TestGlobalInterface:
         assert result == {"data": "mock_async_data"}
 
     @patch(
-        "vprism.core.services.routing.DataRouter.route_query",
+        "vprism.core.data.routing.DataRouter.route_query",
         new_callable=AsyncMock,
     )
     @patch("vprism.core.data.providers.base.DataProvider.get_data")
@@ -247,7 +247,7 @@ class TestErrorHandling:
             client.get(asset="stock", market="cn", symbols=["000001"], timeframe="invalid")
 
     @patch(
-        "vprism.core.services.routing.DataRouter.route_query",
+        "vprism.core.data.routing.DataRouter.route_query",
         new_callable=AsyncMock,
     )
     @patch("vprism.core.data.providers.base.DataProvider.get_data")

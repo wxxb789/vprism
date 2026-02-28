@@ -1,6 +1,6 @@
 """Health checking utilities."""
 
-import asyncio
+import inspect
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -74,7 +74,7 @@ class HealthChecker:
         # Run all registered checks
         for check_name, check_func in self.checks.items():
             try:
-                if asyncio.iscoroutinefunction(check_func):
+                if inspect.iscoroutinefunction(check_func):
                     result = await check_func()
                 else:
                     result = check_func()
