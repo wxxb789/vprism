@@ -42,24 +42,27 @@ Layered core with explicit boundaries; avoid cross-layer leakage.
 
 ```
 core/
-  client/       -> VPrismClient builds DataQuery, delegates to DataRouter
-  config/       -> Environment + override settings (unified settings.py)
+  client/       -> VPrismClient builds DataQuery, delegates to DataService
+  config/       -> Unified settings (VPrismConfig, CacheConfig, ProviderConfig, LoggingConfig)
   data/
     providers/  -> External source adapters (capability + fetch); lazy imports
-    repositories/ -> Persistence abstraction over storage
-    storage/    -> DuckDB schema (6 tables) + DatabaseManager + DatabaseSchema
-    cache/      -> Multi-level caching (DuckDB-backed)
+    repositories/ -> Persistence abstraction (DataRepository: DataPoint ↔ OHLCVRecord)
+    storage/    -> DuckDB schema (6 tables) + DatabaseManager
+    cache/      -> Multi-level caching (memory + DuckDB-backed)
     routing.py  -> DataRouter with scoring-based provider selection
-  services/     -> Orchestration: symbols, data, adjustment
+  services/     -> Orchestration: DataService, SymbolService, PriceAdjuster
   models/       -> Typed domain entities (queries, responses, points, enums)
-  patterns/     -> Resilience primitives (retry, circuit breaker)
-  monitoring/   -> Health checks, performance logging
-  logging/      -> Structured logging with loguru
-  exceptions/   -> Domain error hierarchy (5 core exception types)
-cli/            -> Typer CLI: data + symbol commands
-web/            -> FastAPI app (vprism.web.main:app) modular routes
+  patterns/     -> Resilience primitives (ExponentialBackoffRetry, CircuitBreaker, ResilientExecutor)
+  health/       -> Health checker with component registration
+  monitoring/   -> Performance logging, slow query tracking
+  logging/      -> Structured logging with loguru + trace propagation
+  exceptions/   -> Domain error hierarchy
+  validation/   -> Schema assertion utilities
+  plugins/      -> Plugin loader for CLI extensions
+cli/            -> Typer CLI: data fetch + symbol resolve
+web/            -> FastAPI app (vprism.web.main:app) with data + health routes
 mcp/            -> MCP server: 2 tools (get_financial_data, get_market_overview)
-tests/          -> Unit + integration: providers, routing, schema, symbols, CLI, web, MCP
+tests/          -> Unit + integration: providers, routing, schema, symbols, resilience, CLI, web, MCP
 ```
 
 ## Database Schema (6 tables)
@@ -80,11 +83,12 @@ Schema is managed by `core/data/storage/schema.py` (DatabaseSchema class).
 ## Core Data Flow
 
 1. VPrismClient.get / get_async builds DataQuery
-2. DataRouter scores providers by capability + historical performance
-3. Provider validates capability, fetches, returns DataResponse/DataPoints
-4. Optional: repository persists/queries via DuckDB
-5. Resilience patterns wrap provider calls (retry, circuit breaker)
-6. Web (FastAPI) or MCP layer serializes outward
+2. DataService.query_data checks multi-level cache
+3. On cache miss: DataRouter scores providers by capability + historical performance
+4. Provider validates capability, fetches, returns DataResponse/DataPoints
+5. DataService caches result + persists to DuckDB via DataRepository
+6. On provider failure: DataService falls back to stored data via _fallback_from_storage()
+7. Web (FastAPI) or MCP layer serializes outward
 
 ## Provider System
 
@@ -93,6 +97,11 @@ All provider dependencies (yfinance, akshare, aiohttp) use lazy imports via `_en
 
 ### Provider Selection
 DataRouter uses scoring: capability match (0.2 per dimension) + latency penalty + historical success rate. Scores are updated via `update_provider_score()` after each request.
+
+### Current Providers
+- `yahoo` (YFinanceProvider) — stocks, forex, crypto; rate limit 2000 req/min
+- `akshare` (AkShareProvider) — Chinese market data; rate limit 1000 req/min
+- `alpha_vantage` (AlphaVantageProvider) — stocks, forex, crypto with API key
 
 ### Adding a Provider
 Subclass `DataProvider` (capability property, get_data, authenticate) → register in `factory/create_default_providers`.
@@ -103,13 +112,17 @@ Subclass `DataProvider` (capability property, get_data, authenticate) → regist
 
 ## Exception Hierarchy
 
-5 core exception types:
 - `VPrismError` → base
 - `ProviderError` → data source failures
+- `RateLimitError` → rate limit exceeded
 - `DataValidationError` → input/output validation
 - `NetworkError` → connectivity issues
+- `CacheError` → cache failures
 - `AuthenticationError` → auth failures
+- `NoCapableProviderError` → no provider matches query
+- `NoAvailableProviderError` → all providers unavailable
 - `UnresolvedSymbolError` → symbol normalization failures
+- `DomainError` → domain logic errors
 
 ## MCP Server
 
@@ -123,12 +136,20 @@ Subclass `DataProvider` (capability property, get_data, authenticate) → regist
 - `data fetch` — fetch market data with configurable output (table/jsonl)
 - `symbol resolve` — normalize a raw symbol
 
+Global options: `--format`, `--output`, `--log-level`, `--no-color`
+
 ## Persistence & Caching
 
 - `storage/database.py`: DatabaseManager for CRUD operations
 - `storage/schema.py`: DatabaseSchema — creates/validates 6-table schema
-- `repositories/data.py`: DataPoint ↔ OHLCVRecord mapping
-- `cache/duckdb.py`: DuckDB-backed query cache with TTL
+- `repositories/data.py`: DataRepository — DataPoint ↔ OHLCVRecord mapping + batch save/query
+- `cache/multilevel.py`: MultiLevelCache (memory → DuckDB) with TTL
+
+## Resilience Patterns
+
+- `patterns/retry.py`: ExponentialBackoffRetry with configurable RetryConfig
+- `patterns/circuitbreaker.py`: CircuitBreaker with state machine (CLOSED → OPEN → HALF_OPEN); lock only held during state transitions, not during func execution
+- `patterns/resilient.py`: ResilientExecutor combining retry + circuit breaker
 
 ## Testing Guidance
 
@@ -152,6 +173,8 @@ Maintain Python 3.13+ compatibility; update pyproject.toml for deps.
 Preserve layering; avoid unsolicited large refactors.
 Prefer existing resilience primitives over ad-hoc try/except.
 All provider imports must be lazy (inside functions, not module-level).
+Use `datetime.now(UTC)` not `datetime.utcnow()`.
+Use `inspect.iscoroutinefunction` not `asyncio.iscoroutinefunction`.
 
 ---
 
@@ -178,8 +201,8 @@ All provider imports must be lazy (inside functions, not module-level).
   - Contract: Pydantic validation at ingress (web, mcp, public client)
 4. Operational Level
   - Structured logging (no print) with contextual fields (provider, symbol, latency_ms)
-  - Expose health + metrics endpoints; no business logic in health checks
-  - Progressive degradation: fail fast on provider errors, never return partial silently
+  - Expose health endpoints; no business logic in health checks
+  - Progressive degradation: fail fast on provider errors, fall back to stored data
 
 ## Code Review Checklist (Mandatory)
 - Boundary Clarity: New code respects layering
