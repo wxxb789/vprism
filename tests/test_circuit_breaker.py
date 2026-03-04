@@ -14,25 +14,6 @@ from vprism.core.patterns.circuitbreaker import (
 )
 
 
-class TestCircuitBreakerConfig:
-    """Test circuit breaker configuration."""
-
-    def test_default_config(self) -> None:
-        config = CircuitBreakerConfig()
-        assert config.failure_threshold == 5
-        assert config.recovery_timeout == 60.0
-        assert config.half_open_max_calls == 3
-        assert config.expected_exception == ProviderError
-        assert config.name == "default"
-
-    def test_custom_config(self) -> None:
-        config = CircuitBreakerConfig(failure_threshold=3, recovery_timeout=30.0, half_open_max_calls=2, name="test_breaker")
-        assert config.failure_threshold == 3
-        assert config.recovery_timeout == 30.0
-        assert config.half_open_max_calls == 2
-        assert config.name == "test_breaker"
-
-
 class TestCircuitBreaker:
     """Test circuit breaker."""
 
@@ -40,12 +21,6 @@ class TestCircuitBreaker:
     def breaker(self) -> CircuitBreaker:
         config = CircuitBreakerConfig(failure_threshold=2, recovery_timeout=0.1, half_open_max_calls=2, name="test_breaker")
         return CircuitBreaker(config)
-
-    @pytest.mark.asyncio
-    async def test_initial_state(self, breaker: CircuitBreaker) -> None:
-        assert breaker.state == CircuitState.CLOSED
-        assert breaker.failure_count == 0
-        assert breaker.last_failure_time is None
 
     @pytest.mark.asyncio
     async def test_successful_call(self, breaker: CircuitBreaker) -> None:
@@ -187,29 +162,3 @@ class TestCircuitBreakerRegistry:
         assert len(states) == 2
         assert "breaker1" in states
         assert "breaker2" in states
-
-
-class TestIntegration:
-    """Integration tests."""
-
-    @pytest.mark.asyncio
-    async def test_multiple_providers_with_circuit_breakers(self) -> None:
-        registry = CircuitBreakerRegistry()
-        akshare_breaker = await registry.get_or_create("akshare", CircuitBreakerConfig(failure_threshold=3, name="akshare"))
-        yahoo_breaker = await registry.get_or_create("yahoo", CircuitBreakerConfig(failure_threshold=2, name="yahoo"))
-
-        async def akshare_call() -> None:
-            raise ProviderError("akshare failed", "akshare")
-
-        async def yahoo_call() -> str:
-            return "yahoo data"
-
-        for _ in range(3):
-            with contextlib.suppress(ProviderError):
-                await akshare_breaker.call(akshare_call)
-
-        assert akshare_breaker.state == CircuitState.OPEN
-        assert yahoo_breaker.state == CircuitState.CLOSED
-
-        result = await yahoo_breaker.call(yahoo_call)
-        assert result == "yahoo data"

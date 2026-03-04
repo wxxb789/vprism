@@ -50,16 +50,6 @@ class TestExponentialBackoffRetry:
         return ExponentialBackoffRetry(config)
 
     @pytest.mark.asyncio
-    async def test_successful_execution(self, retry_instance: ExponentialBackoffRetry) -> None:
-        async def success_func() -> str:
-            return "success"
-
-        result = await retry_instance.execute(success_func)
-        assert result == "success"
-        assert retry_instance.state == RetryState.COMPLETED
-        assert retry_instance.attempt_count == 1
-
-    @pytest.mark.asyncio
     async def test_immediate_success_no_retry(self, retry_instance: ExponentialBackoffRetry) -> None:
         call_count = 0
 

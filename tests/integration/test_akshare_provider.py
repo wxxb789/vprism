@@ -114,8 +114,8 @@ class TestAkshareIntegration:
         assert response.data
         assert response.metadata.total_records > 0
 
-    async def test_invalid_symbol_should_raise_error(self, provider):
-        """Test that an invalid symbol raises a ProviderError."""
+    async def test_invalid_symbol_returns_empty_response(self, provider):
+        """Test that an invalid symbol returns an empty response."""
         query = DataQuery(
             symbols=["INVALID"],
             asset=AssetType.STOCK,

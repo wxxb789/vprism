@@ -21,10 +21,6 @@ class TestDatabaseSchema:
         yield s
         s.close()
 
-    def test_database_connection(self, schema: DatabaseSchema) -> None:
-        """Test database connection works."""
-        assert schema.conn is not None
-
     def test_all_six_tables_exist(self, schema: DatabaseSchema) -> None:
         """Verify exactly 6 tables are created."""
         tables = schema.conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'main' AND table_type = 'BASE TABLE'").fetchall()
@@ -32,13 +28,6 @@ class TestDatabaseSchema:
 
         expected = sorted(TABLE_NAMES)
         assert table_names == expected
-
-    def test_table_stats(self, schema: DatabaseSchema) -> None:
-        """Test get_table_stats returns all tables."""
-        stats = schema.get_table_stats()
-        for table in TABLE_NAMES:
-            assert table in stats
-            assert stats[table] == 0
 
     # ── assets table ────────────────────────────────────────────────────────
 

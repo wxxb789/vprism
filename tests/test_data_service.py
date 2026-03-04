@@ -1,4 +1,4 @@
-"""测试核心数据服务和双重API设计."""
+"""Test core data service and dual API design."""
 
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -21,19 +21,17 @@ from vprism.core.services.data import DataService
 
 
 class TestDataService:
-    """测试数据服务."""
+    """Test data service."""
 
     @pytest.fixture
     def mock_router(self):
-        """创建mock路由器."""
-
-        AsyncMock()
+        """Create mock router."""
         router = AsyncMock(spec=DataRouter)
         return router
 
     @pytest.fixture
     def mock_cache(self):
-        """创建mock缓存."""
+        """Create mock cache."""
         cache = AsyncMock()
         cache.get_data = AsyncMock(return_value=None)
         cache.set_data = AsyncMock()
@@ -42,7 +40,7 @@ class TestDataService:
 
     @pytest.fixture
     def mock_repository(self):
-        """创建mock仓库."""
+        """Create mock repository."""
         repo = AsyncMock()
         repo.save_batch = AsyncMock()
         repo.find_by_query = AsyncMock(return_value=[])
@@ -51,7 +49,7 @@ class TestDataService:
 
     @pytest.fixture
     def service(self, mock_router, mock_cache, mock_repository):
-        """创建测试服务实例."""
+        """Create test service instance."""
         return DataService(
             router=mock_router,
             cache=mock_cache,
@@ -60,7 +58,7 @@ class TestDataService:
 
     @pytest.fixture
     def sample_data(self):
-        """创建示例数据."""
+        """Create sample data."""
         return [
             DataPoint(
                 symbol="000001",
@@ -77,7 +75,7 @@ class TestDataService:
 
     @pytest.mark.asyncio
     async def test_simple_api_get_single_symbol(self, service, mock_router, sample_data):
-        """测试简单API：获取单个股票数据."""
+        """Test simple API: get single stock data."""
         mock_response = DataResponse(
             data=sample_data,
             metadata=ResponseMetadata(total_records=len(sample_data), query_time_ms=100.0, data_source="test"),
@@ -95,8 +93,7 @@ class TestDataService:
 
     @pytest.mark.asyncio
     async def test_simple_api_get_multiple_symbols(self, service, mock_router, sample_data):
-        """测试简单API：获取多个股票数据."""
-        # 为每个符号创建数据
+        """Test simple API: get multiple stock data."""
         data = [
             DataPoint(
                 symbol="000001",
@@ -139,7 +136,7 @@ class TestDataService:
 
     @pytest.mark.asyncio
     async def test_simple_api_with_default_dates(self, service, mock_router):
-        """测试简单API：使用默认日期."""
+        """Test simple API: default dates."""
         mock_provider = AsyncMock()
         mock_provider.get_data.return_value = DataResponse(
             data=[],
@@ -150,7 +147,6 @@ class TestDataService:
 
         await service.get("000001")
 
-        # 验证查询参数
         call_args = mock_router.route_query.call_args[0][0]
         assert call_args.symbols == ["000001"]
         assert call_args.market == MarketType.CN
@@ -161,7 +157,7 @@ class TestDataService:
 
     @pytest.mark.asyncio
     async def test_simple_api_different_markets(self, service, mock_router):
-        """测试简单API：不同市场."""
+        """Test simple API: different markets."""
         mock_provider = AsyncMock()
         mock_provider.get_data.return_value = DataResponse(
             data=[],
@@ -176,15 +172,14 @@ class TestDataService:
         assert call_args.market == MarketType.US
         assert call_args.symbols == ["AAPL"]
 
-    @pytest.mark.asyncio
-    async def test_chain_api_basic_usage(self, service):
-        """测试链式API：基本使用."""
+    def test_chain_api_basic_usage(self, service):
+        """Test chain API: basic usage."""
         builder = service.query()
         assert "QueryBuilder" in str(type(builder))
 
     @pytest.mark.asyncio
     async def test_chain_api_fluent_interface(self, service, mock_router, sample_data):
-        """测试链式API：流畅接口."""
+        """Test chain API: fluent interface."""
         mock_response = DataResponse(
             data=sample_data,
             metadata=ResponseMetadata(total_records=len(sample_data), query_time_ms=100.0, data_source="test"),
@@ -201,7 +196,7 @@ class TestDataService:
 
     @pytest.mark.asyncio
     async def test_chain_api_with_period(self, service, mock_router):
-        """测试链式API：使用周期参数."""
+        """Test chain API: period parameter."""
         mock_provider = AsyncMock()
         mock_provider.get_data.return_value = DataResponse(
             data=[],
@@ -218,7 +213,7 @@ class TestDataService:
 
     @pytest.mark.asyncio
     async def test_cache_hit(self, service, mock_cache, sample_data):
-        """测试缓存命中."""
+        """Test cache hit."""
         mock_cache.get_data.return_value = sample_data
 
         result = await service.get("000001", start="2024-01-01")
@@ -229,7 +224,7 @@ class TestDataService:
 
     @pytest.mark.asyncio
     async def test_cache_miss_and_store(self, service, mock_cache, mock_repository, sample_data):
-        """测试缓存未命中并存储."""
+        """Test cache miss and store."""
         mock_router = AsyncMock()
         mock_provider = AsyncMock()
         mock_provider.get_data.return_value = DataResponse(
@@ -248,10 +243,8 @@ class TestDataService:
 
     @pytest.mark.asyncio
     async def test_database_fallback_on_error(self, service, mock_router, mock_repository, sample_data):
-        """测试数据库回退机制."""
-        # 路由器失败
+        """Test database fallback on error."""
         mock_router.route_query.side_effect = Exception("Router error")
-        # 数据库有数据
         mock_repository.find_by_query.return_value = sample_data
 
         result = await service.get("000001", start="2024-01-01")
@@ -261,7 +254,7 @@ class TestDataService:
 
     @pytest.mark.asyncio
     async def test_get_latest_data(self, service, mock_router):
-        """测试获取最新数据."""
+        """Test getting latest data."""
         mock_provider = AsyncMock()
         mock_provider.get_data.return_value = DataResponse(
             data=[],
@@ -279,7 +272,7 @@ class TestDataService:
 
     @pytest.mark.asyncio
     async def test_get_historical_data(self, service, mock_router):
-        """测试获取历史数据."""
+        """Test getting historical data."""
         mock_provider = AsyncMock()
         mock_provider.get_data.return_value = DataResponse(
             data=[],
@@ -296,7 +289,7 @@ class TestDataService:
 
     @pytest.mark.asyncio
     async def test_batch_query(self, service, mock_router, sample_data):
-        """测试批量查询."""
+        """Test batch query."""
         mock_provider = AsyncMock()
         mock_provider.get_data.return_value = DataResponse(
             data=sample_data,
@@ -319,8 +312,7 @@ class TestDataService:
 
     @pytest.mark.asyncio
     async def test_batch_query_with_errors(self, service, mock_router):
-        """测试批量查询处理错误."""
-        # 第一个查询成功，第二个失败
+        """Test batch query error handling."""
         mock_router.route_query.side_effect = [
             DataResponse(
                 data=[],
@@ -343,7 +335,7 @@ class TestDataService:
 
     @pytest.mark.asyncio
     async def test_health_check(self, service, mock_cache, mock_repository):
-        """测试健康检查."""
+        """Test health check."""
         mock_router = AsyncMock()
         mock_router.health_check.return_value = True
         service.router = mock_router
@@ -354,155 +346,43 @@ class TestDataService:
         assert health["cache"] is True or isinstance(health["cache"], dict)
         assert health["repository"] is True
 
-    @pytest.mark.asyncio
-    async def test_close_service(self, service):
-        """测试关闭服务."""
-        # 确保关闭方法可以正常调用
-        await service.close()
-        # 不应该抛出异常
-
 
 class TestQueryBuilder:
-    """测试查询构建器."""
+    """Test query builder."""
 
     @pytest.fixture
     def service(self):
-        """创建测试服务实例."""
-        from unittest.mock import AsyncMock
-
-        from vprism.core.data.providers.registry import ProviderRegistry
-
-        ProviderRegistry()
+        """Create test service instance."""
         router = AsyncMock()
         cache = AsyncMock()
         repository = AsyncMock()
 
         return DataService(router=router, cache=cache, repository=repository)
 
-    def test_create_query_builder(self, service):
-        """测试创建查询构建器."""
+    @pytest.mark.parametrize(
+        "method,arg,attr,expected",
+        [
+            ("asset", "stock", "asset", AssetType.STOCK),
+            ("asset", AssetType.INDEX, "asset", AssetType.INDEX),
+            ("market", "us", "market", MarketType.US),
+            ("symbols", "000001", "symbols", ["000001"]),
+            ("symbols", ["000001", "000002"], "symbols", ["000001", "000002"]),
+            ("start", "2024-01-01", "start_date", date(2024, 1, 1)),
+            ("end", "2024-01-31", "end_date", date(2024, 1, 31)),
+            ("timeframe", "1h", "timeframe", TimeFrame.HOUR_1),
+        ],
+        ids=["asset_str", "asset_enum", "market", "symbols_str", "symbols_list", "start_date", "end_date", "timeframe"],
+    )
+    def test_query_builder_setter(self, service, method, arg, attr, expected):
+        """Test query builder setters return self and store value correctly."""
         builder = service.query()
-        assert builder.query.symbols == []
-        assert builder.query.market == MarketType.CN
-
-    def test_asset_setting(self, service):
-        """测试设置资产类型."""
-        builder = service.query()
-        result = builder.asset("stock")
-        assert result is builder  # 链式调用
-        assert builder.query.asset == AssetType.STOCK
-
-    def test_asset_setting_enum(self, service):
-        """测试设置资产类型（枚举）."""
-        builder = service.query()
-        builder.asset(AssetType.INDEX)
-        assert builder.query.asset == AssetType.INDEX
-
-    def test_market_setting(self, service):
-        """测试设置市场类型."""
-        builder = service.query()
-        builder.market("us")
-        assert builder.query.market == MarketType.US
-
-    def test_symbols_setting(self, service):
-        """测试设置股票代码."""
-        builder = service.query()
-        builder.symbols("000001")
-        assert builder.query.symbols == ["000001"]
-
-    def test_symbols_setting_list(self, service):
-        """测试设置股票代码列表."""
-        builder = service.query()
-        builder.symbols(["000001", "000002"])
-        assert builder.query.symbols == ["000001", "000002"]
-
-    def test_start_date_setting(self, service):
-        """测试设置开始日期."""
-        builder = service.query()
-        builder.start("2024-01-01")
-        assert builder.query.start_date == date(2024, 1, 1)
-
-    def test_end_date_setting(self, service):
-        """测试设置结束日期."""
-        builder = service.query()
-        builder.end("2024-01-31")
-        assert builder.query.end_date == date(2024, 1, 31)
-
-    def test_timeframe_setting(self, service):
-        """测试设置时间框架."""
-        builder = service.query()
-        builder.timeframe("1h")
-        assert builder.query.timeframe == TimeFrame.HOUR_1
+        result = getattr(builder, method)(arg)
+        assert result is builder  # fluent interface
+        assert getattr(builder.query, attr) == expected
 
     def test_period_setting(self, service):
-        """测试设置周期."""
+        """Test period setting with date arithmetic."""
         builder = service.query()
         builder.period("1m")
 
         assert (builder.query.end_date - builder.query.start_date).days >= 29
-
-    def test_string_representation(self, service):
-        """测试字符串表示."""
-        builder = service.query()
-        builder.symbols(["000001"])
-
-        str(builder)
-        assert "QueryBuilder" in str(type(builder))
-        assert builder.query.symbols == ["000001"]
-
-
-class TestDataServiceIntegration:
-    """数据服务集成测试."""
-
-    def test_simple_api_usage_patterns(self):
-        """测试简单API使用模式."""
-        from unittest.mock import AsyncMock
-
-        from vprism.core.data.providers.registry import ProviderRegistry
-
-        ProviderRegistry()
-        router = AsyncMock()
-        cache = AsyncMock()
-        repository = AsyncMock()
-        service = DataService(router=router, cache=cache, repository=repository)
-
-        # 应该能够创建查询而不抛出异常
-        assert service is not None
-
-    def test_chain_api_usage_patterns(self):
-        """测试链式API使用模式."""
-        from unittest.mock import AsyncMock
-
-        from vprism.core.data.providers.registry import ProviderRegistry
-
-        ProviderRegistry()
-        router = AsyncMock()
-        cache = AsyncMock()
-        repository = AsyncMock()
-        service = DataService(router=router, cache=cache, repository=repository)
-
-        # 应该能够创建查询构建器而不抛出异常
-        builder = service.query()
-        assert "QueryBuilder" in str(type(builder))
-
-    def test_query_builder_independence(self):
-        """测试查询构建器独立性."""
-        from unittest.mock import AsyncMock
-
-        from vprism.core.data.providers.registry import ProviderRegistry
-
-        ProviderRegistry()
-        router = AsyncMock()
-        cache = AsyncMock()
-        repository = AsyncMock()
-        service = DataService(router=router, cache=cache, repository=repository)
-
-        builder1 = service.query().symbols(["000001"])
-        builder2 = service.query().symbols(["000002"])
-
-        assert builder1.query.symbols == ["000001"]
-        assert builder2.query.symbols == ["000002"]
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])

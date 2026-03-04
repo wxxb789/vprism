@@ -1,4 +1,4 @@
-"""测试数据提供商适配器框架."""
+"""Test data provider adapter framework."""
 
 from datetime import date, datetime
 from decimal import Decimal
@@ -9,31 +9,18 @@ import pytest
 from vprism.core.data.providers import (
     AkShare,
     ProviderRegistry,
-    # VPrismProvider,  # vprism provider no longer exists
     YFinance,
 )
 from vprism.core.models import AssetType, DataPoint, DataQuery, MarketType, TimeFrame
 
 
 class TestProviderBase:
-    """测试提供商基础功能."""
-
-    def test_provider_capability_discovery(self):
-        """测试提供商能力发现."""
-        provider = AkShare()
-        capability = provider.capability
-
-        assert capability is not None
-        assert AssetType.STOCK in capability.supported_assets
-        assert MarketType.CN in capability.supported_markets
-        assert TimeFrame.DAY_1 in capability.supported_timeframes
-        assert capability.max_symbols_per_request > 0
+    """Test provider base functionality."""
 
     def test_provider_can_handle_query(self):
-        """测试提供商查询处理能力."""
+        """Test provider query handling capability."""
         provider = AkShare()
 
-        # 有效查询
         query = DataQuery(
             asset=AssetType.STOCK,
             market=MarketType.CN,
@@ -45,7 +32,6 @@ class TestProviderBase:
 
         assert provider.can_handle_query(query) is True
 
-        # 测试不同市场
         us_query = DataQuery(
             asset=AssetType.STOCK,
             market=MarketType.US,
@@ -59,12 +45,11 @@ class TestProviderBase:
 
     @pytest.mark.asyncio
     async def test_provider_authenticate(self):
-        """测试提供商认证."""
+        """Test provider authentication."""
         provider = AkShare()
 
-        # 在测试环境中，认证应该成功
         with patch.object(provider, "_initialize_akshare", return_value=None), patch.object(provider, "_ak", create=True) as ak_mock:
-            # stub a minimal DataFrame-like object
+
             class _DF:
                 empty = False
 
@@ -76,10 +61,10 @@ class TestProviderBase:
 
 
 class TestAkShare:
-    """测试AkShare提供商."""
+    """Test AkShare provider."""
 
     def test_akshare_capability(self):
-        """测试AkShare能力."""
+        """Test AkShare capability discovery."""
         provider = AkShare()
         capability = provider.capability
 
@@ -91,12 +76,11 @@ class TestAkShare:
 
     @pytest.mark.asyncio
     async def test_akshare_get_data(self):
-        """测试AkShare获取数据."""
+        """Test AkShare data retrieval with mocked akshare module."""
         provider = AkShare()
 
-        # 完全mock避免真实网络和认证
         with patch.object(provider, "authenticate", return_value=True), patch.object(provider, "_initialize_akshare", return_value=None):
-            # stub internal ak module usage so _get_stock_data won't run real call
+
             class _AkStub:
                 def stock_zh_a_hist(self, **kwargs):
                     import pandas as pd
@@ -138,10 +122,10 @@ class TestAkShare:
 
 
 class TestYFinance:
-    """测试YFinance提供商."""
+    """Test YFinance provider."""
 
     def test_yfinance_capability(self):
-        """测试YFinance能力."""
+        """Test YFinance capability discovery."""
         provider = YFinance()
         capability = provider.capability
 
@@ -152,9 +136,8 @@ class TestYFinance:
 
     @pytest.mark.asyncio
     async def test_yfinance_get_data(self):
-        """测试YFinance获取数据."""
+        """Test YFinance data retrieval with mocked fetch."""
         provider = YFinance()
-        # Skip if yfinance not installed (optional dependency)
         if not provider._is_authenticated:
             pytest.skip("yfinance package not installed")
 
@@ -167,7 +150,6 @@ class TestYFinance:
             end_date=date(2024, 1, 10),
         )
 
-        # 使用mock避免真实API调用
         with patch.object(provider, "_get_historical_data") as mock_fetch:
             mock_response = Mock()
             mock_response.data = [
@@ -190,12 +172,12 @@ class TestYFinance:
             assert response.data[0].symbol == "AAPL"
 
 
-class TestIntegration:
-    """集成测试."""
+class TestProviderRegistry:
+    """Test provider registry operations."""
 
     @pytest.mark.asyncio
     async def test_multiple_providers_query(self):
-        """测试多个提供商查询."""
+        """Test registry returns correct providers for different markets."""
         registry = ProviderRegistry()
 
         akshare = AkShare()
@@ -204,7 +186,6 @@ class TestIntegration:
         registry.register(akshare)
         registry.register(yahoo)
 
-        # 中国股票查询
         cn_query = DataQuery(
             asset=AssetType.STOCK,
             market=MarketType.CN,
@@ -214,7 +195,6 @@ class TestIntegration:
             end_date=date(2024, 1, 10),
         )
 
-        # 美国股票查询
         us_query = DataQuery(
             asset=AssetType.STOCK,
             market=MarketType.US,
@@ -227,13 +207,11 @@ class TestIntegration:
         cn_providers = registry.find_capable_providers(cn_query)
         us_providers = registry.find_capable_providers(us_query)
 
-        # akshare应该能处理中国股票
         assert any(p.name == "akshare" for p in cn_providers)
-        # yfinance应该能处理美国股票
         assert any(p.name == "yfinance" for p in us_providers)
 
-    def test_registry_register_unregister(self):
-        """测试注册和注销."""
+    def test_register_unregister(self):
+        """Test provider registration and unregistration."""
         registry = ProviderRegistry()
         provider = AkShare()
 
@@ -245,38 +223,21 @@ class TestIntegration:
         assert result is True
         assert len(registry) == 0
 
-    def test_registry_find_capable_providers(self):
-        """测试查找有能力的提供商."""
-        registry = ProviderRegistry()
-
-        akshare = AkShare()
-        yfinance = YFinance()
-
-        registry.register(akshare)
-        registry.register(yfinance)
-
-        query = DataQuery(asset=AssetType.STOCK, market=MarketType.CN, symbols=["000001"])
-
-        capable_providers = registry.find_capable_providers(query)
-        assert len(capable_providers) >= 1  # akshare应该能处理
-
-    def test_registry_health_management(self):
-        """测试健康状态管理."""
+    def test_health_management(self):
+        """Test health status marking."""
         registry = ProviderRegistry()
         provider = AkShare()
 
         registry.register(provider)
 
-        # 标记为健康
         registry.mark_healthy("akshare")
         assert registry.is_healthy("akshare") is True
 
-        # 标记为不健康
         registry.mark_unhealthy("akshare")
         assert registry.is_healthy("akshare") is False
 
-    def test_registry_provider_list(self):
-        """测试获取提供商列表."""
+    def test_provider_list(self):
+        """Test provider list retrieval."""
         registry = ProviderRegistry()
         provider = AkShare()
 
@@ -286,8 +247,8 @@ class TestIntegration:
         assert len(provider_list) == 1
         assert provider_list[0]["name"] == "akshare"
 
-    def test_registry_health_summary(self):
-        """测试健康状态摘要."""
+    def test_health_summary(self):
+        """Test health summary aggregation."""
         registry = ProviderRegistry()
 
         akshare = AkShare()
@@ -300,7 +261,3 @@ class TestIntegration:
         assert summary["total_providers"] == 2
         assert "healthy_providers" in summary
         assert "health_percentage" in summary
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])

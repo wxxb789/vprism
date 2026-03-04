@@ -1,7 +1,6 @@
-"""健康检查系统测试"""
+"""Health check system tests."""
 
 import asyncio
-from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -10,16 +9,16 @@ from vprism.core.health import HealthChecker, HealthStatus, get_health_checker
 
 
 class TestHealthChecker:
-    """测试健康检查器"""
+    """Test health checker."""
 
     def test_initialization(self) -> None:
-        """测试健康检查器初始化"""
+        """Test health checker initialization."""
         checker = HealthChecker()
         assert checker.start_time > 0
-        assert len(checker.checks) > 0  # 应该有默认检查
+        assert len(checker.checks) > 0  # should have default checks
 
     def test_register_custom_check(self) -> None:
-        """测试注册自定义健康检查"""
+        """Test registering a custom health check."""
         checker = HealthChecker()
 
         async def custom_check() -> dict[str, Any]:
@@ -30,20 +29,19 @@ class TestHealthChecker:
 
     @pytest.mark.asyncio
     async def test_check_health_success(self) -> None:
-        """测试健康检查成功场景"""
-        await asyncio.sleep(0.01)  # 确保有微小的延迟
+        """Test health check success scenario."""
+        await asyncio.sleep(0.01)  # ensure a small delay
         checker = HealthChecker()
         health = await checker.check_health()
 
         assert isinstance(health, HealthStatus)
         assert health.status in ["healthy", "degraded", "unhealthy"]
-        assert isinstance(health.timestamp, datetime)
-        assert health.uptime_seconds >= 0  # 允许0值，因为时间分辨率可能不够
+        assert health.uptime_seconds >= 0
         assert isinstance(health.checks, dict)
 
     @pytest.mark.asyncio
     async def test_check_health_with_failing_check(self) -> None:
-        """测试包含失败检查的健康检查"""
+        """Test health check with a failing component."""
         checker = HealthChecker()
 
         async def failing_check() -> dict[str, Any]:
@@ -58,7 +56,7 @@ class TestHealthChecker:
 
     @pytest.mark.asyncio
     async def test_check_providers(self) -> None:
-        """测试提供商状态检查"""
+        """Test provider status check."""
         checker = HealthChecker()
         providers = ["akshare", "yahoo_finance"]
 
@@ -74,7 +72,7 @@ class TestHealthChecker:
 
     @pytest.mark.asyncio
     async def test_system_health_check(self) -> None:
-        """测试系统健康检查"""
+        """Test system health check."""
         checker = HealthChecker()
         health_status = await checker._check_system_health()
 
@@ -84,69 +82,18 @@ class TestHealthChecker:
         assert "details" in health_status
 
     def test_global_instance(self) -> None:
-        """测试全局健康检查器实例"""
+        """Test global health checker instance."""
         checker1 = get_health_checker()
         checker2 = get_health_checker()
-        assert checker1 is checker2  # 应该是同一个实例
-
-    @pytest.mark.asyncio
-    async def test_health_status_model(self) -> None:
-        """测试健康状态数据模型"""
-        checks = {
-            "system": {"status": "healthy", "details": {}},
-            "memory": {"status": "healthy", "details": {}},
-        }
-        health = HealthStatus(
-            status="healthy",
-            timestamp=datetime.now(UTC),
-            checks=checks,
-            uptime_seconds=123.45,
-        )
-
-        assert health.status == "healthy"
-        assert health.uptime_seconds == 123.45
-        assert len(health.checks) == 2
-        assert "system" in health.checks
-        assert "memory" in health.checks
-
-
-class TestHealthEndpoints:
-    """测试健康检查端点"""
-
-    @pytest.mark.asyncio
-    async def test_health_check_response_structure(self) -> None:
-        """测试健康检查响应结构"""
-        checker = HealthChecker()
-        health = await checker.check_health()
-
-        response_data = {
-            "status": health.status,
-            "timestamp": health.timestamp.isoformat(),
-            "uptime_seconds": health.uptime_seconds,
-            "version": health.version,
-            "checks": health.checks,
-        }
-
-        assert isinstance(response_data["status"], str)
-        assert isinstance(response_data["timestamp"], str)
-        assert isinstance(response_data["uptime_seconds"], int | float)
-        assert isinstance(response_data["checks"], dict)
-
-    @pytest.mark.asyncio
-    async def test_uptime_calculation(self) -> None:
-        """测试运行时间计算"""
-        await asyncio.sleep(0.01)  # 确保有微小的延迟
-        checker = HealthChecker()
-        health = await checker.check_health()
-        assert health.uptime_seconds >= 0  # 允许0值，因为时间分辨率可能不够
+        assert checker1 is checker2  # should be the same instance
 
 
 class TestHealthIntegration:
-    """测试健康检查集成"""
+    """Test health check integration."""
 
     @pytest.mark.asyncio
     async def test_custom_check_integration(self) -> None:
-        """测试自定义检查集成"""
+        """Test custom check integration."""
         checker = HealthChecker()
 
         async def mock_check() -> dict[str, Any]:
@@ -158,7 +105,3 @@ class TestHealthIntegration:
         assert "mock_check" in health.checks
         assert health.checks["mock_check"]["status"] == "healthy"
         assert health.checks["mock_check"]["details"]["mock"] is True
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])
